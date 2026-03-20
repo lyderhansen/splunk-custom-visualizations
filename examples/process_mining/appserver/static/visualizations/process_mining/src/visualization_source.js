@@ -591,22 +591,23 @@ define([
             return { positions: positions, graphWidth: canvasW, graphHeight: canvasH };
         }
 
+        // Padding to keep nodes away from edges (room for labels)
+        var pad = 50;
+
         if (direction === 'left-right') {
-            // Levels are columns (x-axis), nodes spread vertically (y-axis)
-            // KPI header is at the top (y-axis), so subtract from available height
-            var availableW = canvasW;
-            var availableH = canvasH - kpiReserve;
+            var availableW = canvasW - pad * 2;
+            var availableH = canvasH - kpiReserve - pad * 2;
             var levelSpacingX = availableW / (levelCount + 1);
 
             for (i = 0; i < levelGroups.length; i++) {
                 var group = levelGroups[i];
                 var nodeCount = group.length;
-                var x = levelSpacingX * (i + 1);
+                var x = pad + levelSpacingX * (i + 1);
                 var nodeSpacingY = availableH / (nodeCount + 1);
 
                 for (j = 0; j < group.length; j++) {
                     var nid = group[j];
-                    var y = kpiReserve + nodeSpacingY * (j + 1);
+                    var y = kpiReserve + pad + nodeSpacingY * (j + 1);
                     positions[nid] = { x: x, y: y };
                 }
             }
@@ -618,20 +619,19 @@ define([
             };
 
         } else {
-            // top-down (default): levels are rows (y-axis), nodes spread horizontally (x-axis)
-            var availableH2 = canvasH - kpiReserve;
-            var availableW2 = canvasW;
+            var availableH2 = canvasH - kpiReserve - pad * 2;
+            var availableW2 = canvasW - pad * 2;
             var levelSpacingY = availableH2 / (levelCount + 1);
 
             for (i = 0; i < levelGroups.length; i++) {
                 var group2 = levelGroups[i];
                 var nodeCount2 = group2.length;
-                var y2 = kpiReserve + levelSpacingY * (i + 1);
+                var y2 = kpiReserve + pad + levelSpacingY * (i + 1);
                 var nodeSpacingX = availableW2 / (nodeCount2 + 1);
 
                 for (j = 0; j < group2.length; j++) {
                     var nid2 = group2[j];
-                    var x2 = nodeSpacingX * (j + 1);
+                    var x2 = pad + nodeSpacingX * (j + 1);
                     positions[nid2] = { x: x2, y: y2 };
                 }
             }
@@ -656,14 +656,13 @@ define([
      */
     function computeNodeRadius(count, maxCount, nodeId) {
         if (nodeId === '__start__' || nodeId === '__end__') {
-            return 20;
+            return 12;
         }
         if (!maxCount || maxCount <= 0) {
-            return 30;
+            return 20;
         }
         var ratio = count / maxCount;
-        // Linear interpolation between 30 and 60
-        return 30 + ratio * 30;
+        return 20 + ratio * 16;
     }
 
     // ── Drawing Helpers ──────────────────────────────────────
@@ -721,72 +720,60 @@ define([
         ctx.save();
 
         var fillColor = isHovered ? lightenColor(color, 0.3) : color;
-        var borderWidth = isHovered ? 3 : 2;
+        var borderWidth = isHovered ? 2.5 : 1.5;
 
         if (isStart) {
-            // Dark small circle with "Start" label below
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, 2 * Math.PI);
             ctx.fillStyle = isHovered ? '#555' : '#333';
             ctx.fill();
-            ctx.strokeStyle = '#fff';
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
             ctx.lineWidth = borderWidth;
             ctx.stroke();
-
-            ctx.fillStyle = '#ccc';
-            ctx.font = '11px sans-serif';
+            ctx.fillStyle = 'rgba(200,200,200,0.8)';
+            ctx.font = '9px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            ctx.fillText('Start', x, y + radius + 4);
+            ctx.fillText('Start', x, y + radius + 3);
 
         } else if (isEnd) {
-            // Double circle (outer ring + inner filled)
-            var outerR = radius + 5;
             ctx.beginPath();
-            ctx.arc(x, y, outerR, 0, 2 * Math.PI);
-            ctx.strokeStyle = isHovered ? lightenColor('#607d8b', 0.3) : '#607d8b';
-            ctx.lineWidth = borderWidth;
+            ctx.arc(x, y, radius + 3, 0, 2 * Math.PI);
+            ctx.strokeStyle = isHovered ? lightenColor('#607d8b', 0.3) : 'rgba(96,125,139,0.6)';
+            ctx.lineWidth = 1.5;
             ctx.stroke();
-
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, 2 * Math.PI);
             ctx.fillStyle = isHovered ? '#555' : '#333';
             ctx.fill();
-            ctx.strokeStyle = '#fff';
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
             ctx.lineWidth = borderWidth;
             ctx.stroke();
-
-            ctx.fillStyle = '#ccc';
-            ctx.font = '11px sans-serif';
+            ctx.fillStyle = 'rgba(200,200,200,0.8)';
+            ctx.font = '9px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            ctx.fillText('End', x, y + outerR + 4);
+            ctx.fillText('End', x, y + radius + 6);
 
         } else {
-            // Regular activity node
+            // Node shadow
+            ctx.shadowColor = 'rgba(0,0,0,0.25)';
+            ctx.shadowBlur = 6;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 2;
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, 2 * Math.PI);
             ctx.fillStyle = fillColor;
             ctx.fill();
-            ctx.strokeStyle = '#fff';
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
             ctx.lineWidth = borderWidth;
             ctx.stroke();
 
-            // Count label above the activity label (bold monospace)
-            var labelY = y;
-            if (showCount && count !== undefined && count !== null) {
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 11px monospace';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                labelY = y + 6;
-                ctx.fillText(String(count), x, y - 7);
-            }
-
-            // Activity label — auto-size to fit inside diameter
-            var truncated = truncateText(label, 20);
-            var maxW = radius * 1.6;
-            var fontSize = 13;
+            // Activity label below node center
+            var truncated = truncateText(label, 16);
+            var maxW = radius * 2.2;
+            var fontSize = Math.min(11, Math.max(8, radius * 0.55));
             ctx.font = fontSize + 'px sans-serif';
             while (fontSize > 7 && ctx.measureText(truncated).width > maxW) {
                 fontSize--;
@@ -794,8 +781,16 @@ define([
             }
             ctx.fillStyle = '#fff';
             ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(truncated, x, labelY);
+            ctx.textBaseline = 'top';
+            ctx.fillText(truncated, x, y + radius + 3);
+
+            // Count badge inside node
+            if (showCount && count !== undefined && count !== null) {
+                ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                ctx.font = 'bold ' + Math.max(9, radius * 0.6) + 'px monospace';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(count), x, y);
+            }
         }
 
         ctx.restore();
@@ -813,24 +808,23 @@ define([
         ctx.fillStyle = strokeColor;
 
         if (isSelfLoop) {
-            // Draw a loop arc above/right of the node
-            var loopR = fromR * 0.9;
-            var loopX = fromX + fromR * 0.7;
-            var loopY = fromY - fromR * 0.7;
+            // Small loop arc at top-right of node
+            var loopR = Math.max(8, fromR * 0.5);
+            var loopX = fromX + fromR * 0.6;
+            var loopY = fromY - fromR * 0.6;
             ctx.beginPath();
-            ctx.arc(loopX, loopY, loopR, 0, 2 * Math.PI);
+            ctx.arc(loopX, loopY, loopR, 0.3, 2 * Math.PI - 0.3);
             ctx.stroke();
 
-            // Arrowhead at the bottom of the loop
-            var arrowAngle = Math.PI / 2;
-            drawArrowhead(ctx, loopX, loopY + loopR, arrowAngle, 8, strokeColor);
+            var arrowAngle = Math.PI * 0.6;
+            drawArrowhead(ctx, loopX - loopR * Math.cos(0.3), loopY + loopR * Math.sin(0.3), arrowAngle, 5, strokeColor);
 
             if (showLabel && count !== undefined) {
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 10px monospace';
+                ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                ctx.font = 'bold 9px monospace';
                 ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(String(count), loopX, loopY - loopR - 6);
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(String(count), loopX, loopY - loopR - 2);
             }
 
         } else {
@@ -851,10 +845,10 @@ define([
             var ex = toX - ux * toR;
             var ey = toY - uy * toR;
 
-            // Perpendicular offset for bezier control point
+            // Gentle perpendicular offset for bezier control point
             var perpX = -uy;
             var perpY = ux;
-            var curvature = Math.min(dist * 0.2, 40);
+            var curvature = Math.min(dist * 0.1, 20);
             var cx = (sx + ex) / 2 + perpX * curvature;
             var cy = (sy + ey) / 2 + perpY * curvature;
 
@@ -867,21 +861,32 @@ define([
             var arrowDx = ex - cx;
             var arrowDy = ey - cy;
             var angle = Math.atan2(arrowDy, arrowDx);
-            drawArrowhead(ctx, ex, ey, angle, 8, strokeColor);
+            drawArrowhead(ctx, ex, ey, angle, 6, strokeColor);
 
             // Edge count label at bezier midpoint t=0.5
             if (showLabel && count !== undefined) {
                 var midX = 0.25 * sx + 0.5 * cx + 0.25 * ex;
                 var midY = 0.25 * sy + 0.5 * cy + 0.25 * ey;
                 ctx.save();
-                ctx.fillStyle = '#fff';
-                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-                ctx.lineWidth = 3;
-                ctx.font = 'bold 10px monospace';
+                // Small pill background
+                var labelText = String(count);
+                ctx.font = 'bold 9px monospace';
+                var tw = ctx.measureText(labelText).width;
+                var pw = tw + 6;
+                var ph = 13;
+                ctx.fillStyle = 'rgba(30,30,30,0.75)';
+                ctx.beginPath();
+                ctx.moveTo(midX - pw / 2 + 3, midY - ph / 2);
+                ctx.arcTo(midX + pw / 2, midY - ph / 2, midX + pw / 2, midY + ph / 2, 3);
+                ctx.arcTo(midX + pw / 2, midY + ph / 2, midX - pw / 2, midY + ph / 2, 3);
+                ctx.arcTo(midX - pw / 2, midY + ph / 2, midX - pw / 2, midY - ph / 2, 3);
+                ctx.arcTo(midX - pw / 2, midY - ph / 2, midX + pw / 2, midY - ph / 2, 3);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.9)';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.strokeText(String(count), midX, midY);
-                ctx.fillText(String(count), midX, midY);
+                ctx.fillText(labelText, midX, midY);
                 ctx.restore();
             }
         }
@@ -923,19 +928,27 @@ define([
         var colW = w / labels.length;
         ctx.save();
 
+        // Subtle separator line
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, 54);
+        ctx.lineTo(w, 54);
+        ctx.stroke();
+
         for (var i = 0; i < labels.length; i++) {
             var cx = colW * i + colW / 2;
 
-            // Small grey label on top
-            ctx.fillStyle = '#9e9e9e';
+            // Label
+            ctx.fillStyle = 'rgba(160,160,160,0.7)';
             ctx.font = '10px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            ctx.fillText(labels[i], cx, 8);
+            ctx.fillText(labels[i], cx, 6);
 
-            // Large value below
+            // Value
             ctx.fillStyle = kpiColor;
-            ctx.font = 'bold 16px monospace';
+            ctx.font = 'bold 18px monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
             ctx.fillText(values[i], cx, 24);
@@ -1406,7 +1419,7 @@ define([
                 var toNode = nodeById[edge.to];
                 var fromR = computeNodeRadius(fromNode ? fromNode.count : 0, maxCount, edge.from);
                 var toR = computeNodeRadius(toNode ? toNode.count : 0, maxCount, edge.to);
-                var thickness = maxEdgeCount > 0 ? 1 + (edge.count / maxEdgeCount) * 5 : 2;
+                var thickness = maxEdgeCount > 0 ? 0.8 + (edge.count / maxEdgeCount) * 2.5 : 1.2;
                 var isSelfLoop = edge.from === edge.to;
                 var isHoveredEdge = this._hoverItem && this._hoverItem.type === 'edge' && this._hoverItem.from === edge.from && this._hoverItem.to === edge.to;
 
@@ -1421,9 +1434,9 @@ define([
                 };
                 if (isSelfLoop) {
                     // Match drawEdge self-loop geometry
-                    hitData.loopX = fromPos.x + fromR * 0.7;
-                    hitData.loopY = fromPos.y - fromR * 0.7;
-                    hitData.loopR = fromR * 0.9;
+                    hitData.loopX = fromPos.x + fromR * 0.6;
+                    hitData.loopY = fromPos.y - fromR * 0.6;
+                    hitData.loopR = Math.max(8, fromR * 0.5);
                 } else {
                     // Match drawEdge bezier geometry (start/end on circle edges)
                     var edx = toPos.x - fromPos.x;
@@ -1438,7 +1451,7 @@ define([
                         hitData.ey = toPos.y - euy * toR;
                         var eperpX = -euy;
                         var eperpY = eux;
-                        var ecurve = Math.min(edist * 0.2, 40);
+                        var ecurve = Math.min(edist * 0.1, 20);
                         hitData.cpx = (hitData.sx + hitData.ex) / 2 + eperpX * ecurve;
                         hitData.cpy = (hitData.sy + hitData.ey) / 2 + eperpY * ecurve;
                     }
