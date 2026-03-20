@@ -774,7 +774,7 @@ define([
 
         if (style === 'vertical') {
             var availH = canvasH - kpiReserve - pad * 2;
-            var mainSpacing = Math.max(80, availH / (mainPath.length + 1));
+            var mainSpacing = Math.max(90, availH / (mainPath.length + 1));
             var centerX = canvasW / 2;
 
             // Place main path nodes centered vertically
@@ -833,7 +833,7 @@ define([
         } else {
             // horizontal
             var availW = canvasW - pad * 2;
-            var mainSpacingH = Math.max(80, availW / (mainPath.length + 1));
+            var mainSpacingH = Math.max(140, availW / (mainPath.length + 1));
             var centerY = kpiReserve + (canvasH - kpiReserve) / 2;
 
             // Place main path nodes on horizontal center line
@@ -1017,77 +1017,73 @@ define([
             ctx.textBaseline = 'top';
             ctx.fillText(isStart ? 'Start' : 'End', x, y + radius + (isEnd ? 5 : 2));
         } else if (shape === 'rectangle') {
-            // Rectangle node — rounded rect
-            var rw = radius * 2.5;
-            var rh = radius * 1.8;
-            var cornerR = 4;
+            // Rectangle node — readable size, min 100x40
+            var rw = Math.max(100, radius * 5);
+            var rh = Math.max(40, radius * 2.5);
+            var cornerR = 5;
             var rx = x - rw / 2;
             var ry = y - rh / 2;
 
-            ctx.shadowColor = 'rgba(0,0,0,0.2)';
-            ctx.shadowBlur = 4;
-            ctx.shadowOffsetY = 1;
+            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+            ctx.shadowBlur = 6;
+            ctx.shadowOffsetY = 2;
             roundedRectPath(ctx, rx, ry, rw, rh, cornerR);
             ctx.fillStyle = isHovered ? lightenColor(color, 0.3) : color;
             ctx.fill();
             ctx.shadowBlur = 0;
-            ctx.strokeStyle = isHovered ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)';
+            ctx.strokeStyle = isHovered ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)';
             ctx.lineWidth = isHovered ? 2 : 1;
             ctx.stroke();
 
-            // Count on first line (bold), label on second line, both inside
-            var cSize = Math.max(8, Math.min(14, radius * 0.7));
-            var lSize = Math.max(7, Math.min(10, radius * 0.5));
+            // Count on first line (bold), label on second line
             if (showCount && count !== undefined && count !== null) {
                 ctx.fillStyle = 'rgba(255,255,255,0.95)';
-                ctx.font = 'bold ' + cSize + 'px monospace';
+                ctx.font = 'bold 13px monospace';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(formatCount(count), x, y - lSize * 0.4);
+                ctx.fillText(formatCount(count), x, y - 7);
             }
-            var truncated = truncateText(label, 18);
-            ctx.font = lSize + 'px sans-serif';
-            var maxLabelW = rw - 6;
-            while (lSize > 6 && ctx.measureText(truncated).width > maxLabelW) {
-                lSize--;
-                ctx.font = lSize + 'px sans-serif';
+            var truncated = truncateText(label, 20);
+            ctx.font = '10px sans-serif';
+            var maxLabelW = rw - 10;
+            while (ctx.measureText(truncated).width > maxLabelW) {
+                truncated = truncateText(label, truncated.length - 2);
+                if (truncated.length <= 3) break;
             }
-            ctx.fillStyle = 'rgba(220,220,220,0.85)';
+            ctx.fillStyle = 'rgba(230,230,230,0.9)';
             ctx.textBaseline = 'middle';
-            ctx.fillText(truncated, x, y + cSize * 0.5);
+            ctx.fillText(truncated, x, y + 8);
 
         } else if (shape === 'diamond') {
-            // Diamond node — rotated square
-            var dSize = radius * 1.3;
-            ctx.shadowColor = 'rgba(0,0,0,0.2)';
-            ctx.shadowBlur = 4;
-            ctx.shadowOffsetY = 1;
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(Math.PI / 4);
+            // Diamond — elongated, readable
+            var dW = Math.max(70, radius * 4);
+            var dH = Math.max(35, radius * 2);
+            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+            ctx.shadowBlur = 6;
+            ctx.shadowOffsetY = 2;
             ctx.beginPath();
-            ctx.rect(-dSize, -dSize, dSize * 2, dSize * 2);
+            ctx.moveTo(x, y - dH / 2);
+            ctx.lineTo(x + dW / 2, y);
+            ctx.lineTo(x, y + dH / 2);
+            ctx.lineTo(x - dW / 2, y);
+            ctx.closePath();
             ctx.fillStyle = isHovered ? lightenColor(color, 0.3) : color;
             ctx.fill();
             ctx.shadowBlur = 0;
-            ctx.strokeStyle = isHovered ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)';
+            ctx.strokeStyle = isHovered ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)';
             ctx.lineWidth = isHovered ? 2 : 1;
             ctx.stroke();
-            ctx.restore();
 
-            // Text drawn without rotation
-            var dcSize = Math.max(8, Math.min(12, radius * 0.6));
-            var dlSize = Math.max(7, Math.min(9, radius * 0.45));
             if (showCount && count !== undefined && count !== null) {
                 ctx.fillStyle = 'rgba(255,255,255,0.95)';
-                ctx.font = 'bold ' + dcSize + 'px monospace';
+                ctx.font = 'bold 12px monospace';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(formatCount(count), x, y - dlSize * 0.4);
+                ctx.fillText(formatCount(count), x, y - 6);
             }
             var dTrunc = truncateText(label, 14);
-            ctx.font = dlSize + 'px sans-serif';
-            ctx.fillStyle = 'rgba(220,220,220,0.85)';
+            ctx.font = '9px sans-serif';
+            ctx.fillStyle = 'rgba(230,230,230,0.9)';
             ctx.textBaseline = 'middle';
-            ctx.fillText(dTrunc, x, y + dcSize * 0.5);
+            ctx.fillText(dTrunc, x, y + 8);
 
         } else {
             // Circle node (default / fallback)
@@ -1394,19 +1390,16 @@ define([
      */
     function pointInNode(px, py, nx, ny, r, shape) {
         if (shape === 'rectangle') {
-            var rw = r * 2.5;
-            var rh = r * 1.8;
+            var rw = Math.max(100, r * 5);
+            var rh = Math.max(40, r * 2.5);
             return px >= nx - rw / 2 && px <= nx + rw / 2 && py >= ny - rh / 2 && py <= ny + rh / 2;
         } else if (shape === 'diamond') {
-            // Diamond hit test: rotate point by -45deg relative to center, check against square
-            var dSize = r * 1.3;
-            var dx = px - nx;
-            var dy = py - ny;
-            var cos45 = Math.cos(Math.PI / 4);
-            var sin45 = Math.sin(Math.PI / 4);
-            var rdx = dx * cos45 + dy * sin45;
-            var rdy = -dx * sin45 + dy * cos45;
-            return Math.abs(rdx) <= dSize && Math.abs(rdy) <= dSize;
+            var dW = Math.max(70, r * 4) / 2;
+            var dH = Math.max(35, r * 2) / 2;
+            // Diamond hit: |dx/dW| + |dy/dH| <= 1
+            var dx = Math.abs(px - nx) / dW;
+            var dy = Math.abs(py - ny) / dH;
+            return (dx + dy) <= 1;
         }
         return pointInCircle(px, py, nx, ny, r);
     }
@@ -2005,13 +1998,23 @@ define([
 
                 // Determine node color based on most common status
                 var nColor = nodeColor;
+                var hasErrors = false;
+                var errorCount = 0;
                 if (!isStart && !isEnd && node.statuses) {
                     var topStatus = null;
                     var topCount = 0;
+                    // Check for any error statuses
                     for (var sk in node.statuses) {
-                        if (node.statuses.hasOwnProperty(sk) && node.statuses[sk] > topCount) {
-                            topCount = node.statuses[sk];
-                            topStatus = sk;
+                        if (node.statuses.hasOwnProperty(sk)) {
+                            var ls = sk.toLowerCase();
+                            if (ls === 'error' || ls === 'fail' || ls === 'failed' || ls.charAt(0) === '4' || ls.charAt(0) === '5') {
+                                hasErrors = true;
+                                errorCount += node.statuses[sk];
+                            }
+                            if (node.statuses[sk] > topCount) {
+                                topCount = node.statuses[sk];
+                                topStatus = sk;
+                            }
                         }
                     }
                     if (topStatus) {
@@ -2021,7 +2024,6 @@ define([
                         } else if (lowerStatus === 'error' || lowerStatus === 'fail' || lowerStatus === 'failed' || lowerStatus.charAt(0) === '4' || lowerStatus.charAt(0) === '5') {
                             nColor = errorColor;
                         }
-                        // else keep default nodeColor for unknown statuses like "pending"
                     }
                 }
 
@@ -2045,6 +2047,25 @@ define([
 
                 var isHoveredNode = this._hoverItem && this._hoverItem.type === 'node' && this._hoverItem.id === node.id;
                 drawNode(ctx, pos.x, pos.y, radius, node.name, node.count, nColor, isStart, isEnd, isHoveredNode, showNodeCounts, nodeShape);
+
+                // Draw error indicator dot if node has any errors
+                if (hasErrors && !isStart && !isEnd) {
+                    var dotX = pos.x + (nodeShape === 'rectangle' ? Math.max(50, radius * 2.5) / 2 - 4 : radius - 2);
+                    var dotY = pos.y - (nodeShape === 'rectangle' ? Math.max(20, radius * 1.25) - 4 : radius - 2);
+                    ctx.beginPath();
+                    ctx.arc(dotX, dotY, 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = errorColor;
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    // Error count inside dot
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 7px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(formatCount(errorCount), dotX, dotY);
+                }
 
                 // Store hit data
                 this._hitNodes.push({
