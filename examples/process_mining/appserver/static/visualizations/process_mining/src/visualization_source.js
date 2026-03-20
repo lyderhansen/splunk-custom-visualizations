@@ -593,19 +593,20 @@ define([
 
         if (direction === 'left-right') {
             // Levels are columns (x-axis), nodes spread vertically (y-axis)
-            var availableW = canvasW - kpiReserve;
-            var availableH = canvasH;
+            // KPI header is at the top (y-axis), so subtract from available height
+            var availableW = canvasW;
+            var availableH = canvasH - kpiReserve;
             var levelSpacingX = availableW / (levelCount + 1);
 
             for (i = 0; i < levelGroups.length; i++) {
                 var group = levelGroups[i];
                 var nodeCount = group.length;
-                var x = kpiReserve + levelSpacingX * (i + 1);
+                var x = levelSpacingX * (i + 1);
                 var nodeSpacingY = availableH / (nodeCount + 1);
 
                 for (j = 0; j < group.length; j++) {
                     var nid = group[j];
-                    var y = nodeSpacingY * (j + 1);
+                    var y = kpiReserve + nodeSpacingY * (j + 1);
                     positions[nid] = { x: x, y: y };
                 }
             }
@@ -1116,8 +1117,21 @@ define([
                 var rect = self.canvas.getBoundingClientRect();
                 var mx = e.clientX - rect.left;
                 var my = e.clientY - rect.top;
-                // Check if clicking a zoom button (stored in _hitButtons)
-                // Otherwise start panning
+                // Skip panning if over a zoom button
+                if (self._hitButtons) {
+                    for (var bi = 0; bi < self._hitButtons.length; bi++) {
+                        var btn = self._hitButtons[bi];
+                        if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) return;
+                    }
+                }
+                // Skip panning if over a node (let click handle drilldown)
+                var kpiR = self._kpiReserve || 0;
+                var worldCoord = screenToWorld(mx, my, self._tx, self._ty, self._scale, kpiR);
+                for (var ni = 0; ni < self._hitNodes.length; ni++) {
+                    var nd = self._hitNodes[ni];
+                    if (pointInCircle(worldCoord.x, worldCoord.y, nd.x, nd.y, nd.r)) return;
+                }
+                // Start panning
                 self._isPanning = true;
                 self._panStartX = mx;
                 self._panStartY = my;
@@ -1166,8 +1180,11 @@ define([
                         }
                         resArr.sort(function(a, b) { return b.count - a.count; });
                         if (resArr.length > 0) {
-                            var resStr = resArr.slice(0, 3).map(function(r) { return r.name; }).join(', ');
-                            tooltipLines.push('Resources: ' + resStr);
+                            var resNames = [];
+                            for (var ri = 0; ri < Math.min(3, resArr.length); ri++) {
+                                resNames.push(resArr[ri].name);
+                            }
+                            tooltipLines.push('Resources: ' + resNames.join(', '));
                         }
                         found = { type: 'node', id: n.id, mouseX: mx, mouseY: my, tooltipLines: tooltipLines };
                         break;
@@ -1178,32 +1195,23 @@ define([
                 if (!found) {
                     for (var j = 0; j < self._hitEdges.length; j++) {
                         var edge = self._hitEdges[j];
-                        // Need to compute the bezier control point (same logic as drawEdge)
+                        var edgeHit = false;
                         if (edge.isSelfLoop) {
-                            // Simple check: circle area above/right of node
-                            if (pointInCircle(wx, wy, edge.fromX + edge.fromR + 15, edge.fromY - edge.fromR - 15, 20)) {
-                                var eDur = edge.durations.length > 0 ? formatDuration(median(edge.durations)) : 'N/A';
-                                found = { type: 'edge', from: edge.from, to: edge.to, mouseX: mx, mouseY: my,
-                                    tooltipLines: [edge.from + ' \u2192 ' + edge.to, 'Count: ' + edge.count, 'Avg duration: ' + eDur] };
-                                break;
+                            // Use stored self-loop geometry (matches drawEdge)
+                            if (edge.loopR && pointInCircle(wx, wy, edge.loopX, edge.loopY, edge.loopR + 6)) {
+                                edgeHit = true;
                             }
-                        } else {
-                            // Compute bezier control point (perpendicular offset)
-                            var midX = (edge.fromX + edge.toX) / 2;
-                            var midY = (edge.fromY + edge.toY) / 2;
-                            var dx = edge.toX - edge.fromX;
-                            var dy = edge.toY - edge.fromY;
-                            var len = Math.sqrt(dx * dx + dy * dy);
-                            var offset = Math.min(30, len * 0.15);
-                            var cpx = midX + (dy / (len || 1)) * offset;
-                            var cpy = midY - (dx / (len || 1)) * offset;
-
-                            if (pointNearBezier(wx, wy, edge.fromX, edge.fromY, cpx, cpy, edge.toX, edge.toY, 6)) {
-                                var dur = edge.durations.length > 0 ? formatDuration(median(edge.durations)) : 'N/A';
-                                found = { type: 'edge', from: edge.from, to: edge.to, mouseX: mx, mouseY: my,
-                                    tooltipLines: [edge.from + ' \u2192 ' + edge.to, 'Count: ' + edge.count, 'Median duration: ' + dur] };
-                                break;
+                        } else if (edge.cpx !== undefined) {
+                            // Use stored bezier geometry (matches drawEdge)
+                            if (pointNearBezier(wx, wy, edge.sx, edge.sy, edge.cpx, edge.cpy, edge.ex, edge.ey, 6)) {
+                                edgeHit = true;
                             }
+                        }
+                        if (edgeHit) {
+                            var dur = edge.durations.length > 0 ? formatDuration(median(edge.durations)) : 'N/A';
+                            found = { type: 'edge', from: edge.from, to: edge.to, mouseX: mx, mouseY: my,
+                                tooltipLines: [edge.from + ' \u2192 ' + edge.to, 'Count: ' + edge.count, 'Median duration: ' + dur] };
+                            break;
                         }
                     }
                 }
@@ -1359,7 +1367,7 @@ define([
                 nodeIds.push(graph.nodes[ni].id);
             }
             var levelGroups = minimizeCrossings(levelMap, dagEdges, nodeIds);
-            var layout = assignPositions(levelGroups, graph.nodes, layoutDirection, w, h - kpiReserve, kpiReserve);
+            var layout = assignPositions(levelGroups, graph.nodes, layoutDirection, w, h, kpiReserve);
 
             // 8. Compute max count for radius scaling
             var maxCount = 0;
@@ -1404,16 +1412,38 @@ define([
 
                 drawEdge(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, fromR, toR, edge.count, edgeColor, thickness, isHoveredEdge, showEdgeLabels, isSelfLoop);
 
-                // Store edge hit data (bezier control point will be needed for hit testing later)
-                this._hitEdges.push({
+                // Store edge hit data with actual bezier geometry matching drawEdge
+                var hitData = {
                     from: edge.from, to: edge.to,
-                    fromX: fromPos.x, fromY: fromPos.y,
-                    toX: toPos.x, toY: toPos.y,
-                    fromR: fromR, toR: toR,
                     count: edge.count,
                     durations: edge.durations,
                     isSelfLoop: isSelfLoop
-                });
+                };
+                if (isSelfLoop) {
+                    // Match drawEdge self-loop geometry
+                    hitData.loopX = fromPos.x + fromR * 0.7;
+                    hitData.loopY = fromPos.y - fromR * 0.7;
+                    hitData.loopR = fromR * 0.9;
+                } else {
+                    // Match drawEdge bezier geometry (start/end on circle edges)
+                    var edx = toPos.x - fromPos.x;
+                    var edy = toPos.y - fromPos.y;
+                    var edist = Math.sqrt(edx * edx + edy * edy);
+                    if (edist > 0) {
+                        var eux = edx / edist;
+                        var euy = edy / edist;
+                        hitData.sx = fromPos.x + eux * fromR;
+                        hitData.sy = fromPos.y + euy * fromR;
+                        hitData.ex = toPos.x - eux * toR;
+                        hitData.ey = toPos.y - euy * toR;
+                        var eperpX = -euy;
+                        var eperpY = eux;
+                        var ecurve = Math.min(edist * 0.2, 40);
+                        hitData.cpx = (hitData.sx + hitData.ex) / 2 + eperpX * ecurve;
+                        hitData.cpy = (hitData.sy + hitData.ey) / 2 + eperpY * ecurve;
+                    }
+                }
+                this._hitEdges.push(hitData);
             }
 
             // 14. Draw nodes
