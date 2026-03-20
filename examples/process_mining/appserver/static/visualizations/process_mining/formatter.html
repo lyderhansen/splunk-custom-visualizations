@@ -1,0 +1,106 @@
+<form class="splunk-formatter-section" section-label="Fields">
+
+    <splunk-control-group label="Case ID Field" help="Column that groups events into a process flow">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.caseField" value="case_id">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Activity Field" help="Column with the activity/step name">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.activityField" value="activity">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Time Field" help="Column with the event timestamp">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.timeField" value="_time">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Status Field" help="Column for node color-coding (optional)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.statusField" value="status">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Resource Field" help="Column for resource info in tooltips (optional)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.resourceField" value="resource">
+        </splunk-text-input>
+    </splunk-control-group>
+
+</form>
+
+<form class="splunk-formatter-section" section-label="Layout">
+
+    <splunk-control-group label="Direction" help="Graph flow direction">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.layoutDirection" value="top-down">
+            <option value="top-down">Top → Down</option>
+            <option value="left-right">Left → Right</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+</form>
+
+<form class="splunk-formatter-section" section-label="Appearance">
+
+    <splunk-control-group label="Node Color" help="Default node fill color">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.nodeColor" value="#607d8b">
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Edge Color" help="Edge line color">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.edgeColor" value="#90a4ae">
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Success Color" help="Node color for success status">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.successColor" value="#4caf50">
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Error Color" help="Node color for error status">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.errorColor" value="#f44336">
+        </splunk-color-picker>
+    </splunk-control-group>
+
+</form>
+
+<form class="splunk-formatter-section" section-label="KPIs">
+
+    <splunk-control-group label="Show KPIs" help="Display summary metrics above the graph">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showKPIs" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="KPI Color" help="Color for KPI values">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.kpiColor" value="#00bcd4">
+        </splunk-color-picker>
+    </splunk-control-group>
+
+</form>
+
+<form class="splunk-formatter-section" section-label="Labels">
+
+    <splunk-control-group label="Edge Labels" help="Show transition counts on edges">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showEdgeLabels" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Node Counts" help="Show event counts on nodes">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showNodeCounts" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+</form>
+
+<form class="splunk-formatter-section" section-label="Drilldown">
+
+    <splunk-control-group label="Drilldown Field" help="Field name sent on node click">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.drilldownField" value="activity">
+        </splunk-text-input>
+    </splunk-control-group>
+
+</form>
