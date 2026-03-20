@@ -19,9 +19,15 @@ Display label: "Process Mining"
 | status | `statusField` | `status` | No | Color-codes nodes (success/error/ok) |
 | resource | `resourceField` | `resource` | No | Who/what performed the step (shown in tooltip) |
 
-### Internal Computation (in visualization JS)
+### Lifecycle Method Responsibilities
 
-1. Group rows by `case_id`, sort each group by `_time`
+- **`getInitialDataParams`**: `count: 10000`. If event volume exceeds 10,000 rows, the graph represents a sample. Consider pre-aggregating transitions in SPL for larger datasets.
+- **`formatData`**: Build `colIdx` map from `data.fields`, pass through raw `data.rows` array. Cache result on `_lastGoodData` for real-time robustness. No config reading, no computation.
+- **`updateView`**: Read all field settings from config, then run the full pipeline: group by case, sort by time, build transitions, compute KPIs, run layout algorithm, render to Canvas. If `data` is falsy, fall back to `_lastGoodData`.
+
+### Internal Computation (all in updateView)
+
+1. Group rows by `case_id`, sort each group by `_time` (tiebreaker: row order for identical timestamps)
 2. Build transitions: for each case, consecutive activity pairs → `(A → B)`
 3. Aggregate: count per node, count per edge, avg/median duration per edge
 4. Add synthetic `Start` node (before first activity per case) and `End` node (after last activity per case)
@@ -50,10 +56,13 @@ Layered layout algorithm (Sugiyama-inspired), implemented from scratch with no e
 ### Node Rendering
 
 - Circle with activity name and count inside (e.g., "133 Invoice Entry")
+- Radius: proportional to count (min 30px, max 60px), with text auto-sized to fit
+- Activity names longer than 20 characters truncated with ellipsis
 - Color based on most common `status` for that activity — configurable color scale
-- Default: grey (`#607d8b`) for ok, green (`#4caf50`) for success, red (`#f44336`) for error
-- Start node: dark filled circle
-- End node: double circle
+- Default: grey (`nodeColor` / `#607d8b`) for ok/unknown/no status field, green (`successColor`) for success, red (`errorColor`) for error
+- If `statusField` column is absent, all nodes use `nodeColor`
+- Start node: dark filled circle (smaller, 20px radius)
+- End node: double circle (smaller, 20px radius)
 
 ### Edge Rendering
 
@@ -77,7 +86,7 @@ Configurable via formatter: `top-down` (default) or `left-right`.
 
 ### Hover Tooltip
 
-- Hit-testing against nodes (circle radius) and edges (proximity to bezier curve)
+- Hit-testing against nodes (point-in-circle) and edges (sample 20 points along bezier, hit if mouse within 6px of any sample)
 - Node tooltip: activity name, count, avg duration, most common status, resources
 - Edge tooltip: from → to, count, avg/median duration between steps
 - Drawn as Canvas rectangle with text (not DOM)
@@ -90,8 +99,17 @@ Configurable via formatter: `top-down` (default) or `left-right`.
 
 ### Drilldown
 
-- Click on node → fire `FIELD_VALUE_DRILLDOWN` with activity name
+- Click on node → fire drilldown with activity name:
+  ```javascript
+  var drilldownData = {};
+  drilldownData[drilldownField] = activityName;
+  self.drilldown({
+      action: SplunkVisualizationBase.FIELD_VALUE_DRILLDOWN,
+      data: drilldownData
+  }, event);
+  ```
 - Configurable drilldown field via formatter (`drilldownField`, default = activity field value)
+- Edge clicks: no drilldown (edges represent transitions, not individual events)
 
 ## KPI Header
 
@@ -103,10 +121,10 @@ Configurable toggle (`showKPIs`, default: `true`). When active, reserves ~60px a
 | Activities | Count of unique activities |
 | Median case duration | Median of (last _time - first _time) per case |
 | Avg case duration | Average of same |
-| Self-loop % | Proportion of cases with A→A transitions |
+| Self-loop % | Percentage of cases that contain at least one consecutive duplicate activity (A→A) |
 | Variants | Count of unique path sequences (A→B→C vs A→C→B) |
 
-Drawn evenly distributed across width, each as label + large value. Duration formatted as "Xd Yh Zm".
+Drawn evenly distributed across width, each as label + large value. Duration formatted as "Xd Yh Zm" (durations under 1 minute show "< 1m", zero-duration cases counted as 0 in averages).
 
 KPI value color configurable (default: `#00bcd4` — cyan).
 
@@ -159,6 +177,16 @@ Six formatter tabs:
 |---------|------|---------|
 | `drilldownField` | text | `activity` |
 
+## Edge Cases
+
+- **Empty data (zero rows)**: Throw `VisualizationError('Awaiting data — Process Mining')`. After first successful render, return `_lastGoodData` instead.
+- **Single activity across all cases**: Renders normally as Start → A → End.
+- **Cases with a single event**: Produces Start → A → End with zero duration. Counted as 0 in avg/median calculations.
+- **Missing timestamps**: Rows with null/unparseable `_time` are silently dropped.
+- **Duplicate timestamps within a case**: Tiebreaker is row order (index in `data.rows`).
+- **Very large graphs (50+ activities)**: Render all nodes but auto-zoom to fit. User can zoom/pan to explore. No artificial truncation.
+- **Missing optional columns (status/resource)**: Nodes use `nodeColor`, tooltips omit missing fields.
+
 ## Technical Constraints
 
 - ES5 only (var, function, for — no const/let/arrow)
@@ -168,3 +196,6 @@ Six formatter tabs:
 - Never read config in formatData — only in updateView
 - JS defaults must match formatter HTML defaults
 - All settings documented in savedsearches.conf.spec
+- Implement `_lastGoodData` caching in both `formatData` and `updateView` per the standard pattern
+- Implement `destroy()` to remove all canvas event listeners (mousemove, mousedown, mouseup, wheel, click)
+- `reflow()` calls `invalidateUpdateView()` and preserves current zoom/pan transform
