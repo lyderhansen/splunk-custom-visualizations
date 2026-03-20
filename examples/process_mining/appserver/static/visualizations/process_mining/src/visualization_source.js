@@ -5,7 +5,7 @@
  * Computes transitions, builds a Sugiyama-inspired layered layout,
  * and draws interactive nodes and edges on Canvas 2D.
  *
- * Expected SPL columns: _time, case_id, activity, status (optional), resource (optional)
+ * Expected SPL columns: _time, case_id, activity, status (optional), resource (optional), shape (optional)
  */
 define([
     'api/SplunkVisualizationBase',
@@ -85,7 +85,7 @@ define([
      *
      * @returns {Object} { nodes, edges, cases, variantCount }
      */
-    function buildProcessGraph(rows, colIdx, caseField, activityField, timeField, statusField, resourceField) {
+    function buildProcessGraph(rows, colIdx, caseField, activityField, timeField, statusField, resourceField, shapeField) {
         var casesMap = {};      // caseId -> array of { time, activity, status, resource, origIdx }
         var caseOrder = [];     // preserve insertion order of case IDs
 
@@ -94,6 +94,7 @@ define([
         var activityIdx = (activityField && colIdx[activityField] !== undefined) ? colIdx[activityField] : -1;
         var statusIdx   = (statusField   && colIdx[statusField]   !== undefined) ? colIdx[statusField]   : -1;
         var resourceIdx = (resourceField && colIdx[resourceField] !== undefined) ? colIdx[resourceField] : -1;
+        var shapeIdx    = (shapeField   && colIdx[shapeField]   !== undefined) ? colIdx[shapeField]   : -1;
 
         // Pass 1: group events by case, drop rows with unparseable _time
         for (var i = 0; i < rows.length; i++) {
@@ -108,12 +109,13 @@ define([
             var activity = (activityIdx >= 0 && row[activityIdx] !== null && row[activityIdx] !== undefined) ? String(row[activityIdx]) : '(unknown)';
             var status   = (statusIdx >= 0 && row[statusIdx] !== null && row[statusIdx] !== undefined) ? String(row[statusIdx]) : null;
             var resource = (resourceIdx >= 0 && row[resourceIdx] !== null && row[resourceIdx] !== undefined) ? String(row[resourceIdx]) : null;
+            var shape    = (shapeIdx >= 0 && row[shapeIdx] !== null && row[shapeIdx] !== undefined) ? String(row[shapeIdx]) : null;
 
             if (!casesMap[caseId]) {
                 casesMap[caseId] = [];
                 caseOrder.push(caseId);
             }
-            casesMap[caseId].push({ time: parsedTime, activity: activity, status: status, resource: resource, origIdx: i });
+            casesMap[caseId].push({ time: parsedTime, activity: activity, status: status, resource: resource, shape: shape, origIdx: i });
         }
 
         var nodesMap = {};   // nodeId -> { id, name, count, statuses: {}, resources: {} }
@@ -124,11 +126,11 @@ define([
         // Helpers for nodes and edges
         function ensureNode(id, name) {
             if (!nodesMap[id]) {
-                nodesMap[id] = { id: id, name: name, count: 0, statuses: {}, resources: {} };
+                nodesMap[id] = { id: id, name: name, count: 0, statuses: {}, resources: {}, shapes: {} };
             }
         }
 
-        function touchNode(id, name, status, resource) {
+        function touchNode(id, name, status, resource, shape) {
             ensureNode(id, name);
             nodesMap[id].count++;
             if (status) {
@@ -136,6 +138,9 @@ define([
             }
             if (resource) {
                 nodesMap[id].resources[resource] = (nodesMap[id].resources[resource] || 0) + 1;
+            }
+            if (shape) {
+                nodesMap[id].shapes[shape] = (nodesMap[id].shapes[shape] || 0) + 1;
             }
         }
 
@@ -173,7 +178,7 @@ define([
             // Build transitions
             // Prepend Start -> first activity
             var firstId = events[0].activity;
-            touchNode(firstId, events[0].activity, events[0].status, events[0].resource);
+            touchNode(firstId, events[0].activity, events[0].status, events[0].resource, events[0].shape);
             var startDur = null; // No duration for Start -> first
             touchEdge('__start__', firstId, startDur);
             nodesMap['__start__'].count++;
@@ -187,7 +192,7 @@ define([
                 var prevId = prevEvent.activity;
                 var currId = currEvent.activity;
 
-                touchNode(currId, currEvent.activity, currEvent.status, currEvent.resource);
+                touchNode(currId, currEvent.activity, currEvent.status, currEvent.resource, currEvent.shape);
 
                 var durationMs = (currEvent.time - prevEvent.time) * 1000;
                 touchEdge(prevId, currId, durationMs);
@@ -680,6 +685,218 @@ define([
     }
 
     /**
+     * Find the main path (happy path) through the graph by following
+     * the highest-count edge at each step from __start__ to __end__.
+     *
+     * @param {Array} nodes - Array of node objects
+     * @param {Array} edges - Array of edge objects with {from, to, count}
+     * @returns {Array} Array of node IDs representing the main path
+     */
+    function findMainPath(nodes, edges) {
+        // Build adjacency: from -> [{to, count}, ...]
+        var adj = {};
+        var i;
+        for (i = 0; i < edges.length; i++) {
+            var e = edges[i];
+            if (!adj[e.from]) adj[e.from] = [];
+            adj[e.from].push({ to: e.to, count: e.count });
+        }
+
+        var path = ['__start__'];
+        var visited = { '__start__': true };
+        var current = '__start__';
+        var maxSteps = nodes.length + 1; // safety limit
+
+        for (var step = 0; step < maxSteps; step++) {
+            var neighbors = adj[current];
+            if (!neighbors || neighbors.length === 0) break;
+
+            // Find highest-count edge to an unvisited node
+            var bestTo = null;
+            var bestCount = -1;
+            for (i = 0; i < neighbors.length; i++) {
+                if (!visited[neighbors[i].to] && neighbors[i].count > bestCount) {
+                    bestCount = neighbors[i].count;
+                    bestTo = neighbors[i].to;
+                }
+            }
+
+            if (!bestTo) break;
+            visited[bestTo] = true;
+            path.push(bestTo);
+            current = bestTo;
+
+            if (current === '__end__') break;
+        }
+
+        // If we didn't reach __end__, append it if it exists
+        if (path[path.length - 1] !== '__end__') {
+            path.push('__end__');
+        }
+
+        return path;
+    }
+
+    /**
+     * Assign positions for vertical or horizontal linear layout.
+     * Main path nodes go in a straight line; side branches offset.
+     *
+     * @param {Array}  mainPath  - Array of node IDs for the main path
+     * @param {Array}  nodes     - All node objects
+     * @param {Array}  edges     - All edge objects
+     * @param {string} style     - 'vertical' or 'horizontal'
+     * @param {number} canvasW   - Canvas width
+     * @param {number} canvasH   - Canvas height
+     * @param {number} kpiReserve - Pixels reserved for KPI header
+     * @returns {Object} { positions, graphWidth, graphHeight, maxNodesInLevel, mainPathSet }
+     */
+    function assignLinearPositions(mainPath, nodes, edges, style, canvasW, canvasH, kpiReserve) {
+        var positions = {};
+        var i;
+        var pad = 60;
+
+        // Build mainPath set for quick lookup
+        var mainPathSet = {};
+        for (i = 0; i < mainPath.length; i++) {
+            mainPathSet[mainPath[i]] = i; // index in main path
+        }
+
+        // Build adjacency maps for side branch placement
+        var fromMap = {}; // from -> [{to, count}]
+        var toMap = {};   // to -> [{from, count}]
+        for (i = 0; i < edges.length; i++) {
+            var e = edges[i];
+            if (!fromMap[e.from]) fromMap[e.from] = [];
+            fromMap[e.from].push({ to: e.to, count: e.count });
+            if (!toMap[e.to]) toMap[e.to] = [];
+            toMap[e.to].push({ from: e.from, count: e.count });
+        }
+
+        if (style === 'vertical') {
+            var availH = canvasH - kpiReserve - pad * 2;
+            var mainSpacing = Math.max(80, availH / (mainPath.length + 1));
+            var centerX = canvasW / 2;
+
+            // Place main path nodes centered vertically
+            for (i = 0; i < mainPath.length; i++) {
+                var my = kpiReserve + pad + mainSpacing * (i + 1);
+                positions[mainPath[i]] = { x: centerX, y: my };
+            }
+
+            // Place side branch nodes
+            var sideOffset = 150;
+            var leftSide = true;
+            for (i = 0; i < nodes.length; i++) {
+                var nid = nodes[i].id;
+                if (mainPathSet[nid] !== undefined) continue; // already placed
+                if (positions[nid]) continue;
+
+                // Find which main-path node(s) connect to this side node
+                var parentIdx = -1;
+                var childIdx = -1;
+
+                // Check incoming edges from main path
+                var incoming = toMap[nid] || [];
+                for (var ii = 0; ii < incoming.length; ii++) {
+                    if (mainPathSet[incoming[ii].from] !== undefined) {
+                        var pidx = mainPathSet[incoming[ii].from];
+                        if (parentIdx === -1 || pidx > parentIdx) parentIdx = pidx;
+                    }
+                }
+                // Check outgoing edges to main path
+                var outgoing = fromMap[nid] || [];
+                for (var oi = 0; oi < outgoing.length; oi++) {
+                    if (mainPathSet[outgoing[oi].to] !== undefined) {
+                        var cidx = mainPathSet[outgoing[oi].to];
+                        if (childIdx === -1 || cidx < childIdx) childIdx = cidx;
+                    }
+                }
+
+                // Place between parent and child on main path, or just after parent
+                var yIdx;
+                if (parentIdx >= 0 && childIdx >= 0) {
+                    yIdx = (parentIdx + childIdx) / 2;
+                } else if (parentIdx >= 0) {
+                    yIdx = parentIdx + 0.5;
+                } else if (childIdx >= 0) {
+                    yIdx = childIdx - 0.5;
+                } else {
+                    yIdx = mainPath.length / 2;
+                }
+
+                var sideY = kpiReserve + pad + mainSpacing * (yIdx + 1);
+                var sideX = leftSide ? (centerX - sideOffset) : (centerX + sideOffset);
+                leftSide = !leftSide; // alternate sides
+
+                positions[nid] = { x: sideX, y: sideY };
+            }
+        } else {
+            // horizontal
+            var availW = canvasW - pad * 2;
+            var mainSpacingH = Math.max(80, availW / (mainPath.length + 1));
+            var centerY = kpiReserve + (canvasH - kpiReserve) / 2;
+
+            // Place main path nodes on horizontal center line
+            for (i = 0; i < mainPath.length; i++) {
+                var mx = pad + mainSpacingH * (i + 1);
+                positions[mainPath[i]] = { x: mx, y: centerY };
+            }
+
+            // Place side branch nodes below
+            var sideOffsetH = 120;
+            var belowToggle = true;
+            for (i = 0; i < nodes.length; i++) {
+                var nidH = nodes[i].id;
+                if (mainPathSet[nidH] !== undefined) continue;
+                if (positions[nidH]) continue;
+
+                var parentIdxH = -1;
+                var childIdxH = -1;
+
+                var inH = toMap[nidH] || [];
+                for (var iih = 0; iih < inH.length; iih++) {
+                    if (mainPathSet[inH[iih].from] !== undefined) {
+                        var pidxH = mainPathSet[inH[iih].from];
+                        if (parentIdxH === -1 || pidxH > parentIdxH) parentIdxH = pidxH;
+                    }
+                }
+                var outH = fromMap[nidH] || [];
+                for (var oih = 0; oih < outH.length; oih++) {
+                    if (mainPathSet[outH[oih].to] !== undefined) {
+                        var cidxH = mainPathSet[outH[oih].to];
+                        if (childIdxH === -1 || cidxH < childIdxH) childIdxH = cidxH;
+                    }
+                }
+
+                var xIdx;
+                if (parentIdxH >= 0 && childIdxH >= 0) {
+                    xIdx = (parentIdxH + childIdxH) / 2;
+                } else if (parentIdxH >= 0) {
+                    xIdx = parentIdxH + 0.5;
+                } else if (childIdxH >= 0) {
+                    xIdx = childIdxH - 0.5;
+                } else {
+                    xIdx = mainPath.length / 2;
+                }
+
+                var sideXH = pad + mainSpacingH * (xIdx + 1);
+                var sideYH = belowToggle ? (centerY + sideOffsetH) : (centerY - sideOffsetH);
+                belowToggle = !belowToggle;
+
+                positions[nidH] = { x: sideXH, y: sideYH };
+            }
+        }
+
+        return {
+            positions: positions,
+            graphWidth: canvasW,
+            graphHeight: canvasH,
+            maxNodesInLevel: mainPath.length,
+            mainPathSet: mainPathSet
+        };
+    }
+
+    /**
      * Compute node radius proportional to count.
      * Dynamic max radius based on available space per node.
      * Start (__start__) and End (__end__) nodes always return 10.
@@ -754,15 +971,33 @@ define([
     }
 
     /**
-     * Draw a node (circle) at (x, y) with given radius.
-     * Handles regular, start, end, and hovered states.
+     * Draw a rounded rectangle path on the canvas context.
      */
-    function drawNode(ctx, x, y, radius, label, count, color, isStart, isEnd, isHovered, showCount) {
+    function roundedRectPath(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.arcTo(x + w, y, x + w, y + r, r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+        ctx.lineTo(x + r, y + h);
+        ctx.arcTo(x, y + h, x, y + h - r, r);
+        ctx.lineTo(x, y + r);
+        ctx.arcTo(x, y, x + r, y, r);
+        ctx.closePath();
+    }
+
+    /**
+     * Draw a node at (x, y) with given radius and shape.
+     * Handles regular, start, end, and hovered states.
+     * shape: 'circle', 'rectangle', or 'diamond'
+     */
+    function drawNode(ctx, x, y, radius, label, count, color, isStart, isEnd, isHovered, showCount, shape) {
         ctx.save();
         ctx.textAlign = 'center';
 
         if (isStart || isEnd) {
-            // Minimal Start/End markers
+            // Minimal Start/End markers — always circle
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, 2 * Math.PI);
             ctx.fillStyle = isHovered ? '#555' : '#2a2a2a';
@@ -781,8 +1016,81 @@ define([
             ctx.font = '8px sans-serif';
             ctx.textBaseline = 'top';
             ctx.fillText(isStart ? 'Start' : 'End', x, y + radius + (isEnd ? 5 : 2));
+        } else if (shape === 'rectangle') {
+            // Rectangle node — rounded rect
+            var rw = radius * 2.5;
+            var rh = radius * 1.8;
+            var cornerR = 4;
+            var rx = x - rw / 2;
+            var ry = y - rh / 2;
+
+            ctx.shadowColor = 'rgba(0,0,0,0.2)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetY = 1;
+            roundedRectPath(ctx, rx, ry, rw, rh, cornerR);
+            ctx.fillStyle = isHovered ? lightenColor(color, 0.3) : color;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = isHovered ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)';
+            ctx.lineWidth = isHovered ? 2 : 1;
+            ctx.stroke();
+
+            // Count on first line (bold), label on second line, both inside
+            var cSize = Math.max(8, Math.min(14, radius * 0.7));
+            var lSize = Math.max(7, Math.min(10, radius * 0.5));
+            if (showCount && count !== undefined && count !== null) {
+                ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                ctx.font = 'bold ' + cSize + 'px monospace';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(formatCount(count), x, y - lSize * 0.4);
+            }
+            var truncated = truncateText(label, 18);
+            ctx.font = lSize + 'px sans-serif';
+            var maxLabelW = rw - 6;
+            while (lSize > 6 && ctx.measureText(truncated).width > maxLabelW) {
+                lSize--;
+                ctx.font = lSize + 'px sans-serif';
+            }
+            ctx.fillStyle = 'rgba(220,220,220,0.85)';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(truncated, x, y + cSize * 0.5);
+
+        } else if (shape === 'diamond') {
+            // Diamond node — rotated square
+            var dSize = radius * 1.3;
+            ctx.shadowColor = 'rgba(0,0,0,0.2)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetY = 1;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(Math.PI / 4);
+            ctx.beginPath();
+            ctx.rect(-dSize, -dSize, dSize * 2, dSize * 2);
+            ctx.fillStyle = isHovered ? lightenColor(color, 0.3) : color;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = isHovered ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)';
+            ctx.lineWidth = isHovered ? 2 : 1;
+            ctx.stroke();
+            ctx.restore();
+
+            // Text drawn without rotation
+            var dcSize = Math.max(8, Math.min(12, radius * 0.6));
+            var dlSize = Math.max(7, Math.min(9, radius * 0.45));
+            if (showCount && count !== undefined && count !== null) {
+                ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                ctx.font = 'bold ' + dcSize + 'px monospace';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(formatCount(count), x, y - dlSize * 0.4);
+            }
+            var dTrunc = truncateText(label, 14);
+            ctx.font = dlSize + 'px sans-serif';
+            ctx.fillStyle = 'rgba(220,220,220,0.85)';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(dTrunc, x, y + dcSize * 0.5);
+
         } else {
-            // Activity node — compact pill with shadow
+            // Circle node (default / fallback)
             ctx.shadowColor = 'rgba(0,0,0,0.2)';
             ctx.shadowBlur = 4;
             ctx.shadowOffsetY = 1;
@@ -798,25 +1106,25 @@ define([
             // Count inside node (formatted for large numbers)
             if (showCount && count !== undefined && count !== null) {
                 var countStr = formatCount(count);
-                var cSize = Math.max(8, Math.min(14, radius * 0.7));
+                var ccSize = Math.max(8, Math.min(14, radius * 0.7));
                 ctx.fillStyle = 'rgba(255,255,255,0.95)';
-                ctx.font = 'bold ' + cSize + 'px monospace';
+                ctx.font = 'bold ' + ccSize + 'px monospace';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(countStr, x, y);
             }
 
             // Label below — auto-sized
-            var truncated = truncateText(label, 18);
-            var lSize = Math.max(7, Math.min(10, radius * 0.5));
-            ctx.font = lSize + 'px sans-serif';
-            var maxLabelW = radius * 3;
-            while (lSize > 6 && ctx.measureText(truncated).width > maxLabelW) {
-                lSize--;
-                ctx.font = lSize + 'px sans-serif';
+            var cTruncated = truncateText(label, 18);
+            var clSize = Math.max(7, Math.min(10, radius * 0.5));
+            ctx.font = clSize + 'px sans-serif';
+            var cMaxLabelW = radius * 3;
+            while (clSize > 6 && ctx.measureText(cTruncated).width > cMaxLabelW) {
+                clSize--;
+                ctx.font = clSize + 'px sans-serif';
             }
             ctx.fillStyle = 'rgba(220,220,220,0.85)';
             ctx.textBaseline = 'top';
-            ctx.fillText(truncated, x, y + radius + 2);
+            ctx.fillText(cTruncated, x, y + radius + 2);
         }
 
         ctx.restore();
@@ -1080,6 +1388,29 @@ define([
         return dx * dx + dy * dy <= r * r;
     }
 
+    /**
+     * Hit-test a point against a node, considering its shape.
+     * shape: 'circle', 'rectangle', 'diamond', or undefined (circle fallback)
+     */
+    function pointInNode(px, py, nx, ny, r, shape) {
+        if (shape === 'rectangle') {
+            var rw = r * 2.5;
+            var rh = r * 1.8;
+            return px >= nx - rw / 2 && px <= nx + rw / 2 && py >= ny - rh / 2 && py <= ny + rh / 2;
+        } else if (shape === 'diamond') {
+            // Diamond hit test: rotate point by -45deg relative to center, check against square
+            var dSize = r * 1.3;
+            var dx = px - nx;
+            var dy = py - ny;
+            var cos45 = Math.cos(Math.PI / 4);
+            var sin45 = Math.sin(Math.PI / 4);
+            var rdx = dx * cos45 + dy * sin45;
+            var rdy = -dx * sin45 + dy * cos45;
+            return Math.abs(rdx) <= dSize && Math.abs(rdy) <= dSize;
+        }
+        return pointInCircle(px, py, nx, ny, r);
+    }
+
     function bezierPoint(t, p0, p1, p2) {
         var mt = 1 - t;
         return mt * mt * p0 + 2 * mt * t * p1 + t * t * p2;
@@ -1168,6 +1499,7 @@ define([
             this._dragNodeId    = null;
             this._didDrag       = false;
             this._draggedPositions = {}; // nodeId -> {x, y} overrides
+            this._savedPosLoaded = false;
             // Animation state
             this._animOffset    = 0;
             this._animTimer     = null;
@@ -1206,7 +1538,7 @@ define([
                 var worldCoord = screenToWorld(mx, my, self._tx, self._ty, self._scale, kpiR);
                 for (var ni = 0; ni < self._hitNodes.length; ni++) {
                     var nd = self._hitNodes[ni];
-                    if (pointInCircle(worldCoord.x, worldCoord.y, nd.x, nd.y, nd.r)) {
+                    if (pointInNode(worldCoord.x, worldCoord.y, nd.x, nd.y, nd.r, nd.shape)) {
                         self._isDragging = true;
                         self._dragNodeId = nd.id;
                         self.canvas.style.cursor = 'grabbing';
@@ -1255,7 +1587,7 @@ define([
                 // Check nodes first (higher priority)
                 for (var i = 0; i < self._hitNodes.length; i++) {
                     var n = self._hitNodes[i];
-                    if (pointInCircle(wx, wy, n.x, n.y, n.r)) {
+                    if (pointInNode(wx, wy, n.x, n.y, n.r, n.shape)) {
                         var tooltipLines = [n.name, 'Count: ' + n.count];
                         // Add top status
                         var topStatus = null, topCount = 0;
@@ -1349,6 +1681,7 @@ define([
                                 self._ty = 0;
                                 self._scale = 1;
                                 self._draggedPositions = {};
+                                self._savedPosLoaded = false;
                             }
                             self.invalidateUpdateView();
                             return;
@@ -1362,7 +1695,7 @@ define([
                 for (var i = 0; i < self._hitNodes.length; i++) {
                     var n = self._hitNodes[i];
                     if (n.id === '__start__' || n.id === '__end__') continue;
-                    if (pointInCircle(world.x, world.y, n.x, n.y, n.r)) {
+                    if (pointInNode(world.x, world.y, n.x, n.y, n.r, n.shape)) {
                         var drilldownData = {};
                         drilldownData[self._drilldownField] = n.name;
                         e.preventDefault();
@@ -1426,7 +1759,9 @@ define([
             var timeField = config[ns + 'timeField'] || '_time';
             var statusField = config[ns + 'statusField'] || 'status';
             var resourceField = config[ns + 'resourceField'] || 'resource';
-            var layoutDirection = config[ns + 'layoutDirection'] || 'top-down';
+            var layoutDirection = config[ns + 'layoutDirection'] || 'vertical';
+            var nodeShapeSetting = config[ns + 'nodeShape'] || 'rectangle';
+            var shapeFieldName = config[ns + 'shapeField'] || 'shape';
             var nodeColor = config[ns + 'nodeColor'] || '#607d8b';
             var edgeColor = config[ns + 'edgeColor'] || '#90a4ae';
             var successColor = config[ns + 'successColor'] || '#4caf50';
@@ -1456,7 +1791,7 @@ define([
             ctx.clearRect(0, 0, w, h);
 
             // 5. Build process graph
-            var graph = buildProcessGraph(data.rows, data.colIdx, caseField, activityField, timeField, statusField, resourceField);
+            var graph = buildProcessGraph(data.rows, data.colIdx, caseField, activityField, timeField, statusField, resourceField, shapeFieldName);
 
             // 6. KPIs
             var kpis = computeKPIs(graph);
@@ -1467,16 +1802,40 @@ define([
             }
 
             // 7. Layout
-            var dagEdges = breakCycles(graph.nodes, graph.edges);
-            var levelMap = assignLevels(graph.nodes, dagEdges, '__start__');
-            var nodeIds = [];
-            for (var ni = 0; ni < graph.nodes.length; ni++) {
-                nodeIds.push(graph.nodes[ni].id);
+            var layout;
+            var mainPathSet = null;
+            if (layoutDirection === 'freeform') {
+                // Existing Sugiyama pipeline
+                var dagEdges = breakCycles(graph.nodes, graph.edges);
+                var levelMap = assignLevels(graph.nodes, dagEdges, '__start__');
+                var nodeIds = [];
+                for (var ni = 0; ni < graph.nodes.length; ni++) {
+                    nodeIds.push(graph.nodes[ni].id);
+                }
+                var levelGroups = minimizeCrossings(levelMap, dagEdges, nodeIds);
+                layout = assignPositions(levelGroups, graph.nodes, 'top-down', w, h, kpiReserve);
+            } else {
+                // Linear layout (vertical or horizontal)
+                var mainPath = findMainPath(graph.nodes, graph.edges);
+                layout = assignLinearPositions(mainPath, graph.nodes, graph.edges, layoutDirection, w, h, kpiReserve);
+                mainPathSet = layout.mainPathSet || null;
             }
-            var levelGroups = minimizeCrossings(levelMap, dagEdges, nodeIds);
-            var layout = assignPositions(levelGroups, graph.nodes, layoutDirection, w, h, kpiReserve);
 
-            // 7b. Apply user-dragged position overrides
+            // 7b. Load saved positions from config (if any)
+            var savedPosStr = config[ns + 'savedPositions'] || '';
+            if (savedPosStr && !this._savedPosLoaded) {
+                try {
+                    var saved = JSON.parse(savedPosStr);
+                    for (var spk in saved) {
+                        if (saved.hasOwnProperty(spk) && !this._draggedPositions[spk]) {
+                            this._draggedPositions[spk] = saved[spk];
+                        }
+                    }
+                } catch(e) {}
+                this._savedPosLoaded = true;
+            }
+
+            // 7c. Apply user-dragged position overrides
             for (var dp in this._draggedPositions) {
                 if (this._draggedPositions.hasOwnProperty(dp) && layout.positions[dp]) {
                     layout.positions[dp] = this._draggedPositions[dp];
@@ -1490,9 +1849,15 @@ define([
             }
 
             // 8b. Compute available space per node for dynamic radius
-            var spacePerNode = (layoutDirection === 'top-down')
-                ? w / (layout.maxNodesInLevel + 1)
-                : (h - kpiReserve) / (layout.maxNodesInLevel + 1);
+            var spacePerNode;
+            if (layoutDirection === 'vertical') {
+                spacePerNode = (h - kpiReserve) / (layout.maxNodesInLevel + 1);
+            } else if (layoutDirection === 'horizontal') {
+                spacePerNode = w / (layout.maxNodesInLevel + 1);
+            } else {
+                // freeform uses top-down logic
+                spacePerNode = w / (layout.maxNodesInLevel + 1);
+            }
 
             // 8c. Manage animation timer
             var self = this;
@@ -1548,9 +1913,23 @@ define([
                 var toNode = nodeById[edge.to];
                 var fromR = computeNodeRadius(fromNode ? fromNode.count : 0, maxCount, edge.from, layout.maxNodesInLevel, spacePerNode);
                 var toR = computeNodeRadius(toNode ? toNode.count : 0, maxCount, edge.to, layout.maxNodesInLevel, spacePerNode);
-                var thickness = maxEdgeCount > 0 ? 0.8 + (edge.count / maxEdgeCount) * 2.5 : 1.2;
                 var isSelfLoop = edge.from === edge.to;
                 var isHoveredEdge = this._hoverItem && this._hoverItem.type === 'edge' && this._hoverItem.from === edge.from && this._hoverItem.to === edge.to;
+
+                // Determine edge thickness based on layout style
+                var thickness;
+                var isMainEdge = mainPathSet && mainPathSet[edge.from] !== undefined && mainPathSet[edge.to] !== undefined;
+                var isRareEdge = maxEdgeCount > 0 && edge.count < maxEdgeCount * 0.1;
+                if (mainPathSet && layoutDirection !== 'freeform') {
+                    // Linear layout: thick main path, thin side edges, dashed rare
+                    if (isMainEdge) {
+                        thickness = 3.5;
+                    } else {
+                        thickness = 1.2;
+                    }
+                } else {
+                    thickness = maxEdgeCount > 0 ? 0.8 + (edge.count / maxEdgeCount) * 2.5 : 1.2;
+                }
 
                 // Determine if this edge should animate
                 var animateEdge = false;
@@ -1560,7 +1939,26 @@ define([
                     animateEdge = (edge.from === hoveredNodeId || edge.to === hoveredNodeId);
                 }
 
-                drawEdge(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, fromR, toR, edge.count, edgeColor, thickness, isHoveredEdge, showEdgeLabels, isSelfLoop, animateEdge, this._animOffset);
+                // Adjust edge color for main path in linear layouts
+                var thisEdgeColor = edgeColor;
+                if (mainPathSet && layoutDirection !== 'freeform') {
+                    if (isMainEdge) {
+                        thisEdgeColor = lightenColor(edgeColor, 0.2);
+                    } else {
+                        thisEdgeColor = hexToRgba(edgeColor, 0.5);
+                    }
+                }
+
+                // Draw dashed for rare edges in linear layouts
+                if (isRareEdge && mainPathSet && layoutDirection !== 'freeform') {
+                    ctx.save();
+                    ctx.setLineDash([4, 4]);
+                }
+                drawEdge(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, fromR, toR, edge.count, thisEdgeColor, thickness, isHoveredEdge, showEdgeLabels, isSelfLoop, animateEdge, this._animOffset);
+                if (isRareEdge && mainPathSet && layoutDirection !== 'freeform') {
+                    ctx.setLineDash([]);
+                    ctx.restore();
+                }
 
                 // Store edge hit data with actual bezier geometry matching drawEdge
                 var hitData = {
@@ -1627,8 +2025,26 @@ define([
                     }
                 }
 
+                // Determine node shape
+                var nodeShape = nodeShapeSetting;
+                if (nodeShapeSetting === 'auto' && node.shapes) {
+                    var topShape = null;
+                    var topShapeCount = 0;
+                    for (var shk in node.shapes) {
+                        if (node.shapes.hasOwnProperty(shk) && node.shapes[shk] > topShapeCount) {
+                            topShapeCount = node.shapes[shk];
+                            topShape = shk;
+                        }
+                    }
+                    if (topShape) {
+                        nodeShape = topShape;
+                    } else {
+                        nodeShape = 'rectangle';
+                    }
+                }
+
                 var isHoveredNode = this._hoverItem && this._hoverItem.type === 'node' && this._hoverItem.id === node.id;
-                drawNode(ctx, pos.x, pos.y, radius, node.name, node.count, nColor, isStart, isEnd, isHoveredNode, showNodeCounts);
+                drawNode(ctx, pos.x, pos.y, radius, node.name, node.count, nColor, isStart, isEnd, isHoveredNode, showNodeCounts, nodeShape);
 
                 // Store hit data
                 this._hitNodes.push({
@@ -1636,7 +2052,8 @@ define([
                     x: pos.x, y: pos.y, r: radius,
                     count: node.count,
                     statuses: node.statuses,
-                    resources: node.resources
+                    resources: node.resources,
+                    shape: nodeShape
                 });
             }
 

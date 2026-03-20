@@ -14,3 +14,6 @@ display.visualizations.custom.process_mining.process_mining.showEdgeLabels = <bo
 display.visualizations.custom.process_mining.process_mining.showNodeCounts = <boolean>
 display.visualizations.custom.process_mining.process_mining.animateFlow = <string>
 display.visualizations.custom.process_mining.process_mining.drilldownField = <string>
+display.visualizations.custom.process_mining.process_mining.nodeShape = <string>
+display.visualizations.custom.process_mining.process_mining.shapeField = <string>
+display.visualizations.custom.process_mining.process_mining.savedPositions = <string>

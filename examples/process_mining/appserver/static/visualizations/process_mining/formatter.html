@@ -25,14 +25,20 @@
         </splunk-text-input>
     </splunk-control-group>
 
+    <splunk-control-group label="Shape Field" help="Column for per-node shape (circle/rectangle/diamond)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.shapeField" value="shape">
+        </splunk-text-input>
+    </splunk-control-group>
+
 </form>
 
 <form class="splunk-formatter-section" section-label="Layout">
 
-    <splunk-control-group label="Direction" help="Graph flow direction">
-        <splunk-radio-input name="{{VIZ_NAMESPACE}}.layoutDirection" value="top-down">
-            <option value="top-down">Top → Down</option>
-            <option value="left-right">Left → Right</option>
+    <splunk-control-group label="Layout Style" help="Graph layout algorithm">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.layoutDirection" value="vertical">
+            <option value="vertical">Vertical</option>
+            <option value="horizontal">Horizontal</option>
+            <option value="freeform">Free Form</option>
         </splunk-radio-input>
     </splunk-control-group>
 
@@ -44,9 +50,23 @@
         </splunk-radio-input>
     </splunk-control-group>
 
+    <splunk-control-group label="Saved Positions" help="JSON of saved node positions (auto-populated)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.savedPositions">
+        </splunk-text-input>
+    </splunk-control-group>
+
 </form>
 
 <form class="splunk-formatter-section" section-label="Appearance">
+
+    <splunk-control-group label="Node Shape" help="Shape of activity nodes">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.nodeShape" value="rectangle">
+            <option value="rectangle">Rectangle</option>
+            <option value="circle">Circle</option>
+            <option value="diamond">Diamond</option>
+            <option value="auto">From Data</option>
+        </splunk-radio-input>
+    </splunk-control-group>
 
     <splunk-control-group label="Node Color" help="Default node fill color">
         <splunk-color-picker name="{{VIZ_NAMESPACE}}.nodeColor" value="#607d8b">
