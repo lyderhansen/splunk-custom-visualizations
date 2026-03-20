@@ -283,6 +283,388 @@ define([
         };
     }
 
+    // ── Layout Algorithm ────────────────────────────────────────
+
+    /**
+     * Break cycles in a directed graph using DFS.
+     * Returns a NEW edges array where back-edges are reversed (swap from/to)
+     * and flagged with reversed:true. Forward edges get reversed:false.
+     * This produces a DAG from a potentially cyclic graph.
+     *
+     * @param {Array} nodes - Array of node objects with {id, ...}
+     * @param {Array} edges - Array of edge objects with {from, to, ...}
+     * @returns {Array} New edges array (back-edges reversed, all have reversed property)
+     */
+    function breakCycles(nodes, edges) {
+        // Build adjacency list
+        var adj = {};
+        var i;
+        for (i = 0; i < nodes.length; i++) {
+            adj[nodes[i].id] = [];
+        }
+        for (i = 0; i < edges.length; i++) {
+            var e = edges[i];
+            if (adj[e.from]) {
+                adj[e.from].push(e.to);
+            }
+        }
+
+        var visited = {};
+        var inStack = {};
+        var backEdges = {}; // "from->to" keys that are back-edges
+
+        function dfs(nodeId) {
+            visited[nodeId] = true;
+            inStack[nodeId] = true;
+            var neighbors = adj[nodeId] || [];
+            for (var ni = 0; ni < neighbors.length; ni++) {
+                var neighbor = neighbors[ni];
+                if (!visited[neighbor]) {
+                    dfs(neighbor);
+                } else if (inStack[neighbor]) {
+                    // back-edge detected
+                    backEdges[nodeId + '->' + neighbor] = true;
+                }
+            }
+            inStack[nodeId] = false;
+        }
+
+        // Start DFS from __start__
+        if (!visited['__start__']) {
+            dfs('__start__');
+        }
+
+        // Handle nodes not reachable from __start__
+        for (i = 0; i < nodes.length; i++) {
+            if (!visited[nodes[i].id]) {
+                dfs(nodes[i].id);
+            }
+        }
+
+        // Build new edges array
+        var newEdges = [];
+        for (i = 0; i < edges.length; i++) {
+            var orig = edges[i];
+            var key = orig.from + '->' + orig.to;
+            if (backEdges[key]) {
+                // Reverse this edge
+                var reversed = {};
+                for (var prop in orig) {
+                    if (orig.hasOwnProperty(prop)) {
+                        reversed[prop] = orig[prop];
+                    }
+                }
+                reversed.from = orig.to;
+                reversed.to = orig.from;
+                reversed.reversed = true;
+                newEdges.push(reversed);
+            } else {
+                var forward = {};
+                for (var prop2 in orig) {
+                    if (orig.hasOwnProperty(prop2)) {
+                        forward[prop2] = orig[prop2];
+                    }
+                }
+                forward.reversed = false;
+                newEdges.push(forward);
+            }
+        }
+
+        return newEdges;
+    }
+
+    /**
+     * Assign levels (depths) to nodes using longest-path from __start__.
+     * Processes nodes in topological order to assign level = max(predecessor levels) + 1.
+     * Unreachable nodes get max_level + 1.
+     *
+     * @param {Array}  nodes   - Array of node objects with {id, ...}
+     * @param {Array}  edges   - Array of DAG edges (output of breakCycles)
+     * @param {string} startId - The start node id (typically '__start__')
+     * @returns {Object} Map of nodeId -> level number
+     */
+    function assignLevels(nodes, edges, startId) {
+        var i;
+        // Build predecessor list and adjacency list
+        var preds = {};   // nodeId -> array of predecessor nodeIds
+        var adj = {};     // nodeId -> array of successor nodeIds
+        var inDegree = {};
+
+        for (i = 0; i < nodes.length; i++) {
+            var nid = nodes[i].id;
+            preds[nid] = [];
+            adj[nid] = [];
+            inDegree[nid] = 0;
+        }
+
+        for (i = 0; i < edges.length; i++) {
+            var e = edges[i];
+            if (adj[e.from] !== undefined) {
+                adj[e.from].push(e.to);
+            }
+            if (preds[e.to] !== undefined) {
+                preds[e.to].push(e.from);
+                inDegree[e.to] = (inDegree[e.to] || 0) + 1;
+            }
+        }
+
+        // Topological sort (Kahn's algorithm)
+        var queue = [];
+        var levels = {};
+
+        for (i = 0; i < nodes.length; i++) {
+            var nid2 = nodes[i].id;
+            if (inDegree[nid2] === 0) {
+                queue.push(nid2);
+                levels[nid2] = 0;
+            }
+        }
+
+        // Ensure start node is level 0
+        levels[startId] = 0;
+
+        var processed = [];
+        while (queue.length > 0) {
+            var curr = queue.shift();
+            processed.push(curr);
+            var succs = adj[curr] || [];
+            for (var si = 0; si < succs.length; si++) {
+                var succ = succs[si];
+                // Longest path: level = max(all predecessor levels) + 1
+                var predLevel = (levels[curr] !== undefined) ? levels[curr] : 0;
+                var newLevel = predLevel + 1;
+                if (levels[succ] === undefined || newLevel > levels[succ]) {
+                    levels[succ] = newLevel;
+                }
+                inDegree[succ]--;
+                if (inDegree[succ] === 0) {
+                    queue.push(succ);
+                }
+            }
+        }
+
+        // Find max level assigned so far
+        var maxLevel = 0;
+        for (var k in levels) {
+            if (levels.hasOwnProperty(k) && levels[k] > maxLevel) {
+                maxLevel = levels[k];
+            }
+        }
+
+        // Assign unreachable nodes to max_level + 1
+        for (i = 0; i < nodes.length; i++) {
+            var nid3 = nodes[i].id;
+            if (levels[nid3] === undefined) {
+                levels[nid3] = maxLevel + 1;
+            }
+        }
+
+        return levels;
+    }
+
+    /**
+     * Minimize edge crossings by sorting nodes within each level using
+     * the barycenter heuristic. Performs 4 passes alternating top-down
+     * and bottom-up.
+     *
+     * @param {Object} levelMap  - Map of nodeId -> level number (from assignLevels)
+     * @param {Array}  edges     - Array of DAG edges
+     * @param {Array}  nodeIds   - Array of all node ids
+     * @returns {Array} levelGroups where levelGroups[level] is an ordered array of nodeIds
+     */
+    function minimizeCrossings(levelMap, edges, nodeIds) {
+        var i;
+
+        // Build levelGroups: array of arrays
+        var maxLevel = 0;
+        for (i = 0; i < nodeIds.length; i++) {
+            var lvl = levelMap[nodeIds[i]];
+            if (lvl !== undefined && lvl > maxLevel) {
+                maxLevel = lvl;
+            }
+        }
+
+        var levelGroups = [];
+        for (i = 0; i <= maxLevel; i++) {
+            levelGroups.push([]);
+        }
+        for (i = 0; i < nodeIds.length; i++) {
+            var nid = nodeIds[i];
+            var level = levelMap[nid];
+            if (level !== undefined && level >= 0 && level <= maxLevel) {
+                levelGroups[level].push(nid);
+            }
+        }
+
+        // Build adjacency: for each node, which nodes are connected (either direction)
+        // We need: for a node at level L, what are its neighbors at level L-1 (predecessors) and L+1 (successors)
+        var succMap = {};  // nodeId -> array of successor nodeIds
+        var predMap = {};  // nodeId -> array of predecessor nodeIds
+        for (i = 0; i < nodeIds.length; i++) {
+            succMap[nodeIds[i]] = [];
+            predMap[nodeIds[i]] = [];
+        }
+        for (i = 0; i < edges.length; i++) {
+            var e = edges[i];
+            if (succMap[e.from] !== undefined) {
+                succMap[e.from].push(e.to);
+            }
+            if (predMap[e.to] !== undefined) {
+                predMap[e.to].push(e.from);
+            }
+        }
+
+        // Helper: get position of nodeId within its level group
+        function positionOf(nodeId, group) {
+            for (var pi = 0; pi < group.length; pi++) {
+                if (group[pi] === nodeId) return pi;
+            }
+            return 0;
+        }
+
+        // Helper: compute barycenter of a node relative to a fixed adjacent level
+        function barycenter(nodeId, fixedGroup) {
+            var neighbors = [];
+            // collect neighbors that appear in fixedGroup
+            var allNeighbors = (succMap[nodeId] || []).concat(predMap[nodeId] || []);
+            for (var ni = 0; ni < allNeighbors.length; ni++) {
+                var nb = allNeighbors[ni];
+                for (var fi = 0; fi < fixedGroup.length; fi++) {
+                    if (fixedGroup[fi] === nb) {
+                        neighbors.push(fi);
+                        break;
+                    }
+                }
+            }
+            if (neighbors.length === 0) return 0;
+            var sum = 0;
+            for (var bi = 0; bi < neighbors.length; bi++) {
+                sum += neighbors[bi];
+            }
+            return sum / neighbors.length;
+        }
+
+        // 4 passes: even = top-down (fix level L, sort L+1), odd = bottom-up
+        for (var pass = 0; pass < 4; pass++) {
+            if (pass % 2 === 0) {
+                // Top-down: fix level L, sort level L+1 by barycenter
+                for (var L = 0; L < levelGroups.length - 1; L++) {
+                    var fixedGroup = levelGroups[L];
+                    var sortGroup = levelGroups[L + 1];
+                    sortGroup.sort(function(a, b) {
+                        return barycenter(a, fixedGroup) - barycenter(b, fixedGroup);
+                    });
+                }
+            } else {
+                // Bottom-up: fix level L+1, sort level L by barycenter
+                for (var L2 = levelGroups.length - 1; L2 > 0; L2--) {
+                    var fixedGroup2 = levelGroups[L2];
+                    var sortGroup2 = levelGroups[L2 - 1];
+                    sortGroup2.sort(function(a, b) {
+                        return barycenter(a, fixedGroup2) - barycenter(b, fixedGroup2);
+                    });
+                }
+            }
+        }
+
+        return levelGroups;
+    }
+
+    /**
+     * Assign x,y positions to each node based on level and direction.
+     * For top-down: levels are rows (y-axis), nodes spread horizontally (x-axis).
+     * For left-right: levels are columns (x-axis), nodes spread vertically (y-axis).
+     *
+     * @param {Array}  levelGroups - Ordered arrays of nodeIds per level (from minimizeCrossings)
+     * @param {Array}  nodes       - Array of node objects with {id, ...}
+     * @param {string} direction   - 'top-down' or 'left-right'
+     * @param {number} canvasW     - Canvas width in pixels
+     * @param {number} canvasH     - Canvas height in pixels
+     * @param {number} kpiReserve  - Pixels reserved for KPI banner (top or left)
+     * @returns {Object} { positions: { nodeId: {x, y} }, graphWidth, graphHeight }
+     */
+    function assignPositions(levelGroups, nodes, direction, canvasW, canvasH, kpiReserve) {
+        var positions = {};
+        var i, j;
+        var levelCount = levelGroups.length;
+        if (levelCount === 0) {
+            return { positions: positions, graphWidth: canvasW, graphHeight: canvasH };
+        }
+
+        if (direction === 'left-right') {
+            // Levels are columns (x-axis), nodes spread vertically (y-axis)
+            var availableW = canvasW - kpiReserve;
+            var availableH = canvasH;
+            var levelSpacingX = availableW / (levelCount + 1);
+
+            for (i = 0; i < levelGroups.length; i++) {
+                var group = levelGroups[i];
+                var nodeCount = group.length;
+                var x = kpiReserve + levelSpacingX * (i + 1);
+                var nodeSpacingY = availableH / (nodeCount + 1);
+
+                for (j = 0; j < group.length; j++) {
+                    var nid = group[j];
+                    var y = nodeSpacingY * (j + 1);
+                    positions[nid] = { x: x, y: y };
+                }
+            }
+
+            return {
+                positions: positions,
+                graphWidth: canvasW,
+                graphHeight: canvasH
+            };
+
+        } else {
+            // top-down (default): levels are rows (y-axis), nodes spread horizontally (x-axis)
+            var availableH2 = canvasH - kpiReserve;
+            var availableW2 = canvasW;
+            var levelSpacingY = availableH2 / (levelCount + 1);
+
+            for (i = 0; i < levelGroups.length; i++) {
+                var group2 = levelGroups[i];
+                var nodeCount2 = group2.length;
+                var y2 = kpiReserve + levelSpacingY * (i + 1);
+                var nodeSpacingX = availableW2 / (nodeCount2 + 1);
+
+                for (j = 0; j < group2.length; j++) {
+                    var nid2 = group2[j];
+                    var x2 = nodeSpacingX * (j + 1);
+                    positions[nid2] = { x: x2, y: y2 };
+                }
+            }
+
+            return {
+                positions: positions,
+                graphWidth: canvasW,
+                graphHeight: canvasH
+            };
+        }
+    }
+
+    /**
+     * Compute node radius proportional to count.
+     * Maps count linearly to range [30, 60].
+     * Start (__start__) and End (__end__) nodes always return 20.
+     *
+     * @param {number} count    - This node's count (visit frequency)
+     * @param {number} maxCount - Maximum count among all activity nodes
+     * @param {string} nodeId   - The node's id (to detect start/end)
+     * @returns {number} Radius in pixels
+     */
+    function computeNodeRadius(count, maxCount, nodeId) {
+        if (nodeId === '__start__' || nodeId === '__end__') {
+            return 20;
+        }
+        if (!maxCount || maxCount <= 0) {
+            return 30;
+        }
+        var ratio = count / maxCount;
+        // Linear interpolation between 30 and 60
+        return 30 + ratio * 30;
+    }
+
     // ── Visualization Class ─────────────────────────────────────
 
     return SplunkVisualizationBase.extend({
