@@ -665,6 +665,345 @@ define([
         return 30 + ratio * 30;
     }
 
+    // ── Drawing Helpers ──────────────────────────────────────
+
+    /**
+     * Convert a hex color string to rgba(r,g,b,alpha).
+     * Handles 3-char (#abc) and 6-char (#aabbcc) hex.
+     */
+    function hexToRgba(hex, alpha) {
+        var r, g, b;
+        var clean = hex.replace('#', '');
+        if (clean.length === 3) {
+            r = parseInt(clean[0] + clean[0], 16);
+            g = parseInt(clean[1] + clean[1], 16);
+            b = parseInt(clean[2] + clean[2], 16);
+        } else {
+            r = parseInt(clean.slice(0, 2), 16);
+            g = parseInt(clean.slice(2, 4), 16);
+            b = parseInt(clean.slice(4, 6), 16);
+        }
+        return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+    }
+
+    /**
+     * Lighten a hex color by mixing toward white.
+     * amount is 0-1 (0 = no change, 1 = white).
+     */
+    function lightenColor(hex, amount) {
+        var clean = hex.replace('#', '');
+        var r, g, b;
+        if (clean.length === 3) {
+            r = parseInt(clean[0] + clean[0], 16);
+            g = parseInt(clean[1] + clean[1], 16);
+            b = parseInt(clean[2] + clean[2], 16);
+        } else {
+            r = parseInt(clean.slice(0, 2), 16);
+            g = parseInt(clean.slice(2, 4), 16);
+            b = parseInt(clean.slice(4, 6), 16);
+        }
+        r = Math.min(255, Math.round(r + (255 - r) * amount));
+        g = Math.min(255, Math.round(g + (255 - g) * amount));
+        b = Math.min(255, Math.round(b + (255 - b) * amount));
+        function toHex(n) {
+            var h = n.toString(16);
+            return h.length === 1 ? '0' + h : h;
+        }
+        return '#' + toHex(r) + toHex(g) + toHex(b);
+    }
+
+    /**
+     * Draw a node (circle) at (x, y) with given radius.
+     * Handles regular, start, end, and hovered states.
+     */
+    function drawNode(ctx, x, y, radius, label, count, color, isStart, isEnd, isHovered, showCount) {
+        ctx.save();
+
+        var fillColor = isHovered ? lightenColor(color, 0.3) : color;
+        var borderWidth = isHovered ? 3 : 2;
+
+        if (isStart) {
+            // Dark small circle with "Start" label below
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = isHovered ? '#555' : '#333';
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = borderWidth;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ccc';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText('Start', x, y + radius + 4);
+
+        } else if (isEnd) {
+            // Double circle (outer ring + inner filled)
+            var outerR = radius + 5;
+            ctx.beginPath();
+            ctx.arc(x, y, outerR, 0, 2 * Math.PI);
+            ctx.strokeStyle = isHovered ? lightenColor('#607d8b', 0.3) : '#607d8b';
+            ctx.lineWidth = borderWidth;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = isHovered ? '#555' : '#333';
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = borderWidth;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ccc';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText('End', x, y + outerR + 4);
+
+        } else {
+            // Regular activity node
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = fillColor;
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = borderWidth;
+            ctx.stroke();
+
+            // Count label above the activity label (bold monospace)
+            var labelY = y;
+            if (showCount && count !== undefined && count !== null) {
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 11px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                labelY = y + 6;
+                ctx.fillText(String(count), x, y - 7);
+            }
+
+            // Activity label — auto-size to fit inside diameter
+            var truncated = truncateText(label, 20);
+            var maxW = radius * 1.6;
+            var fontSize = 13;
+            ctx.font = fontSize + 'px sans-serif';
+            while (fontSize > 7 && ctx.measureText(truncated).width > maxW) {
+                fontSize--;
+                ctx.font = fontSize + 'px sans-serif';
+            }
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(truncated, x, labelY);
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * Draw a directed edge (with arrowhead) between two node circles.
+     */
+    function drawEdge(ctx, fromX, fromY, toX, toY, fromR, toR, count, color, thickness, isHovered, showLabel, isSelfLoop) {
+        ctx.save();
+
+        var strokeColor = isHovered ? lightenColor(color, 0.4) : color;
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = isHovered ? thickness + 1 : thickness;
+        ctx.fillStyle = strokeColor;
+
+        if (isSelfLoop) {
+            // Draw a loop arc above/right of the node
+            var loopR = fromR * 0.9;
+            var loopX = fromX + fromR * 0.7;
+            var loopY = fromY - fromR * 0.7;
+            ctx.beginPath();
+            ctx.arc(loopX, loopY, loopR, 0, 2 * Math.PI);
+            ctx.stroke();
+
+            // Arrowhead at the bottom of the loop
+            var arrowAngle = Math.PI / 2;
+            drawArrowhead(ctx, loopX, loopY + loopR, arrowAngle, 8, strokeColor);
+
+            if (showLabel && count !== undefined) {
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 10px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(count), loopX, loopY - loopR - 6);
+            }
+
+        } else {
+            // Calculate unit vector from -> to
+            var dx = toX - fromX;
+            var dy = toY - fromY;
+            var dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 1) {
+                ctx.restore();
+                return;
+            }
+            var ux = dx / dist;
+            var uy = dy / dist;
+
+            // Start/end on circle edges
+            var sx = fromX + ux * fromR;
+            var sy = fromY + uy * fromR;
+            var ex = toX - ux * toR;
+            var ey = toY - uy * toR;
+
+            // Perpendicular offset for bezier control point
+            var perpX = -uy;
+            var perpY = ux;
+            var curvature = Math.min(dist * 0.2, 40);
+            var cx = (sx + ex) / 2 + perpX * curvature;
+            var cy = (sy + ey) / 2 + perpY * curvature;
+
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.quadraticCurveTo(cx, cy, ex, ey);
+            ctx.stroke();
+
+            // Arrowhead angle at end of bezier (from control point toward end)
+            var arrowDx = ex - cx;
+            var arrowDy = ey - cy;
+            var angle = Math.atan2(arrowDy, arrowDx);
+            drawArrowhead(ctx, ex, ey, angle, 8, strokeColor);
+
+            // Edge count label at bezier midpoint t=0.5
+            if (showLabel && count !== undefined) {
+                var midX = 0.25 * sx + 0.5 * cx + 0.25 * ex;
+                var midY = 0.25 * sy + 0.5 * cy + 0.25 * ey;
+                ctx.save();
+                ctx.fillStyle = '#fff';
+                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                ctx.lineWidth = 3;
+                ctx.font = 'bold 10px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.strokeText(String(count), midX, midY);
+                ctx.fillText(String(count), midX, midY);
+                ctx.restore();
+            }
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * Draw a filled triangle arrowhead pointing in direction `angle`.
+     */
+    function drawArrowhead(ctx, x, y, angle, size, color) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-size, -size / 2);
+        ctx.lineTo(-size, size / 2);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.restore();
+    }
+
+    /**
+     * Draw 6 KPIs evenly across the top 60px of the canvas.
+     */
+    function drawKPIHeader(ctx, kpis, w, kpiColor) {
+        var labels = ['Cases', 'Activities', 'Median Duration', 'Avg Duration', 'Self-loop %', 'Variants'];
+        var values = [
+            String(kpis.caseCount),
+            String(kpis.activityCount),
+            formatDuration(kpis.medianDuration),
+            formatDuration(kpis.avgDuration),
+            kpis.selfLoopPct.toFixed(1) + '%',
+            String(kpis.variantCount)
+        ];
+
+        var colW = w / labels.length;
+        ctx.save();
+
+        for (var i = 0; i < labels.length; i++) {
+            var cx = colW * i + colW / 2;
+
+            // Small grey label on top
+            ctx.fillStyle = '#9e9e9e';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText(labels[i], cx, 8);
+
+            // Large value below
+            ctx.fillStyle = kpiColor;
+            ctx.font = 'bold 16px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText(values[i], cx, 24);
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * Draw a tooltip with a rounded dark background and white text lines.
+     * Position is clamped to stay within canvas bounds.
+     */
+    function drawTooltip(ctx, x, y, lines, canvasW, canvasH) {
+        if (!lines || lines.length === 0) return;
+        ctx.save();
+
+        var padding = 8;
+        var lineHeight = 18;
+        var fontSize = 14;
+        ctx.font = fontSize + 'px sans-serif';
+
+        // Measure widest line
+        var maxTextW = 0;
+        for (var i = 0; i < lines.length; i++) {
+            var w = ctx.measureText(lines[i]).width;
+            if (w > maxTextW) maxTextW = w;
+        }
+
+        var boxW = maxTextW + padding * 2;
+        var boxH = lines.length * lineHeight + padding * 2;
+
+        // Offset tooltip from cursor
+        var bx = x + 12;
+        var by = y - boxH / 2;
+
+        // Clamp to canvas bounds
+        if (bx + boxW > canvasW) bx = x - boxW - 12;
+        if (bx < 0) bx = 0;
+        if (by < 0) by = 0;
+        if (by + boxH > canvasH) by = canvasH - boxH;
+
+        // Rounded rect background
+        var radius = 6;
+        ctx.beginPath();
+        ctx.moveTo(bx + radius, by);
+        ctx.lineTo(bx + boxW - radius, by);
+        ctx.quadraticCurveTo(bx + boxW, by, bx + boxW, by + radius);
+        ctx.lineTo(bx + boxW, by + boxH - radius);
+        ctx.quadraticCurveTo(bx + boxW, by + boxH, bx + boxW - radius, by + boxH);
+        ctx.lineTo(bx + radius, by + boxH);
+        ctx.quadraticCurveTo(bx, by + boxH, bx, by + boxH - radius);
+        ctx.lineTo(bx, by + radius);
+        ctx.quadraticCurveTo(bx, by, bx + radius, by);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(30,30,30,0.88)';
+        ctx.fill();
+
+        // Text lines
+        ctx.fillStyle = '#ffffff';
+        ctx.font = fontSize + 'px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        for (var j = 0; j < lines.length; j++) {
+            ctx.fillText(lines[j], bx + padding, by + padding + j * lineHeight);
+        }
+
+        ctx.restore();
+    }
+
     // ── Visualization Class ─────────────────────────────────────
 
     return SplunkVisualizationBase.extend({
@@ -723,17 +1062,174 @@ define([
             return result;
         },
 
-        updateView: function(data) {
-            // Fall back to last good data if needed
+        updateView: function(data, config) {
+            // 1. Data fallback
             if (!data) {
-                if (this._lastGoodData) {
-                    data = this._lastGoodData;
-                } else {
-                    return;
-                }
+                if (this._lastGoodData) { data = this._lastGoodData; }
+                else { return; }
             }
 
-            // Stub: layout and rendering will be added in later tasks
+            // 2. Read ALL config settings with defaults matching formatter.html
+            var ns = this.getPropertyNamespaceInfo().propertyNamespace;
+            var caseField = config[ns + 'caseField'] || 'case_id';
+            var activityField = config[ns + 'activityField'] || 'activity';
+            var timeField = config[ns + 'timeField'] || '_time';
+            var statusField = config[ns + 'statusField'] || 'status';
+            var resourceField = config[ns + 'resourceField'] || 'resource';
+            var layoutDirection = config[ns + 'layoutDirection'] || 'top-down';
+            var nodeColor = config[ns + 'nodeColor'] || '#607d8b';
+            var edgeColor = config[ns + 'edgeColor'] || '#90a4ae';
+            var successColor = config[ns + 'successColor'] || '#4caf50';
+            var errorColor = config[ns + 'errorColor'] || '#f44336';
+            var showKPIs = (config[ns + 'showKPIs'] || 'true') === 'true';
+            var kpiColor = config[ns + 'kpiColor'] || '#00bcd4';
+            var showEdgeLabels = (config[ns + 'showEdgeLabels'] || 'true') === 'true';
+            var showNodeCounts = (config[ns + 'showNodeCounts'] || 'true') === 'true';
+            this._drilldownField = config[ns + 'drilldownField'] || 'activity';
+
+            // 3. Size canvas for HiDPI
+            var el = this.el;
+            var rect = el.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return;
+            var dpr = window.devicePixelRatio || 1;
+            this.canvas.width = rect.width * dpr;
+            this.canvas.height = rect.height * dpr;
+            var ctx = this.canvas.getContext('2d');
+            if (!ctx) return;
+            ctx.scale(dpr, dpr);
+            var w = rect.width;
+            var h = rect.height;
+
+            // 4. Clear canvas
+            ctx.clearRect(0, 0, w, h);
+
+            // 5. Build process graph
+            var graph = buildProcessGraph(data.rows, data.colIdx, caseField, activityField, timeField, statusField, resourceField);
+
+            // 6. KPIs
+            var kpis = computeKPIs(graph);
+            var kpiReserve = showKPIs ? 60 : 0;
+            if (showKPIs) {
+                drawKPIHeader(ctx, kpis, w, kpiColor);
+            }
+
+            // 7. Layout
+            var dagEdges = breakCycles(graph.nodes, graph.edges);
+            var levelMap = assignLevels(graph.nodes, dagEdges, '__start__');
+            var nodeIds = [];
+            for (var ni = 0; ni < graph.nodes.length; ni++) {
+                nodeIds.push(graph.nodes[ni].id);
+            }
+            var levelGroups = minimizeCrossings(levelMap, dagEdges, nodeIds);
+            var layout = assignPositions(levelGroups, graph.nodes, layoutDirection, w, h - kpiReserve, kpiReserve);
+
+            // 8. Compute max count for radius scaling
+            var maxCount = 0;
+            for (var mc = 0; mc < graph.nodes.length; mc++) {
+                if (graph.nodes[mc].count > maxCount) maxCount = graph.nodes[mc].count;
+            }
+
+            // 9. Build node lookup
+            var nodeById = {};
+            for (var nb = 0; nb < graph.nodes.length; nb++) {
+                nodeById[graph.nodes[nb].id] = graph.nodes[nb];
+            }
+
+            // 10. Apply zoom/pan transform
+            ctx.save();
+            ctx.translate(this._tx, this._ty + kpiReserve);
+            ctx.scale(this._scale, this._scale);
+
+            // 11. Compute edge thickness range
+            var maxEdgeCount = 0;
+            for (var ec = 0; ec < graph.edges.length; ec++) {
+                if (graph.edges[ec].count > maxEdgeCount) maxEdgeCount = graph.edges[ec].count;
+            }
+
+            // 12. Store hit data for interactions
+            this._hitNodes = [];
+            this._hitEdges = [];
+
+            // 13. Draw edges (behind nodes)
+            for (var ei = 0; ei < graph.edges.length; ei++) {
+                var edge = graph.edges[ei];
+                var fromPos = layout.positions[edge.from];
+                var toPos = layout.positions[edge.to];
+                if (!fromPos || !toPos) continue;
+                var fromNode = nodeById[edge.from];
+                var toNode = nodeById[edge.to];
+                var fromR = computeNodeRadius(fromNode ? fromNode.count : 0, maxCount, edge.from);
+                var toR = computeNodeRadius(toNode ? toNode.count : 0, maxCount, edge.to);
+                var thickness = maxEdgeCount > 0 ? 1 + (edge.count / maxEdgeCount) * 5 : 2;
+                var isSelfLoop = edge.from === edge.to;
+                var isHoveredEdge = this._hoverItem && this._hoverItem.type === 'edge' && this._hoverItem.from === edge.from && this._hoverItem.to === edge.to;
+
+                drawEdge(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, fromR, toR, edge.count, edgeColor, thickness, isHoveredEdge, showEdgeLabels, isSelfLoop);
+
+                // Store edge hit data (bezier control point will be needed for hit testing later)
+                this._hitEdges.push({
+                    from: edge.from, to: edge.to,
+                    fromX: fromPos.x, fromY: fromPos.y,
+                    toX: toPos.x, toY: toPos.y,
+                    fromR: fromR, toR: toR,
+                    count: edge.count,
+                    durations: edge.durations,
+                    isSelfLoop: isSelfLoop
+                });
+            }
+
+            // 14. Draw nodes
+            for (var dn = 0; dn < graph.nodes.length; dn++) {
+                var node = graph.nodes[dn];
+                var pos = layout.positions[node.id];
+                if (!pos) continue;
+                var radius = computeNodeRadius(node.count, maxCount, node.id);
+                var isStart = node.id === '__start__';
+                var isEnd = node.id === '__end__';
+
+                // Determine node color based on most common status
+                var nColor = nodeColor;
+                if (!isStart && !isEnd && node.statuses) {
+                    var topStatus = null;
+                    var topCount = 0;
+                    for (var sk in node.statuses) {
+                        if (node.statuses.hasOwnProperty(sk) && node.statuses[sk] > topCount) {
+                            topCount = node.statuses[sk];
+                            topStatus = sk;
+                        }
+                    }
+                    if (topStatus) {
+                        var lowerStatus = topStatus.toLowerCase();
+                        if (lowerStatus === 'success' || lowerStatus === 'ok' || lowerStatus === '200') {
+                            nColor = successColor;
+                        } else if (lowerStatus === 'error' || lowerStatus === 'fail' || lowerStatus === 'failed' || lowerStatus.charAt(0) === '4' || lowerStatus.charAt(0) === '5') {
+                            nColor = errorColor;
+                        }
+                        // else keep default nodeColor for unknown statuses like "pending"
+                    }
+                }
+
+                var isHoveredNode = this._hoverItem && this._hoverItem.type === 'node' && this._hoverItem.id === node.id;
+                drawNode(ctx, pos.x, pos.y, radius, node.name, node.count, nColor, isStart, isEnd, isHoveredNode, showNodeCounts);
+
+                // Store hit data
+                this._hitNodes.push({
+                    id: node.id, name: node.name,
+                    x: pos.x, y: pos.y, r: radius,
+                    count: node.count,
+                    statuses: node.statuses,
+                    resources: node.resources
+                });
+            }
+
+            ctx.restore();
+
+            // 15. Draw tooltip outside transform (screen coords)
+            if (this._hoverItem && this._hoverItem.tooltipLines) {
+                var mx = this._hoverItem.mouseX || 0;
+                var my = this._hoverItem.mouseY || 0;
+                drawTooltip(ctx, mx, my, this._hoverItem.tooltipLines, w, h);
+            }
         },
 
         reflow: function() {
