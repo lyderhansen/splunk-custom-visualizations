@@ -1109,6 +1109,11 @@ define([
             this._kpiReserve    = 0;
             this._hitButtons    = [];
             this._drilldownField = null;
+            // Drag state
+            this._isDragging    = false;
+            this._dragNodeId    = null;
+            this._didDrag       = false;
+            this._draggedPositions = {}; // nodeId -> {x, y} overrides
 
             var self = this;
 
@@ -1130,19 +1135,25 @@ define([
                 var rect = self.canvas.getBoundingClientRect();
                 var mx = e.clientX - rect.left;
                 var my = e.clientY - rect.top;
-                // Skip panning if over a zoom button
+                self._didDrag = false;
+                // Skip if over a zoom button
                 if (self._hitButtons) {
                     for (var bi = 0; bi < self._hitButtons.length; bi++) {
                         var btn = self._hitButtons[bi];
                         if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) return;
                     }
                 }
-                // Skip panning if over a node (let click handle drilldown)
+                // Check if over a node — start dragging
                 var kpiR = self._kpiReserve || 0;
                 var worldCoord = screenToWorld(mx, my, self._tx, self._ty, self._scale, kpiR);
                 for (var ni = 0; ni < self._hitNodes.length; ni++) {
                     var nd = self._hitNodes[ni];
-                    if (pointInCircle(worldCoord.x, worldCoord.y, nd.x, nd.y, nd.r)) return;
+                    if (pointInCircle(worldCoord.x, worldCoord.y, nd.x, nd.y, nd.r)) {
+                        self._isDragging = true;
+                        self._dragNodeId = nd.id;
+                        self.canvas.style.cursor = 'grabbing';
+                        return;
+                    }
                 }
                 // Start panning
                 self._isPanning = true;
@@ -1156,6 +1167,17 @@ define([
                 var rect = self.canvas.getBoundingClientRect();
                 var mx = e.clientX - rect.left;
                 var my = e.clientY - rect.top;
+
+                // Handle node dragging
+                if (self._isDragging && self._dragNodeId) {
+                    self._didDrag = true;
+                    var kpiR2 = self._kpiReserve || 0;
+                    var worldPos = screenToWorld(mx, my, self._tx, self._ty, self._scale, kpiR2);
+                    self._draggedPositions[self._dragNodeId] = { x: worldPos.x, y: worldPos.y };
+                    self.canvas.style.cursor = 'grabbing';
+                    self.invalidateUpdateView();
+                    return;
+                }
 
                 if (self._isPanning) {
                     self._tx = self._panStartTx + (mx - self._panStartX);
@@ -1230,15 +1252,26 @@ define([
                 }
 
                 self._hoverItem = found;
-                self.canvas.style.cursor = found ? 'pointer' : (self._isPanning ? 'grabbing' : 'default');
+                var cursor = 'default';
+                if (found && found.type === 'node') cursor = 'grab';
+                else if (found) cursor = 'pointer';
+                else if (self._isPanning) cursor = 'grabbing';
+                self.canvas.style.cursor = cursor;
                 self.invalidateUpdateView();
             };
 
             this._onMouseUp = function() {
                 self._isPanning = false;
+                self._isDragging = false;
+                self._dragNodeId = null;
             };
 
             this._onClick = function(e) {
+                // Skip drilldown if we just finished dragging a node
+                if (self._didDrag) {
+                    self._didDrag = false;
+                    return;
+                }
                 if (!self._hitNodes || self._hitNodes.length === 0) return;
                 var rect = self.canvas.getBoundingClientRect();
                 var mx = e.clientX - rect.left;
@@ -1257,6 +1290,7 @@ define([
                                 self._tx = 0;
                                 self._ty = 0;
                                 self._scale = 1;
+                                self._draggedPositions = {};
                             }
                             self.invalidateUpdateView();
                             return;
@@ -1381,6 +1415,13 @@ define([
             }
             var levelGroups = minimizeCrossings(levelMap, dagEdges, nodeIds);
             var layout = assignPositions(levelGroups, graph.nodes, layoutDirection, w, h, kpiReserve);
+
+            // 7b. Apply user-dragged position overrides
+            for (var dp in this._draggedPositions) {
+                if (this._draggedPositions.hasOwnProperty(dp) && layout.positions[dp]) {
+                    layout.positions[dp] = this._draggedPositions[dp];
+                }
+            }
 
             // 8. Compute max count for radius scaling
             var maxCount = 0;
