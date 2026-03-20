@@ -1,0 +1,15 @@
+display.visualizations.custom.process_mining.process_mining.caseField = <string>
+display.visualizations.custom.process_mining.process_mining.activityField = <string>
+display.visualizations.custom.process_mining.process_mining.timeField = <string>
+display.visualizations.custom.process_mining.process_mining.statusField = <string>
+display.visualizations.custom.process_mining.process_mining.resourceField = <string>
+display.visualizations.custom.process_mining.process_mining.layoutDirection = <string>
+display.visualizations.custom.process_mining.process_mining.nodeColor = <string>
+display.visualizations.custom.process_mining.process_mining.edgeColor = <string>
+display.visualizations.custom.process_mining.process_mining.successColor = <string>
+display.visualizations.custom.process_mining.process_mining.errorColor = <string>
+display.visualizations.custom.process_mining.process_mining.showKPIs = <boolean>
+display.visualizations.custom.process_mining.process_mining.kpiColor = <string>
+display.visualizations.custom.process_mining.process_mining.showEdgeLabels = <boolean>
+display.visualizations.custom.process_mining.process_mining.showNodeCounts = <boolean>
+display.visualizations.custom.process_mining.process_mining.drilldownField = <string>

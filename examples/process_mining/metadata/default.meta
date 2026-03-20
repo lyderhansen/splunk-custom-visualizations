@@ -1,0 +1,5 @@
+[]
+access = read : [ * ], write : [ admin ]
+
+[visualizations/process_mining]
+export = system
