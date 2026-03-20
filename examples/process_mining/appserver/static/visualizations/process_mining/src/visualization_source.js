@@ -1004,6 +1004,67 @@ define([
         ctx.restore();
     }
 
+    // ── Interaction Helpers ─────────────────────────────────────
+
+    function pointInCircle(px, py, cx, cy, r) {
+        var dx = px - cx;
+        var dy = py - cy;
+        return dx * dx + dy * dy <= r * r;
+    }
+
+    function bezierPoint(t, p0, p1, p2) {
+        var mt = 1 - t;
+        return mt * mt * p0 + 2 * mt * t * p1 + t * t * p2;
+    }
+
+    function pointNearBezier(px, py, x1, y1, cpx, cpy, x2, y2, threshold) {
+        for (var i = 0; i <= 20; i++) {
+            var t = i / 20;
+            var bx = bezierPoint(t, x1, cpx, x2);
+            var by = bezierPoint(t, y1, cpy, y2);
+            var dx = px - bx;
+            var dy = py - by;
+            if (dx * dx + dy * dy <= threshold * threshold) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function screenToWorld(sx, sy, tx, ty, scale, offsetY) {
+        return {
+            x: (sx - tx) / scale,
+            y: (sy - ty - offsetY) / scale
+        };
+    }
+
+    function drawZoomButton(ctx, x, y, size, label) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(50, 50, 50, 0.7)';
+        ctx.beginPath();
+        var r = 4;
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + size - r, y);
+        ctx.arcTo(x + size, y, x + size, y + r, r);
+        ctx.lineTo(x + size, y + size - r);
+        ctx.arcTo(x + size, y + size, x + size - r, y + size, r);
+        ctx.lineTo(x + r, y + size);
+        ctx.arcTo(x, y + size, x, y + size - r, r);
+        ctx.lineTo(x, y + r);
+        ctx.arcTo(x, y, x + r, y, r);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, x + size / 2, y + size / 2);
+        ctx.restore();
+    }
+
     // ── Visualization Class ─────────────────────────────────────
 
     return SplunkVisualizationBase.extend({
@@ -1029,7 +1090,183 @@ define([
             this._isPanning     = false;
             this._panStartX     = 0;
             this._panStartY     = 0;
+            this._panStartTx    = 0;
+            this._panStartTy    = 0;
+            this._kpiReserve    = 0;
+            this._hitButtons    = [];
             this._drilldownField = null;
+
+            var self = this;
+
+            this._onWheel = function(e) {
+                e.preventDefault();
+                var rect = self.canvas.getBoundingClientRect();
+                var mx = e.clientX - rect.left;
+                var my = e.clientY - rect.top;
+                var zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+                var newScale = Math.max(0.1, Math.min(5, self._scale * zoomFactor));
+                // Zoom toward mouse position
+                self._tx = mx - (mx - self._tx) * (newScale / self._scale);
+                self._ty = my - (my - self._ty) * (newScale / self._scale);
+                self._scale = newScale;
+                self.invalidateUpdateView();
+            };
+
+            this._onMouseDown = function(e) {
+                var rect = self.canvas.getBoundingClientRect();
+                var mx = e.clientX - rect.left;
+                var my = e.clientY - rect.top;
+                // Check if clicking a zoom button (stored in _hitButtons)
+                // Otherwise start panning
+                self._isPanning = true;
+                self._panStartX = mx;
+                self._panStartY = my;
+                self._panStartTx = self._tx;
+                self._panStartTy = self._ty;
+            };
+
+            this._onMouseMove = function(e) {
+                var rect = self.canvas.getBoundingClientRect();
+                var mx = e.clientX - rect.left;
+                var my = e.clientY - rect.top;
+
+                if (self._isPanning) {
+                    self._tx = self._panStartTx + (mx - self._panStartX);
+                    self._ty = self._panStartTy + (my - self._panStartY);
+                    self.invalidateUpdateView();
+                    return;
+                }
+
+                // Hit-test nodes and edges in world coords
+                var kpiReserve = self._kpiReserve || 0;
+                var world = screenToWorld(mx, my, self._tx, self._ty, self._scale, kpiReserve);
+                var wx = world.x;
+                var wy = world.y;
+
+                var found = null;
+
+                // Check nodes first (higher priority)
+                for (var i = 0; i < self._hitNodes.length; i++) {
+                    var n = self._hitNodes[i];
+                    if (pointInCircle(wx, wy, n.x, n.y, n.r)) {
+                        var tooltipLines = [n.name, 'Count: ' + n.count];
+                        // Add top status
+                        var topStatus = null, topCount = 0;
+                        for (var sk in n.statuses) {
+                            if (n.statuses.hasOwnProperty(sk) && n.statuses[sk] > topCount) {
+                                topCount = n.statuses[sk];
+                                topStatus = sk;
+                            }
+                        }
+                        if (topStatus) tooltipLines.push('Status: ' + topStatus);
+                        // Add top resources (up to 3)
+                        var resArr = [];
+                        for (var rk in n.resources) {
+                            if (n.resources.hasOwnProperty(rk)) resArr.push({ name: rk, count: n.resources[rk] });
+                        }
+                        resArr.sort(function(a, b) { return b.count - a.count; });
+                        if (resArr.length > 0) {
+                            var resStr = resArr.slice(0, 3).map(function(r) { return r.name; }).join(', ');
+                            tooltipLines.push('Resources: ' + resStr);
+                        }
+                        found = { type: 'node', id: n.id, mouseX: mx, mouseY: my, tooltipLines: tooltipLines };
+                        break;
+                    }
+                }
+
+                // Check edges if no node found
+                if (!found) {
+                    for (var j = 0; j < self._hitEdges.length; j++) {
+                        var edge = self._hitEdges[j];
+                        // Need to compute the bezier control point (same logic as drawEdge)
+                        if (edge.isSelfLoop) {
+                            // Simple check: circle area above/right of node
+                            if (pointInCircle(wx, wy, edge.fromX + edge.fromR + 15, edge.fromY - edge.fromR - 15, 20)) {
+                                var eDur = edge.durations.length > 0 ? formatDuration(median(edge.durations)) : 'N/A';
+                                found = { type: 'edge', from: edge.from, to: edge.to, mouseX: mx, mouseY: my,
+                                    tooltipLines: [edge.from + ' \u2192 ' + edge.to, 'Count: ' + edge.count, 'Avg duration: ' + eDur] };
+                                break;
+                            }
+                        } else {
+                            // Compute bezier control point (perpendicular offset)
+                            var midX = (edge.fromX + edge.toX) / 2;
+                            var midY = (edge.fromY + edge.toY) / 2;
+                            var dx = edge.toX - edge.fromX;
+                            var dy = edge.toY - edge.fromY;
+                            var len = Math.sqrt(dx * dx + dy * dy);
+                            var offset = Math.min(30, len * 0.15);
+                            var cpx = midX + (dy / (len || 1)) * offset;
+                            var cpy = midY - (dx / (len || 1)) * offset;
+
+                            if (pointNearBezier(wx, wy, edge.fromX, edge.fromY, cpx, cpy, edge.toX, edge.toY, 6)) {
+                                var dur = edge.durations.length > 0 ? formatDuration(median(edge.durations)) : 'N/A';
+                                found = { type: 'edge', from: edge.from, to: edge.to, mouseX: mx, mouseY: my,
+                                    tooltipLines: [edge.from + ' \u2192 ' + edge.to, 'Count: ' + edge.count, 'Median duration: ' + dur] };
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                self._hoverItem = found;
+                self.canvas.style.cursor = found ? 'pointer' : (self._isPanning ? 'grabbing' : 'default');
+                self.invalidateUpdateView();
+            };
+
+            this._onMouseUp = function() {
+                self._isPanning = false;
+            };
+
+            this._onClick = function(e) {
+                if (!self._hitNodes || self._hitNodes.length === 0) return;
+                var rect = self.canvas.getBoundingClientRect();
+                var mx = e.clientX - rect.left;
+                var my = e.clientY - rect.top;
+
+                // Check zoom buttons first
+                if (self._hitButtons) {
+                    for (var b = 0; b < self._hitButtons.length; b++) {
+                        var btn = self._hitButtons[b];
+                        if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+                            if (btn.action === 'zoomIn') {
+                                self._scale = Math.min(5, self._scale * 1.3);
+                            } else if (btn.action === 'zoomOut') {
+                                self._scale = Math.max(0.1, self._scale * 0.7);
+                            } else if (btn.action === 'fitToView') {
+                                self._tx = 0;
+                                self._ty = 0;
+                                self._scale = 1;
+                            }
+                            self.invalidateUpdateView();
+                            return;
+                        }
+                    }
+                }
+
+                // Check nodes for drilldown
+                var kpiReserve = self._kpiReserve || 0;
+                var world = screenToWorld(mx, my, self._tx, self._ty, self._scale, kpiReserve);
+                for (var i = 0; i < self._hitNodes.length; i++) {
+                    var n = self._hitNodes[i];
+                    if (n.id === '__start__' || n.id === '__end__') continue;
+                    if (pointInCircle(world.x, world.y, n.x, n.y, n.r)) {
+                        var drilldownData = {};
+                        drilldownData[self._drilldownField] = n.name;
+                        e.preventDefault();
+                        self.drilldown({
+                            action: SplunkVisualizationBase.FIELD_VALUE_DRILLDOWN,
+                            data: drilldownData
+                        }, e);
+                        break;
+                    }
+                }
+            };
+
+            this.canvas.addEventListener('wheel', this._onWheel, { passive: false });
+            this.canvas.addEventListener('mousedown', this._onMouseDown);
+            this.canvas.addEventListener('mousemove', this._onMouseMove);
+            this.canvas.addEventListener('mouseup', this._onMouseUp);
+            this.canvas.addEventListener('click', this._onClick);
         },
 
         getInitialDataParams: function() {
@@ -1109,6 +1346,7 @@ define([
             // 6. KPIs
             var kpis = computeKPIs(graph);
             var kpiReserve = showKPIs ? 60 : 0;
+            this._kpiReserve = kpiReserve;
             if (showKPIs) {
                 drawKPIHeader(ctx, kpis, w, kpiColor);
             }
@@ -1224,7 +1462,26 @@ define([
 
             ctx.restore();
 
-            // 15. Draw tooltip outside transform (screen coords)
+            // 15. Draw zoom control buttons (bottom-left, screen coords)
+            this._hitButtons = [];
+            var btnSize = 30;
+            var btnMargin = 8;
+            var btnX = btnMargin;
+            var btnBaseY = h - btnMargin - btnSize;
+
+            // Fit to view button
+            drawZoomButton(ctx, btnX, btnBaseY - 2 * (btnSize + btnMargin), btnSize, '\u2922');
+            this._hitButtons.push({ x: btnX, y: btnBaseY - 2 * (btnSize + btnMargin), w: btnSize, h: btnSize, action: 'fitToView' });
+
+            // Zoom in button
+            drawZoomButton(ctx, btnX, btnBaseY - (btnSize + btnMargin), btnSize, '+');
+            this._hitButtons.push({ x: btnX, y: btnBaseY - (btnSize + btnMargin), w: btnSize, h: btnSize, action: 'zoomIn' });
+
+            // Zoom out button
+            drawZoomButton(ctx, btnX, btnBaseY, btnSize, '\u2212');
+            this._hitButtons.push({ x: btnX, y: btnBaseY, w: btnSize, h: btnSize, action: 'zoomOut' });
+
+            // 16. Draw tooltip outside transform (screen coords)
             if (this._hoverItem && this._hoverItem.tooltipLines) {
                 var mx = this._hoverItem.mouseX || 0;
                 var my = this._hoverItem.mouseY || 0;
@@ -1237,7 +1494,14 @@ define([
         },
 
         destroy: function() {
-            // Cleanup will be added in interactions task
+            if (this.canvas) {
+                this.canvas.removeEventListener('wheel', this._onWheel);
+                this.canvas.removeEventListener('mousedown', this._onMouseDown);
+                this.canvas.removeEventListener('mousemove', this._onMouseMove);
+                this.canvas.removeEventListener('mouseup', this._onMouseUp);
+                this.canvas.removeEventListener('click', this._onClick);
+            }
+            SplunkVisualizationBase.prototype.destroy.apply(this, arguments);
         }
     });
 
