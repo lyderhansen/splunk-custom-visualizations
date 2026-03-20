@@ -1,0 +1,56 @@
+{
+  "label": "Process Mining",
+  "defaultSize": { "width": 900, "height": 600 },
+  "noDataMessage": "Process Mining — Waiting for data",
+  "dependencies": [],
+  "fields": [
+    { "name": "_numRows", "label": "Number of Rows", "type": "slider", "min": 2, "max": 30, "step": 1, "default": 22 }
+  ],
+  "formatter": [
+    { "name": "caseField", "label": "Case ID Field", "type": "text", "default": "case_id" },
+    { "name": "activityField", "label": "Activity Field", "type": "text", "default": "activity" },
+    { "name": "timeField", "label": "Time Field", "type": "text", "default": "_time" },
+    { "name": "statusField", "label": "Status Field", "type": "text", "default": "status" },
+    { "name": "resourceField", "label": "Resource Field", "type": "text", "default": "resource" },
+    { "name": "layoutDirection", "label": "Direction", "type": "radio", "options": ["top-down", "left-right"], "default": "top-down" },
+    { "name": "nodeColor", "label": "Node Color", "type": "text", "default": "#607d8b" },
+    { "name": "edgeColor", "label": "Edge Color", "type": "text", "default": "#90a4ae" },
+    { "name": "successColor", "label": "Success Color", "type": "text", "default": "#4caf50" },
+    { "name": "errorColor", "label": "Error Color", "type": "text", "default": "#f44336" },
+    { "name": "showKPIs", "label": "Show KPIs", "type": "radio", "options": ["true", "false"], "default": "true" },
+    { "name": "kpiColor", "label": "KPI Color", "type": "text", "default": "#00bcd4" },
+    { "name": "showEdgeLabels", "label": "Edge Labels", "type": "radio", "options": ["true", "false"], "default": "true" },
+    { "name": "showNodeCounts", "label": "Node Counts", "type": "radio", "options": ["true", "false"], "default": "true" },
+    { "name": "drilldownField", "label": "Drilldown Field", "type": "text", "default": "activity" }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "rowCountField": "_numRows",
+    "columns": ["_time", "case_id", "activity", "status", "resource"],
+    "sampleRows": [
+      ["1710900000", "case-001", "Order Received", "success", "web-server-01"],
+      ["1710900060", "case-001", "Payment Check", "success", "payment-svc"],
+      ["1710900120", "case-001", "Inventory Check", "success", "inventory-svc"],
+      ["1710900240", "case-001", "Ship Order", "success", "warehouse-01"],
+      ["1710900300", "case-001", "Confirm Delivery", "success", "logistics-svc"],
+      ["1710900000", "case-002", "Order Received", "success", "web-server-02"],
+      ["1710900060", "case-002", "Payment Check", "error", "payment-svc"],
+      ["1710900180", "case-002", "Payment Check", "success", "payment-svc"],
+      ["1710900240", "case-002", "Inventory Check", "success", "inventory-svc"],
+      ["1710900360", "case-002", "Ship Order", "success", "warehouse-02"],
+      ["1710900420", "case-002", "Confirm Delivery", "success", "logistics-svc"],
+      ["1710900000", "case-003", "Order Received", "success", "web-server-01"],
+      ["1710900120", "case-003", "Payment Check", "success", "payment-svc"],
+      ["1710900180", "case-003", "Inventory Check", "error", "inventory-svc"],
+      ["1710900300", "case-003", "Inventory Check", "success", "inventory-svc"],
+      ["1710900420", "case-003", "Ship Order", "success", "warehouse-01"],
+      ["1710900480", "case-003", "Confirm Delivery", "success", "logistics-svc"],
+      ["1710900000", "case-004", "Order Received", "success", "web-server-02"],
+      ["1710900060", "case-004", "Payment Check", "success", "payment-svc"],
+      ["1710900180", "case-004", "Ship Order", "success", "warehouse-01"],
+      ["1710900240", "case-004", "Confirm Delivery", "success", "logistics-svc"],
+      ["1710900000", "case-005", "Order Received", "pending", "web-server-01"],
+      ["1710900120", "case-005", "Payment Check", "error", "payment-svc"]
+    ]
+  }
+}
