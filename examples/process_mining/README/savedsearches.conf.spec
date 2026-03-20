@@ -12,4 +12,5 @@ display.visualizations.custom.process_mining.process_mining.showKPIs = <boolean>
 display.visualizations.custom.process_mining.process_mining.kpiColor = <string>
 display.visualizations.custom.process_mining.process_mining.showEdgeLabels = <boolean>
 display.visualizations.custom.process_mining.process_mining.showNodeCounts = <boolean>
+display.visualizations.custom.process_mining.process_mining.animateFlow = <string>
 display.visualizations.custom.process_mining.process_mining.drilldownField = <string>

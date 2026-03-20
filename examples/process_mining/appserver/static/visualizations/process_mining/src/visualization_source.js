@@ -574,6 +574,7 @@ define([
      * Assign x,y positions to each node based on level and direction.
      * For top-down: levels are rows (y-axis), nodes spread horizontally (x-axis).
      * For left-right: levels are columns (x-axis), nodes spread vertically (y-axis).
+     * Enforces minimum 90px spacing between node centers to prevent overlap.
      *
      * @param {Array}  levelGroups - Ordered arrays of nodeIds per level (from minimizeCrossings)
      * @param {Array}  nodes       - Array of node objects with {id, ...}
@@ -581,33 +582,46 @@ define([
      * @param {number} canvasW     - Canvas width in pixels
      * @param {number} canvasH     - Canvas height in pixels
      * @param {number} kpiReserve  - Pixels reserved for KPI banner (top or left)
-     * @returns {Object} { positions: { nodeId: {x, y} }, graphWidth, graphHeight }
+     * @returns {Object} { positions: { nodeId: {x, y} }, graphWidth, graphHeight, maxNodesInLevel }
      */
     function assignPositions(levelGroups, nodes, direction, canvasW, canvasH, kpiReserve) {
         var positions = {};
         var i, j;
         var levelCount = levelGroups.length;
         if (levelCount === 0) {
-            return { positions: positions, graphWidth: canvasW, graphHeight: canvasH };
+            return { positions: positions, graphWidth: canvasW, graphHeight: canvasH, maxNodesInLevel: 0 };
         }
 
         // Padding to keep nodes away from edges (room for labels)
         var pad = 50;
+        var minNodeSpacing = 90;
+
+        // Find max nodes in any level
+        var maxInLevel = 0;
+        for (i = 0; i < levelGroups.length; i++) {
+            if (levelGroups[i].length > maxInLevel) maxInLevel = levelGroups[i].length;
+        }
 
         if (direction === 'left-right') {
             var availableW = canvasW - pad * 2;
             var availableH = canvasH - kpiReserve - pad * 2;
-            var levelSpacingX = availableW / (levelCount + 1);
+            var levelSpacingX = Math.max(80, availableW / (levelCount + 1));
+
+            // Ensure minimum spacing — expand height if needed
+            var neededH = maxInLevel * minNodeSpacing;
+            var useH = Math.max(availableH, neededH);
 
             for (i = 0; i < levelGroups.length; i++) {
                 var group = levelGroups[i];
                 var nodeCount = group.length;
                 var x = pad + levelSpacingX * (i + 1);
-                var nodeSpacingY = availableH / (nodeCount + 1);
+                var nodeSpacingY = useH / (nodeCount + 1);
 
                 for (j = 0; j < group.length; j++) {
                     var nid = group[j];
-                    var y = kpiReserve + pad + nodeSpacingY * (j + 1);
+                    var rowHeight = nodeSpacingY * (nodeCount + 1);
+                    var offsetY = kpiReserve + (canvasH - kpiReserve - rowHeight) / 2;
+                    var y = offsetY + nodeSpacingY * (j + 1);
                     positions[nid] = { x: x, y: y };
                 }
             }
@@ -615,23 +629,31 @@ define([
             return {
                 positions: positions,
                 graphWidth: canvasW,
-                graphHeight: canvasH
+                graphHeight: canvasH,
+                maxNodesInLevel: maxInLevel
             };
 
         } else {
             var availableH2 = canvasH - kpiReserve - pad * 2;
             var availableW2 = canvasW - pad * 2;
-            var levelSpacingY = availableH2 / (levelCount + 1);
+            var levelSpacingY = Math.max(80, availableH2 / (levelCount + 1));
+
+            // Ensure minimum spacing — expand graph width if needed
+            var neededW = maxInLevel * minNodeSpacing;
+            var useW = Math.max(availableW2, neededW);
 
             for (i = 0; i < levelGroups.length; i++) {
                 var group2 = levelGroups[i];
                 var nodeCount2 = group2.length;
                 var y2 = kpiReserve + pad + levelSpacingY * (i + 1);
-                var nodeSpacingX = availableW2 / (nodeCount2 + 1);
+                var nodeSpacingX = useW / (nodeCount2 + 1);
 
                 for (j = 0; j < group2.length; j++) {
                     var nid2 = group2[j];
-                    var x2 = pad + nodeSpacingX * (j + 1);
+                    // Center the row within available canvas width
+                    var rowWidth = nodeSpacingX * (nodeCount2 + 1);
+                    var offsetX = (canvasW - rowWidth) / 2;
+                    var x2 = offsetX + nodeSpacingX * (j + 1);
                     positions[nid2] = { x: x2, y: y2 };
                 }
             }
@@ -639,30 +661,36 @@ define([
             return {
                 positions: positions,
                 graphWidth: canvasW,
-                graphHeight: canvasH
+                graphHeight: canvasH,
+                maxNodesInLevel: maxInLevel
             };
         }
     }
 
     /**
      * Compute node radius proportional to count.
-     * Maps count linearly to range [30, 60].
-     * Start (__start__) and End (__end__) nodes always return 20.
+     * Dynamic max radius based on available space per node.
+     * Start (__start__) and End (__end__) nodes always return 10.
      *
-     * @param {number} count    - This node's count (visit frequency)
-     * @param {number} maxCount - Maximum count among all activity nodes
-     * @param {string} nodeId   - The node's id (to detect start/end)
+     * @param {number} count               - This node's count (visit frequency)
+     * @param {number} maxCount            - Maximum count among all activity nodes
+     * @param {string} nodeId              - The node's id (to detect start/end)
+     * @param {number} maxNodesInLevel     - Max nodes in any level (unused, kept for signature compat)
+     * @param {number} availableSpacePerNode - Available pixels per node in cross-axis
      * @returns {number} Radius in pixels
      */
-    function computeNodeRadius(count, maxCount, nodeId) {
+    function computeNodeRadius(count, maxCount, nodeId, maxNodesInLevel, availableSpacePerNode) {
         if (nodeId === '__start__' || nodeId === '__end__') {
-            return 12;
+            return 10;
         }
+        // Dynamic max radius based on available space (leave room for labels + edges)
+        var maxR = Math.min(36, Math.max(14, (availableSpacePerNode || 100) * 0.3));
+        var minR = Math.max(12, maxR * 0.5);
         if (!maxCount || maxCount <= 0) {
-            return 20;
+            return minR;
         }
         var ratio = count / maxCount;
-        return 20 + ratio * 16;
+        return minR + ratio * (maxR - minR);
     }
 
     // ── Drawing Helpers ──────────────────────────────────────
@@ -798,8 +826,9 @@ define([
 
     /**
      * Draw a directed edge (with arrowhead) between two node circles.
+     * Optionally draws animated "marching ants" dashes on top to show flow direction.
      */
-    function drawEdge(ctx, fromX, fromY, toX, toY, fromR, toR, count, color, thickness, isHovered, showLabel, isSelfLoop) {
+    function drawEdge(ctx, fromX, fromY, toX, toY, fromR, toR, count, color, thickness, isHovered, showLabel, isSelfLoop, animate, animOffset) {
         ctx.save();
 
         var strokeColor = isHovered ? lightenColor(color, 0.4) : color;
@@ -818,6 +847,19 @@ define([
 
             var arrowAngle = Math.PI * 0.6;
             drawArrowhead(ctx, loopX - loopR * Math.cos(0.3), loopY + loopR * Math.sin(0.3), arrowAngle, 5, strokeColor);
+
+            if (animate) {
+                ctx.save();
+                ctx.setLineDash([4, 8]);
+                ctx.lineDashOffset = -(animOffset || 0);
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(loopX, loopY, loopR, 0.3, 2 * Math.PI - 0.3);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
+            }
 
             if (showLabel && count !== undefined) {
                 ctx.fillStyle = 'rgba(255,255,255,0.85)';
@@ -862,6 +904,20 @@ define([
             var arrowDy = ey - cy;
             var angle = Math.atan2(arrowDy, arrowDx);
             drawArrowhead(ctx, ex, ey, angle, 6, strokeColor);
+
+            if (animate) {
+                ctx.save();
+                ctx.setLineDash([4, 8]);
+                ctx.lineDashOffset = -(animOffset || 0);
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.quadraticCurveTo(cx, cy, ex, ey);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
+            }
 
             // Edge count label at bezier midpoint t=0.5
             if (showLabel && count !== undefined) {
@@ -1114,6 +1170,10 @@ define([
             this._dragNodeId    = null;
             this._didDrag       = false;
             this._draggedPositions = {}; // nodeId -> {x, y} overrides
+            // Animation state
+            this._animOffset    = 0;
+            this._animTimer     = null;
+            this._animateFlow   = 'hover'; // default matches formatter
 
             var self = this;
 
@@ -1377,6 +1437,8 @@ define([
             var kpiColor = config[ns + 'kpiColor'] || '#00bcd4';
             var showEdgeLabels = (config[ns + 'showEdgeLabels'] || 'true') === 'true';
             var showNodeCounts = (config[ns + 'showNodeCounts'] || 'true') === 'true';
+            var animateFlow = config[ns + 'animateFlow'] || 'hover';
+            this._animateFlow = animateFlow;
             this._drilldownField = config[ns + 'drilldownField'] || 'activity';
 
             // 3. Size canvas for HiDPI
@@ -1429,6 +1491,33 @@ define([
                 if (graph.nodes[mc].count > maxCount) maxCount = graph.nodes[mc].count;
             }
 
+            // 8b. Compute available space per node for dynamic radius
+            var spacePerNode = (layoutDirection === 'top-down')
+                ? w / (layout.maxNodesInLevel + 1)
+                : (h - kpiReserve) / (layout.maxNodesInLevel + 1);
+
+            // 8c. Manage animation timer
+            var self = this;
+            var needsTimer = (animateFlow === 'always') ||
+                (animateFlow === 'hover' && this._hoverItem && this._hoverItem.type === 'node');
+            if (needsTimer && !this._animTimer) {
+                this._animTimer = setInterval(function() {
+                    self._animOffset = (self._animOffset + 1) % 120;
+                    // Only keep animating if still needed
+                    var stillNeeds = (self._animateFlow === 'always') ||
+                        (self._animateFlow === 'hover' && self._hoverItem && self._hoverItem.type === 'node');
+                    if (!stillNeeds) {
+                        clearInterval(self._animTimer);
+                        self._animTimer = null;
+                    } else {
+                        self.invalidateUpdateView();
+                    }
+                }, 33); // ~30fps
+            } else if (!needsTimer && this._animTimer) {
+                clearInterval(this._animTimer);
+                this._animTimer = null;
+            }
+
             // 9. Build node lookup
             var nodeById = {};
             for (var nb = 0; nb < graph.nodes.length; nb++) {
@@ -1451,6 +1540,7 @@ define([
             this._hitEdges = [];
 
             // 13. Draw edges (behind nodes)
+            var hoveredNodeId = (this._hoverItem && this._hoverItem.type === 'node') ? this._hoverItem.id : null;
             for (var ei = 0; ei < graph.edges.length; ei++) {
                 var edge = graph.edges[ei];
                 var fromPos = layout.positions[edge.from];
@@ -1458,13 +1548,21 @@ define([
                 if (!fromPos || !toPos) continue;
                 var fromNode = nodeById[edge.from];
                 var toNode = nodeById[edge.to];
-                var fromR = computeNodeRadius(fromNode ? fromNode.count : 0, maxCount, edge.from);
-                var toR = computeNodeRadius(toNode ? toNode.count : 0, maxCount, edge.to);
+                var fromR = computeNodeRadius(fromNode ? fromNode.count : 0, maxCount, edge.from, layout.maxNodesInLevel, spacePerNode);
+                var toR = computeNodeRadius(toNode ? toNode.count : 0, maxCount, edge.to, layout.maxNodesInLevel, spacePerNode);
                 var thickness = maxEdgeCount > 0 ? 0.8 + (edge.count / maxEdgeCount) * 2.5 : 1.2;
                 var isSelfLoop = edge.from === edge.to;
                 var isHoveredEdge = this._hoverItem && this._hoverItem.type === 'edge' && this._hoverItem.from === edge.from && this._hoverItem.to === edge.to;
 
-                drawEdge(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, fromR, toR, edge.count, edgeColor, thickness, isHoveredEdge, showEdgeLabels, isSelfLoop);
+                // Determine if this edge should animate
+                var animateEdge = false;
+                if (animateFlow === 'always') {
+                    animateEdge = true;
+                } else if (animateFlow === 'hover' && hoveredNodeId) {
+                    animateEdge = (edge.from === hoveredNodeId || edge.to === hoveredNodeId);
+                }
+
+                drawEdge(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, fromR, toR, edge.count, edgeColor, thickness, isHoveredEdge, showEdgeLabels, isSelfLoop, animateEdge, this._animOffset);
 
                 // Store edge hit data with actual bezier geometry matching drawEdge
                 var hitData = {
@@ -1505,7 +1603,7 @@ define([
                 var node = graph.nodes[dn];
                 var pos = layout.positions[node.id];
                 if (!pos) continue;
-                var radius = computeNodeRadius(node.count, maxCount, node.id);
+                var radius = computeNodeRadius(node.count, maxCount, node.id, layout.maxNodesInLevel, spacePerNode);
                 var isStart = node.id === '__start__';
                 var isEnd = node.id === '__end__';
 
@@ -1578,6 +1676,10 @@ define([
         },
 
         destroy: function() {
+            if (this._animTimer) {
+                clearInterval(this._animTimer);
+                this._animTimer = null;
+            }
             if (this.canvas) {
                 this.canvas.removeEventListener('wheel', this._onWheel);
                 this.canvas.removeEventListener('mousedown', this._onMouseDown);
