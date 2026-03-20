@@ -10,6 +10,11 @@
         </splunk-text-input>
     </splunk-control-group>
 
+    <splunk-control-group label="Min Y Value" help="Minimum Y axis value (default: 0)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.minY" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
     <splunk-control-group label="Max Y Value" help="0 = auto-detect from data">
         <splunk-text-input name="{{VIZ_NAMESPACE}}.maxY" value="0">
         </splunk-text-input>
@@ -27,6 +32,11 @@
             <option value="true">On</option>
             <option value="false">Off</option>
         </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Area Opacity" help="0.0 (transparent) to 1.0 (solid)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.areaOpacity" value="0.15">
+        </splunk-text-input>
     </splunk-control-group>
 
     <splunk-control-group label="Line Width">
@@ -92,26 +102,14 @@
         </splunk-radio-input>
     </splunk-control-group>
 
-    <splunk-control-group label="Rising Color" help="Line color when value is increasing. 0 or empty = use series color.">
-        <splunk-color-picker name="{{VIZ_NAMESPACE}}.risingColor" type="custom" value="#22c55e">
-            <splunk-color>#22c55e</splunk-color>
-            <splunk-color>#16a34a</splunk-color>
-            <splunk-color>#10b981</splunk-color>
-            <splunk-color>#84cc16</splunk-color>
-            <splunk-color>#3b82f6</splunk-color>
-            <splunk-color>#0ea5e9</splunk-color>
-        </splunk-color-picker>
+    <splunk-control-group label="Rising Color" help="Color when value increases. Empty or 0 = use series color.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.risingColor" value="#22c55e">
+        </splunk-text-input>
     </splunk-control-group>
 
-    <splunk-control-group label="Falling Color" help="Line color when value is decreasing. 0 or empty = use series color.">
-        <splunk-color-picker name="{{VIZ_NAMESPACE}}.fallingColor" type="custom" value="#ef4444">
-            <splunk-color>#ef4444</splunk-color>
-            <splunk-color>#dc2626</splunk-color>
-            <splunk-color>#f97316</splunk-color>
-            <splunk-color>#eab308</splunk-color>
-            <splunk-color>#f43f5e</splunk-color>
-            <splunk-color>#e11d48</splunk-color>
-        </splunk-color-picker>
+    <splunk-control-group label="Falling Color" help="Color when value decreases. Empty or 0 = use series color.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.fallingColor" value="#ef4444">
+        </splunk-text-input>
     </splunk-control-group>
 
     <splunk-control-group label="Show Tooltip" help="Hover crosshair and value tooltip">
@@ -167,9 +165,9 @@
 
 </form>
 
-<form class="splunk-formatter-section" section-label="Colors">
+<form class="splunk-formatter-section" section-label="Series Colors">
 
-    <splunk-control-group label="Color Theme">
+    <splunk-control-group label="Color Theme" help="Default palette for series without explicit colors">
         <splunk-select name="{{VIZ_NAMESPACE}}.colorTheme" value="warm">
             <option value="warm">Warm</option>
             <option value="cool">Cool</option>
@@ -180,7 +178,7 @@
         </splunk-select>
     </splunk-control-group>
 
-    <splunk-control-group label="Color Overrides" help="Per-series colors: series1:#FF0000, series2:#00AA00">
+    <splunk-control-group label="Series Colors" help="One per line: series_name:#hex. Series without a color use the theme palette. Example:&#10;consumption:#67a348&#10;generation:#ff4500">
         <splunk-text-area name="{{VIZ_NAMESPACE}}.colorOverrides">
         </splunk-text-area>
     </splunk-control-group>

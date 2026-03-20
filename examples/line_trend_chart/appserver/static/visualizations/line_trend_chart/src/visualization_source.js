@@ -97,16 +97,23 @@ define([
         return 'rgba(' + c.r + ',' + c.g + ',' + c.b + ',' + a + ')';
     }
 
+    // Parse color overrides — supports both formats:
+    //   newline-separated: "name:#hex\nname2:#hex"
+    //   comma-separated:   "name:#hex, name2:#hex"
     function parseColorOverrides(str) {
         var map = {};
         if (!str) return map;
-        var parts = str.split(',');
-        for (var i = 0; i < parts.length; i++) {
-            var kv = parts[i].split(':');
-            if (kv.length >= 2) {
-                var key = kv[0].trim();
-                var val = kv.slice(1).join(':').trim();
-                if (key && val) map[key] = val;
+        // Split by newlines first, then by commas within each line
+        var lines = str.split('\n');
+        for (var l = 0; l < lines.length; l++) {
+            var parts = lines[l].split(',');
+            for (var i = 0; i < parts.length; i++) {
+                var kv = parts[i].split(':');
+                if (kv.length >= 2) {
+                    var key = kv[0].trim();
+                    var val = kv.slice(1).join(':').trim();
+                    if (key && val) map[key] = val;
+                }
             }
         }
         return map;
@@ -274,6 +281,57 @@ define([
         return cps;
     }
 
+    // ── Number Formatting ──────────────────────────────────────
+
+    function formatNumber(val) {
+        if (val === 0) return '0';
+        var abs = Math.abs(val);
+        var str;
+        if (abs >= 1000000) {
+            str = (val / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+        } else if (abs >= 10000) {
+            str = (val / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+        } else {
+            // Add thousands separator
+            str = Math.round(val).toString();
+            var parts = str.split('.');
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            str = parts.join('.');
+        }
+        return str;
+    }
+
+    // Smart grid step calculation — pick nice round intervals
+    function computeNiceSteps(yMin, yMax) {
+        var range = yMax - yMin;
+        if (range <= 0) return { steps: 4, stepSize: 25 };
+        var rough = range / 5;
+        var mag = Math.pow(10, Math.floor(Math.log10(rough)));
+        var residual = rough / mag;
+        var nice;
+        if (residual <= 1) nice = 1;
+        else if (residual <= 2) nice = 2;
+        else if (residual <= 5) nice = 5;
+        else nice = 10;
+        var stepSize = nice * mag;
+        var steps = Math.max(2, Math.round(range / stepSize));
+        return { steps: steps, stepSize: stepSize };
+    }
+
+    // Measure the widest Y-axis label
+    function measureYLabelWidth(ctx, yMin, yMax, yUnit, steps) {
+        ctx.font = '11px sans-serif';
+        var maxW = 0;
+        for (var i = 0; i <= steps; i++) {
+            var yVal = yMin + (yMax - yMin) * (i / steps);
+            var label = formatNumber(yVal);
+            if (yUnit) label = label + ' ' + yUnit;
+            var w = ctx.measureText(label).width;
+            if (w > maxW) maxW = w;
+        }
+        return Math.ceil(maxW) + 12;
+    }
+
     // ── Drawing Helpers ─────────────────────────────────────────
 
     function drawGrid(ctx, plotArea, yMin, yMax, yUnit, gridSteps, textColor, gridColor) {
@@ -297,7 +355,7 @@ define([
             ctx.stroke();
             ctx.setLineDash([]);
 
-            var label = Math.round(yVal);
+            var label = formatNumber(yVal);
             if (yUnit) label = label + ' ' + yUnit;
             ctx.fillText(label, pa.x - 8, yPx);
         }
@@ -307,17 +365,44 @@ define([
         var pa = plotArea;
         ctx.font = '11px sans-serif';
         ctx.fillStyle = textColor;
-        ctx.textBaseline = 'top';
-        ctx.textAlign = 'center';
 
-        var lastLabelEnd = -Infinity;
+        // Determine if labels need rotation
+        var totalLabelW = 0;
         for (var i = 0; i < xLabels.length; i++) {
-            var lbl = xLabels[i];
-            var lw = ctx.measureText(lbl).width;
-            var lx = xPositions[i];
-            if (lx - lw / 2 > lastLabelEnd + 6) {
-                ctx.fillText(lbl, lx, pa.y + pa.h + 8);
-                lastLabelEnd = lx + lw / 2;
+            totalLabelW += ctx.measureText(xLabels[i]).width + 12;
+        }
+        var needsRotation = totalLabelW > pa.w * 1.2 && xLabels.length > 4;
+
+        if (needsRotation) {
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            var lastLabelEnd = -Infinity;
+            for (var i = 0; i < xLabels.length; i++) {
+                var lbl = xLabels[i];
+                var lx = xPositions[i];
+                var ly = pa.y + pa.h + 8;
+                // Space check based on rotated height
+                if (lx > lastLabelEnd + 14) {
+                    ctx.save();
+                    ctx.translate(lx, ly);
+                    ctx.rotate(-Math.PI / 4);
+                    ctx.fillText(lbl, 0, 0);
+                    ctx.restore();
+                    lastLabelEnd = lx;
+                }
+            }
+        } else {
+            ctx.textBaseline = 'top';
+            ctx.textAlign = 'center';
+            var lastLabelEnd = -Infinity;
+            for (var i = 0; i < xLabels.length; i++) {
+                var lbl = xLabels[i];
+                var lw = ctx.measureText(lbl).width;
+                var lx = xPositions[i];
+                if (lx - lw / 2 > lastLabelEnd + 6) {
+                    ctx.fillText(lbl, lx, pa.y + pa.h + 8);
+                    lastLabelEnd = lx + lw / 2;
+                }
             }
         }
     }
@@ -727,9 +812,8 @@ define([
         ctx.setLineDash([]);
 
         // Y-axis value label
-        var yLabel = Math.round(firstVal * 100) / 100;
+        var yLabel = formatNumber(firstVal);
         if (yUnit) yLabel = yLabel + ' ' + yUnit;
-        yLabel = '' + yLabel;
         ctx.font = 'bold 11px monospace';
         var ylw = ctx.measureText(yLabel).width;
         ctx.fillStyle = 'rgba(70,80,120,0.9)';
@@ -750,7 +834,7 @@ define([
         var maxValW = 0;
         for (var i = 0; i < visibleSeries.length; i++) {
             var nw = ctx.measureText(visibleSeries[i].name).width;
-            var vw = ctx.measureText(Math.round(visibleSeries[i].val)).width;
+            var vw = ctx.measureText(formatNumber(visibleSeries[i].val)).width;
             if (nw > maxNameW) maxNameW = nw;
             if (vw > maxValW) maxValW = vw;
         }
@@ -809,7 +893,7 @@ define([
             ctx.fillStyle = '#333';
             ctx.font = 'bold 12px sans-serif';
             ctx.textAlign = 'right';
-            ctx.fillText(Math.round(sv.val), tipX + tipW - tipPad, rowY);
+            ctx.fillText(formatNumber(sv.val), tipX + tipW - tipPad, rowY);
             ctx.font = '12px sans-serif';
 
             rowY += lineH;
@@ -878,9 +962,12 @@ define([
                     }
                 }
 
+                var zr = self._zoomResetRect;
+                var overZoomReset = zr && mx >= zr.x && mx <= zr.x + zr.w && my >= zr.y && my <= zr.y + zr.h;
+
                 var pa = self._plotArea;
                 var inPlot = pa && mx >= pa.x && mx <= pa.x + pa.w && my >= pa.y && my <= pa.y + pa.h;
-                self.canvas.style.cursor = overLegend ? 'pointer' : (inPlot ? 'crosshair' : 'default');
+                self.canvas.style.cursor = (overLegend || overZoomReset) ? 'pointer' : (inPlot ? 'crosshair' : 'default');
 
                 if (self._showTooltip) {
                     self._hoverX = mx;
@@ -1002,6 +1089,15 @@ define([
                 var mx = e.clientX - rect.left;
                 var my = e.clientY - rect.top;
 
+                // Zoom reset button
+                var zr = self._zoomResetRect;
+                if (zr && mx >= zr.x && mx <= zr.x + zr.w && my >= zr.y && my <= zr.y + zr.h) {
+                    self._zoomStart = 0;
+                    self._zoomEnd = -1;
+                    self._drawFrame();
+                    return;
+                }
+
                 for (var i = 0; i < self._legendHitRects.length; i++) {
                     var hr = self._legendHitRects[i];
                     if (mx >= hr.x && mx <= hr.x + hr.w && my >= hr.y && my <= hr.y + hr.h) {
@@ -1069,6 +1165,8 @@ define([
             this._legendPosition = config[ns + 'legendPosition'] || 'top';
             this._yUnit = config[ns + 'yUnit'] || '';
             this._maxY = parseInt(config[ns + 'maxY'] || '0', 10);
+            this._minY = parseInt(config[ns + 'minY'] || '0', 10);
+            this._areaOpacity = parseFloat(config[ns + 'areaOpacity'] || '0.15');
             this._lineWidth = parseInt(config[ns + 'lineWidth'] || '2', 10);
             this._lineDash = config[ns + 'lineDash'] || 'solid';
             this._pointSize = parseInt(config[ns + 'pointSize'] || '4', 10);
@@ -1157,50 +1255,19 @@ define([
                 }
             }
 
-            // Store total length for zoom, then apply zoom slice
+            // Store FULL unsliced data — zoom slicing happens in _drawFrame
             this._totalDataLen = xLabels.length;
-            var zEnd = this._zoomEnd < 0 ? xLabels.length - 1 : Math.min(this._zoomEnd, xLabels.length - 1);
-            var zStart = Math.min(this._zoomStart, zEnd);
-            if (zStart > 0 || zEnd < xLabels.length - 1) {
-                xLabels = xLabels.slice(zStart, zEnd + 1);
-                zones = zones.slice(zStart, zEnd + 1);
-                for (var s = 0; s < seriesData.length; s++) {
-                    seriesData[s] = seriesData[s].slice(zStart, zEnd + 1);
-                }
-            }
-
-            // Format x labels
-            xLabels = formatXLabels(xLabels, this._xFormat);
-
-            // Compute Y range
-            var yMin = 0;
-            var yMax = this._maxY;
-            if (yMax <= 0) {
-                yMax = 0;
-                for (var s = 0; s < seriesData.length; s++) {
-                    if (this._hiddenSeries[seriesNames[s]]) continue;
-                    for (var i = 0; i < seriesData[s].length; i++) {
-                        if (seriesData[s][i] > yMax) yMax = seriesData[s][i];
-                    }
-                }
-                yMax = Math.ceil(yMax * 1.15 / 100) * 100;
-                if (yMax === 0) yMax = 100;
-            }
+            this._fullXLabels = xLabels;
+            this._fullZones = zones;
+            this._fullSeriesData = seriesData;
+            this._seriesNames = seriesNames;
 
             // Series colors
             var seriesColors = [];
             for (var s = 0; s < seriesNames.length; s++) {
                 seriesColors.push(getSeriesColor(seriesNames[s], s, this._colorTheme, this._colorOverrides));
             }
-
-            // Store for drawing
-            this._xLabels = xLabels;
-            this._zones = zones;
-            this._seriesData = seriesData;
-            this._seriesNames = seriesNames;
             this._seriesColors = seriesColors;
-            this._yMin = yMin;
-            this._yMax = yMax;
 
             // Size canvas
             var el = this.el;
@@ -1226,13 +1293,57 @@ define([
             var h = this._h;
             if (!w || !h) return;
 
+            // Apply zoom slice on full data
+            var fullX = this._fullXLabels || [];
+            var fullZ = this._fullZones || [];
+            var fullS = this._fullSeriesData || [];
+            var zEnd = this._zoomEnd < 0 ? fullX.length - 1 : Math.min(this._zoomEnd, fullX.length - 1);
+            var zStart = Math.min(this._zoomStart, zEnd);
+            if (zStart > 0 || zEnd < fullX.length - 1) {
+                this._xLabels = formatXLabels(fullX.slice(zStart, zEnd + 1), this._xFormat);
+                this._zones = fullZ.slice(zStart, zEnd + 1);
+                this._seriesData = [];
+                for (var si = 0; si < fullS.length; si++) {
+                    this._seriesData.push(fullS[si].slice(zStart, zEnd + 1));
+                }
+            } else {
+                this._xLabels = formatXLabels(fullX, this._xFormat);
+                this._zones = fullZ;
+                this._seriesData = fullS;
+            }
+
+            // Recompute Y range for visible (zoomed) data
+            var yMin = this._minY || 0;
+            var yMax = this._maxY;
+            if (yMax <= 0) {
+                yMax = 0;
+                for (var si = 0; si < this._seriesData.length; si++) {
+                    if (this._hiddenSeries[this._seriesNames[si]]) continue;
+                    for (var di = 0; di < this._seriesData[si].length; di++) {
+                        if (this._seriesData[si][di] > yMax) yMax = this._seriesData[si][di];
+                    }
+                }
+                var niceY = computeNiceSteps(yMin, yMax * 1.1);
+                yMax = Math.ceil(yMax * 1.1 / niceY.stepSize) * niceY.stepSize;
+                if (yMax === 0) yMax = 100;
+            }
+            this._yMin = yMin;
+            this._yMax = yMax;
+
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             ctx.clearRect(0, 0, w, h);
 
-            var textColor = 'rgba(220,220,220,0.8)';
-            var gridColor = 'rgba(180,180,180,0.15)';
+            // Theme-aware colors
+            var isDark = true;
+            try { isDark = SplunkVisualizationUtils.getCurrentTheme() !== 'light'; } catch (e) {}
+            var textColor = isDark ? 'rgba(220,220,220,0.8)' : 'rgba(60,60,60,0.8)';
+            var gridColor = isDark ? 'rgba(180,180,180,0.15)' : 'rgba(0,0,0,0.1)';
 
-            // Layout
+            // Smart grid steps
+            var gridInfo = computeNiceSteps(yMin, yMax);
+            var gridSteps = gridInfo.steps;
+
+            // Layout — dynamic Y-axis label width
             var titleH = this._title ? 28 : 0;
             var legendH = 0;
             var legendW = 0;
@@ -1243,7 +1354,7 @@ define([
                 else legendW = 120;
             }
 
-            var yLabelW = 60;
+            var yLabelW = measureYLabelWidth(ctx, yMin, yMax, this._yUnit, gridSteps);
             var xLabelH = 30;
             var zoneHeaderH = this._zoneField ? 20 : 0;
             var topPad = titleH + (legendPos === 'top' ? legendH : 0) + zoneHeaderH + 10;
@@ -1281,7 +1392,6 @@ define([
             drawZones(ctx, pa, this._zones, xPositions, this._zoneColor, this._zoneColorOverrides, textColor);
 
             // Draw grid
-            var gridSteps = 4;
             drawGrid(ctx, pa, this._yMin, this._yMax, this._yUnit, gridSteps, textColor, gridColor);
 
             // Draw x labels
@@ -1313,7 +1423,8 @@ define([
                 var tOpts = { mode: this._trendColorMode, risingColor: this._risingColor, fallingColor: this._fallingColor };
 
                 if (this._showArea) {
-                    drawAreaFill(ctx, pts, pa.y + pa.h, rgbaStr(color, 0.15), smooth, this._zones, zlc, 0.15, sValues, tOpts);
+                    var areaAlpha = this._areaOpacity;
+                    drawAreaFill(ctx, pts, pa.y + pa.h, rgbaStr(color, areaAlpha), smooth, this._zones, zlc, areaAlpha, sValues, tOpts);
                 }
 
                 drawLineSeries(ctx, pts, colorStr, this._lineWidth, smooth, this._zones, zlc, this._lineDash, sValues, tOpts);
@@ -1355,18 +1466,40 @@ define([
                 );
             }
 
-            // Zoom indicator
+            // Zoom reset button
             var isZoomed = this._zoomStart > 0 || (this._zoomEnd >= 0 && this._zoomEnd < this._totalDataLen - 1);
+            this._zoomResetRect = null;
             if (isZoomed) {
-                var zoomLabel = 'Zoomed \u2014 double-click to reset';
-                ctx.font = '10px sans-serif';
+                var zoomLabel = '\u2716  Reset Zoom';
+                ctx.font = 'bold 10px sans-serif';
                 var zlw = ctx.measureText(zoomLabel).width;
-                ctx.fillStyle = 'rgba(88,166,255,0.15)';
-                ctx.fillRect(pa.x + pa.w - zlw - 16, pa.y + 4, zlw + 12, 18);
-                ctx.fillStyle = 'rgba(88,166,255,0.8)';
-                ctx.textAlign = 'right';
+                var zbx = pa.x + pa.w - zlw - 18;
+                var zby = pa.y + 6;
+                var zbw = zlw + 14;
+                var zbh = 20;
+                // Button background
+                ctx.fillStyle = 'rgba(88,166,255,0.2)';
+                ctx.beginPath();
+                ctx.moveTo(zbx + 3, zby);
+                ctx.lineTo(zbx + zbw - 3, zby);
+                ctx.arcTo(zbx + zbw, zby, zbx + zbw, zby + 3, 3);
+                ctx.lineTo(zbx + zbw, zby + zbh - 3);
+                ctx.arcTo(zbx + zbw, zby + zbh, zbx + zbw - 3, zby + zbh, 3);
+                ctx.lineTo(zbx + 3, zby + zbh);
+                ctx.arcTo(zbx, zby + zbh, zbx, zby + zbh - 3, 3);
+                ctx.lineTo(zbx, zby + 3);
+                ctx.arcTo(zbx, zby, zbx + 3, zby, 3);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(88,166,255,0.5)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                // Label
+                ctx.fillStyle = 'rgba(88,166,255,0.9)';
+                ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(zoomLabel, pa.x + pa.w - 10, pa.y + 13);
+                ctx.fillText(zoomLabel, zbx + zbw / 2, zby + zbh / 2);
+                this._zoomResetRect = { x: zbx, y: zby, w: zbw, h: zbh };
             }
         },
 

@@ -61,6 +61,18 @@ define([
     }
 
     /**
+     * Format a large count for display: 1000 -> "1k", 1500000 -> "1.5M", etc.
+     */
+    function formatCount(n) {
+        if (n === null || n === undefined) return '0';
+        if (n >= 1000000000) return (n / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
+        if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+        if (n >= 10000) return (n / 1000).toFixed(0) + 'k';
+        if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+        return String(n);
+    }
+
+    /**
      * Build a process graph from raw row data.
      *
      * @param {Array}  rows          - Array of row arrays from Splunk
@@ -681,11 +693,12 @@ define([
      */
     function computeNodeRadius(count, maxCount, nodeId, maxNodesInLevel, availableSpacePerNode) {
         if (nodeId === '__start__' || nodeId === '__end__') {
-            return 10;
+            return 8;
         }
-        // Dynamic max radius based on available space (leave room for labels + edges)
-        var maxR = Math.min(36, Math.max(14, (availableSpacePerNode || 100) * 0.3));
-        var minR = Math.max(12, maxR * 0.5);
+        // Cap radius based on available space — leave room for labels and edges
+        var space = availableSpacePerNode || 80;
+        var maxR = Math.min(24, Math.max(10, space * 0.2));
+        var minR = Math.max(10, maxR * 0.6);
         if (!maxCount || maxCount <= 0) {
             return minR;
         }
@@ -746,79 +759,64 @@ define([
      */
     function drawNode(ctx, x, y, radius, label, count, color, isStart, isEnd, isHovered, showCount) {
         ctx.save();
+        ctx.textAlign = 'center';
 
-        var fillColor = isHovered ? lightenColor(color, 0.3) : color;
-        var borderWidth = isHovered ? 2.5 : 1.5;
-
-        if (isStart) {
+        if (isStart || isEnd) {
+            // Minimal Start/End markers
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, 2 * Math.PI);
-            ctx.fillStyle = isHovered ? '#555' : '#333';
+            ctx.fillStyle = isHovered ? '#555' : '#2a2a2a';
             ctx.fill();
-            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-            ctx.lineWidth = borderWidth;
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = isEnd ? 2 : 1;
             ctx.stroke();
-            ctx.fillStyle = 'rgba(200,200,200,0.8)';
-            ctx.font = '9px sans-serif';
-            ctx.textAlign = 'center';
+            if (isEnd) {
+                ctx.beginPath();
+                ctx.arc(x, y, radius + 3, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'rgba(120,120,120,0.5)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            ctx.fillStyle = 'rgba(180,180,180,0.7)';
+            ctx.font = '8px sans-serif';
             ctx.textBaseline = 'top';
-            ctx.fillText('Start', x, y + radius + 3);
-
-        } else if (isEnd) {
-            ctx.beginPath();
-            ctx.arc(x, y, radius + 3, 0, 2 * Math.PI);
-            ctx.strokeStyle = isHovered ? lightenColor('#607d8b', 0.3) : 'rgba(96,125,139,0.6)';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, 2 * Math.PI);
-            ctx.fillStyle = isHovered ? '#555' : '#333';
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-            ctx.lineWidth = borderWidth;
-            ctx.stroke();
-            ctx.fillStyle = 'rgba(200,200,200,0.8)';
-            ctx.font = '9px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            ctx.fillText('End', x, y + radius + 6);
-
+            ctx.fillText(isStart ? 'Start' : 'End', x, y + radius + (isEnd ? 5 : 2));
         } else {
-            // Node shadow
-            ctx.shadowColor = 'rgba(0,0,0,0.25)';
-            ctx.shadowBlur = 6;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 2;
+            // Activity node — compact pill with shadow
+            ctx.shadowColor = 'rgba(0,0,0,0.2)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetY = 1;
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, 2 * Math.PI);
-            ctx.fillStyle = fillColor;
+            ctx.fillStyle = isHovered ? lightenColor(color, 0.3) : color;
             ctx.fill();
             ctx.shadowBlur = 0;
-            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-            ctx.lineWidth = borderWidth;
+            ctx.strokeStyle = isHovered ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)';
+            ctx.lineWidth = isHovered ? 2 : 1;
             ctx.stroke();
 
-            // Activity label below node center
-            var truncated = truncateText(label, 16);
-            var maxW = radius * 2.2;
-            var fontSize = Math.min(11, Math.max(8, radius * 0.55));
-            ctx.font = fontSize + 'px sans-serif';
-            while (fontSize > 7 && ctx.measureText(truncated).width > maxW) {
-                fontSize--;
-                ctx.font = fontSize + 'px sans-serif';
-            }
-            ctx.fillStyle = '#fff';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            ctx.fillText(truncated, x, y + radius + 3);
-
-            // Count badge inside node
+            // Count inside node (formatted for large numbers)
             if (showCount && count !== undefined && count !== null) {
+                var countStr = formatCount(count);
+                var cSize = Math.max(8, Math.min(14, radius * 0.7));
                 ctx.fillStyle = 'rgba(255,255,255,0.95)';
-                ctx.font = 'bold ' + Math.max(9, radius * 0.6) + 'px monospace';
+                ctx.font = 'bold ' + cSize + 'px monospace';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(String(count), x, y);
+                ctx.fillText(countStr, x, y);
             }
+
+            // Label below — auto-sized
+            var truncated = truncateText(label, 18);
+            var lSize = Math.max(7, Math.min(10, radius * 0.5));
+            ctx.font = lSize + 'px sans-serif';
+            var maxLabelW = radius * 3;
+            while (lSize > 6 && ctx.measureText(truncated).width > maxLabelW) {
+                lSize--;
+                ctx.font = lSize + 'px sans-serif';
+            }
+            ctx.fillStyle = 'rgba(220,220,220,0.85)';
+            ctx.textBaseline = 'top';
+            ctx.fillText(truncated, x, y + radius + 2);
         }
 
         ctx.restore();
@@ -925,7 +923,7 @@ define([
                 var midY = 0.25 * sy + 0.5 * cy + 0.25 * ey;
                 ctx.save();
                 // Small pill background
-                var labelText = String(count);
+                var labelText = formatCount(count);
                 ctx.font = 'bold 9px monospace';
                 var tw = ctx.measureText(labelText).width;
                 var pw = tw + 6;
@@ -973,12 +971,12 @@ define([
     function drawKPIHeader(ctx, kpis, w, kpiColor) {
         var labels = ['Cases', 'Activities', 'Median Duration', 'Avg Duration', 'Self-loop %', 'Variants'];
         var values = [
-            String(kpis.caseCount),
-            String(kpis.activityCount),
+            formatCount(kpis.caseCount),
+            formatCount(kpis.activityCount),
             formatDuration(kpis.medianDuration),
             formatDuration(kpis.avgDuration),
             kpis.selfLoopPct.toFixed(1) + '%',
-            String(kpis.variantCount)
+            formatCount(kpis.variantCount)
         ];
 
         var colW = w / labels.length;
