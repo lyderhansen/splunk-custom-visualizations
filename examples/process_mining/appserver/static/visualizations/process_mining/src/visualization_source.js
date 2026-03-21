@@ -1260,6 +1260,19 @@ define([
                 ctx.fillText(labelText, midX, midY);
                 ctx.restore();
             }
+
+            // Draggable midpoint indicator (shown on hover)
+            if (isHovered) {
+                var handleX = 0.25 * sx + 0.5 * cx + 0.25 * ex;
+                var handleY = 0.25 * sy + 0.5 * cy + 0.25 * ey;
+                ctx.beginPath();
+                ctx.arc(handleX, handleY, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
         }
 
         ctx.restore();
@@ -1506,6 +1519,10 @@ define([
             this._didDrag       = false;
             this._draggedPositions = {}; // nodeId -> {x, y} overrides
             this._savedPosLoaded = false;
+            // Edge drag state
+            this._isDraggingEdge = false;
+            this._dragEdgeKey    = null; // "from->to"
+            this._draggedEdgeOffsets = {}; // "from->to" -> curveOffset number
             // Animation state
             this._animOffset    = 0;
             this._animTimer     = null;
@@ -1542,13 +1559,35 @@ define([
                 // Check if over a node — start dragging
                 var kpiR = self._kpiReserve || 0;
                 var worldCoord = screenToWorld(mx, my, self._tx, self._ty, self._scale, kpiR);
+                var foundNode = false;
                 for (var ni = 0; ni < self._hitNodes.length; ni++) {
                     var nd = self._hitNodes[ni];
                     if (pointInNode(worldCoord.x, worldCoord.y, nd.x, nd.y, nd.r, nd.shape)) {
                         self._isDragging = true;
                         self._dragNodeId = nd.id;
                         self.canvas.style.cursor = 'grabbing';
+                        foundNode = true;
                         return;
+                    }
+                }
+                // Check edges for dragging (midpoint handle)
+                if (!foundNode) {
+                    var wx = worldCoord.x;
+                    var wy = worldCoord.y;
+                    for (var edgi = 0; edgi < self._hitEdges.length; edgi++) {
+                        var he = self._hitEdges[edgi];
+                        if (he.isSelfLoop) continue;
+                        if (he.cpx !== undefined) {
+                            var emidX = 0.25 * he.sx + 0.5 * he.cpx + 0.25 * he.ex;
+                            var emidY = 0.25 * he.sy + 0.5 * he.cpy + 0.25 * he.ey;
+                            if (Math.abs(wx - emidX) < 12 && Math.abs(wy - emidY) < 12) {
+                                self._isDraggingEdge = true;
+                                self._dragEdgeKey = he.from + '->' + he.to;
+                                self._didDrag = true;
+                                self.canvas.style.cursor = 'ns-resize';
+                                return;
+                            }
+                        }
                     }
                 }
                 // Start panning
@@ -1571,6 +1610,30 @@ define([
                     var worldPos = screenToWorld(mx, my, self._tx, self._ty, self._scale, kpiR2);
                     self._draggedPositions[self._dragNodeId] = { x: worldPos.x, y: worldPos.y };
                     self.canvas.style.cursor = 'grabbing';
+                    self.invalidateUpdateView();
+                    return;
+                }
+
+                // Handle edge dragging
+                if (self._isDraggingEdge && self._dragEdgeKey) {
+                    self._didDrag = true;
+                    var kpiR3 = self._kpiReserve || 0;
+                    var edgeWorld = screenToWorld(mx, my, self._tx, self._ty, self._scale, kpiR3);
+                    var ewx = edgeWorld.x;
+                    var ewy = edgeWorld.y;
+                    for (var dei = 0; dei < self._hitEdges.length; dei++) {
+                        var de = self._hitEdges[dei];
+                        if ((de.from + '->' + de.to) === self._dragEdgeKey && !de.isSelfLoop && de.sx !== undefined) {
+                            var lineDx = de.ex - de.sx;
+                            var lineDy = de.ey - de.sy;
+                            var lineLen = Math.sqrt(lineDx * lineDx + lineDy * lineDy);
+                            if (lineLen > 0) {
+                                var perpDist = ((ewx - de.sx) * (-lineDy / lineLen) + (ewy - de.sy) * (lineDx / lineLen));
+                                self._draggedEdgeOffsets[self._dragEdgeKey] = perpDist;
+                            }
+                            break;
+                        }
+                    }
                     self.invalidateUpdateView();
                     return;
                 }
@@ -1649,9 +1712,30 @@ define([
 
                 self._hoverItem = found;
                 var cursor = 'default';
-                if (found && found.type === 'node') cursor = 'grab';
-                else if (found) cursor = 'pointer';
-                else if (self._isPanning) cursor = 'grabbing';
+                if (found && found.type === 'node') {
+                    cursor = 'grab';
+                } else if (found && found.type === 'edge') {
+                    // Check if near edge midpoint — show resize cursor
+                    var hoverKpiR = self._kpiReserve || 0;
+                    var hoverWorld = screenToWorld(mx, my, self._tx, self._ty, self._scale, hoverKpiR);
+                    var hwx = hoverWorld.x;
+                    var hwy = hoverWorld.y;
+                    var nearMid = false;
+                    for (var hei = 0; hei < self._hitEdges.length; hei++) {
+                        var hhe = self._hitEdges[hei];
+                        if (hhe.from === found.from && hhe.to === found.to && !hhe.isSelfLoop && hhe.cpx !== undefined) {
+                            var hmidX = 0.25 * hhe.sx + 0.5 * hhe.cpx + 0.25 * hhe.ex;
+                            var hmidY = 0.25 * hhe.sy + 0.5 * hhe.cpy + 0.25 * hhe.ey;
+                            if (Math.abs(hwx - hmidX) < 12 && Math.abs(hwy - hmidY) < 12) {
+                                nearMid = true;
+                            }
+                            break;
+                        }
+                    }
+                    cursor = nearMid ? 'ns-resize' : 'pointer';
+                } else if (self._isPanning) {
+                    cursor = 'grabbing';
+                }
                 self.canvas.style.cursor = cursor;
                 self.invalidateUpdateView();
             };
@@ -1660,6 +1744,8 @@ define([
                 self._isPanning = false;
                 self._isDragging = false;
                 self._dragNodeId = null;
+                self._isDraggingEdge = false;
+                self._dragEdgeKey = null;
             };
 
             this._onClick = function(e) {
@@ -1687,6 +1773,7 @@ define([
                                 self._ty = 0;
                                 self._scale = 1;
                                 self._draggedPositions = {};
+                                self._draggedEdgeOffsets = {};
                                 self._savedPosLoaded = false;
                             }
                             self.invalidateUpdateView();
@@ -1835,9 +1922,27 @@ define([
             if (savedPosStr && !this._savedPosLoaded) {
                 try {
                     var saved = JSON.parse(savedPosStr);
-                    for (var spk in saved) {
-                        if (saved.hasOwnProperty(spk) && !this._draggedPositions[spk]) {
-                            this._draggedPositions[spk] = saved[spk];
+                    // Support new format: { nodes: {nodeId: {x,y}}, edges: {"from->to": offset} }
+                    // and old format (flat): { nodeId: {x,y} }
+                    if (saved.nodes || saved.edges) {
+                        var savedNodes = saved.nodes || {};
+                        var savedEdges = saved.edges || {};
+                        for (var spk in savedNodes) {
+                            if (savedNodes.hasOwnProperty(spk) && !this._draggedPositions[spk]) {
+                                this._draggedPositions[spk] = savedNodes[spk];
+                            }
+                        }
+                        for (var sek in savedEdges) {
+                            if (savedEdges.hasOwnProperty(sek) && this._draggedEdgeOffsets[sek] === undefined) {
+                                this._draggedEdgeOffsets[sek] = savedEdges[sek];
+                            }
+                        }
+                    } else {
+                        // Old flat format — only node positions
+                        for (var spk2 in saved) {
+                            if (saved.hasOwnProperty(spk2) && !this._draggedPositions[spk2]) {
+                                this._draggedPositions[spk2] = saved[spk2];
+                            }
                         }
                     }
                 } catch(e) {}
@@ -1911,7 +2016,35 @@ define([
             this._hitNodes = [];
             this._hitEdges = [];
 
-            // 13. Draw edges (behind nodes)
+            // 13. Auto-spacing: group edges by level pair to avoid overlapping
+            var edgeGroups = {}; // "fromLevel-toLevel" -> [edgeIndex, ...]
+            if (mainPathSet && layoutDirection !== 'freeform') {
+                for (var eg = 0; eg < graph.edges.length; eg++) {
+                    var egEdge = graph.edges[eg];
+                    if (egEdge.from === egEdge.to) continue; // skip self-loops
+                    var fromLvl = mainPathSet[egEdge.from] !== undefined ? mainPathSet[egEdge.from] : -1;
+                    var toLvl = mainPathSet[egEdge.to] !== undefined ? mainPathSet[egEdge.to] : -1;
+                    var lvlKey = Math.min(fromLvl, toLvl) + '-' + Math.max(fromLvl, toLvl);
+                    if (!edgeGroups[lvlKey]) edgeGroups[lvlKey] = [];
+                    edgeGroups[lvlKey].push(eg);
+                }
+            }
+
+            // Compute auto offset for each edge index
+            var edgeAutoOffset = {}; // edgeIndex -> offset
+            for (var gk in edgeGroups) {
+                if (edgeGroups.hasOwnProperty(gk)) {
+                    var egGroup = edgeGroups[gk];
+                    if (egGroup.length <= 1) continue; // no spacing needed
+                    var egSpacing = 25;
+                    var egTotalWidth = (egGroup.length - 1) * egSpacing;
+                    for (var gi = 0; gi < egGroup.length; gi++) {
+                        edgeAutoOffset[egGroup[gi]] = -egTotalWidth / 2 + gi * egSpacing;
+                    }
+                }
+            }
+
+            // Draw edges (behind nodes)
             var hoveredNodeId = (this._hoverItem && this._hoverItem.type === 'node') ? this._hoverItem.id : null;
             for (var ei = 0; ei < graph.edges.length; ei++) {
                 var edge = graph.edges[ei];
@@ -1974,6 +2107,16 @@ define([
                         // Side branch edge — small offset to avoid overlap with main line
                         curveOff = 15;
                     }
+                }
+
+                // Apply user-dragged edge offset or auto-spacing offset
+                var edgeKey = edge.from + '->' + edge.to;
+                var userEdgeOffset = self._draggedEdgeOffsets[edgeKey];
+                var autoOff = edgeAutoOffset[ei] || 0;
+                if (userEdgeOffset !== undefined) {
+                    curveOff = userEdgeOffset; // user override replaces auto
+                } else {
+                    curveOff = curveOff + autoOff; // apply auto spacing
                 }
 
                 // Draw dashed for rare edges in linear layouts
