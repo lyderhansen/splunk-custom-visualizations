@@ -1,0 +1,85 @@
+<form class="splunk-formatter-section" section-label="Fields">
+
+    <splunk-control-group label="Label Field" help="Column name for node labels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelField" value="sourcetype">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Value Field" help="Column name for node values">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueField" value="count">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Subtitle Field" help="Column name for subtitle text (optional)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.subtitleField" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+</form>
+
+<form class="splunk-formatter-section" section-label="Appearance">
+
+    <splunk-control-group label="Color Palette" help="Color theme for nodes">
+        <splunk-select name="{{VIZ_NAMESPACE}}.palette" value="corporate">
+            <option value="corporate">Corporate</option>
+            <option value="security">Security</option>
+            <option value="nature">Nature</option>
+            <option value="neon">Neon</option>
+            <option value="mono">Mono</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Accent Line" help="Show colored accent line at top of nodes">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.accentLine" value="false">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sparkline Type" help="Type of sparkline shown on nodes">
+        <splunk-select name="{{VIZ_NAMESPACE}}.sparklineType" value="area">
+            <option value="line">Line</option>
+            <option value="area">Area</option>
+            <option value="bar">Bar</option>
+            <option value="none">None</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Node Radius" help="Border radius in pixels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.nodeRadius" value="8">
+        </splunk-text-input>
+    </splunk-control-group>
+
+</form>
+
+<form class="splunk-formatter-section" section-label="Editor">
+
+    <splunk-control-group label="Edit Mode" help="Toggle edit mode toolbar">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.editMode" value="false">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Lock Nodes" help="Lock nodes in view mode">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.lock" value="false">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Editor State" help="Editor state JSON (auto-populated)">
+        <splunk-text-area name="{{VIZ_NAMESPACE}}.editorState" value="">
+        </splunk-text-area>
+    </splunk-control-group>
+
+</form>
+
+<form class="splunk-formatter-section" section-label="Drilldown">
+
+    <splunk-control-group label="Drilldown Field" help="Field name for drilldown events">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.drilldownField" value="sourcetype">
+        </splunk-text-input>
+    </splunk-control-group>
+
+</form>

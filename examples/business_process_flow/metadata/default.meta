@@ -1,0 +1,5 @@
+[]
+access = read : [ * ], write : [ admin ]
+
+[visualizations/business_process_flow]
+export = system

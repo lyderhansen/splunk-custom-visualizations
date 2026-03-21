@@ -1,0 +1,11 @@
+display.visualizations.custom.business_process_flow.business_process_flow.labelField = <string>
+display.visualizations.custom.business_process_flow.business_process_flow.valueField = <string>
+display.visualizations.custom.business_process_flow.business_process_flow.subtitleField = <string>
+display.visualizations.custom.business_process_flow.business_process_flow.palette = <string>
+display.visualizations.custom.business_process_flow.business_process_flow.accentLine = <boolean>
+display.visualizations.custom.business_process_flow.business_process_flow.sparklineType = <string>
+display.visualizations.custom.business_process_flow.business_process_flow.nodeRadius = <integer>
+display.visualizations.custom.business_process_flow.business_process_flow.editMode = <boolean>
+display.visualizations.custom.business_process_flow.business_process_flow.lock = <boolean>
+display.visualizations.custom.business_process_flow.business_process_flow.editorState = <string>
+display.visualizations.custom.business_process_flow.business_process_flow.drilldownField = <string>
