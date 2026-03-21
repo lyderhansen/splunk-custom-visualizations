@@ -1209,10 +1209,10 @@ define([
                 loopX = fromX + nodeW + loopR * 0.2;
                 loopY = fromY - nodeH * 0.3;
             }
-            // Apply drag offset if any
-            if (loopDragOffset) {
-                loopX += loopDragOffset.dx || 0;
-                loopY += loopDragOffset.dy || 0;
+            // Apply drag offset — absolute position from node center
+            if (loopDragOffset && loopDragOffset.absX !== undefined) {
+                loopX = fromX + loopDragOffset.absX;
+                loopY = fromY + loopDragOffset.absY;
             }
             ctx.beginPath();
             ctx.arc(loopX, loopY, loopR, 0.4, 2 * Math.PI - 0.4);
@@ -1257,7 +1257,7 @@ define([
             var ux = dx / dist;
             var uy = dy / dist;
 
-            // Compute control point first (using center-to-center line for perpendicular)
+            // 1. Compute control point using node CENTERS
             var perpX = -uy;
             var perpY = ux;
             var curvature;
@@ -1266,31 +1266,28 @@ define([
             } else {
                 curvature = Math.min(dist * 0.1, 20);
             }
-            var midX = (fromX + toX) / 2 + perpX * curvature;
-            var midY = (fromY + toY) / 2 + perpY * curvature;
+            var cpX = (fromX + toX) / 2 + perpX * curvature;
+            var cpY = (fromY + toY) / 2 + perpY * curvature;
 
-            // Now compute connection points using the direction the curve
-            // actually arrives from (control point direction, not straight line)
-            var startPt = edgeConnectionPoint(fromX, fromY, fromR, midX, midY, fShape);
-            var endPt = edgeConnectionPoint(toX, toY, toR, midX, midY, tShape);
+            // 2. Find where curve exits source node (direction: center → cp)
+            var startPt = edgeConnectionPoint(fromX, fromY, fromR, cpX, cpY, fShape);
+            // 3. Find where curve enters target node (direction: cp → center)
+            var endPt = edgeConnectionPoint(toX, toY, toR, cpX, cpY, tShape);
             var sx = startPt.x;
             var sy = startPt.y;
             var ex = endPt.x;
             var ey = endPt.y;
 
-            // Recompute control point using actual start/end (not centers)
-            var cx = (sx + ex) / 2 + perpX * curvature;
-            var cy = (sy + ey) / 2 + perpY * curvature;
-
+            // 4. Draw bezier: start → control point → end
             ctx.beginPath();
             ctx.moveTo(sx, sy);
-            ctx.quadraticCurveTo(cx, cy, ex, ey);
+            ctx.quadraticCurveTo(cpX, cpY, ex, ey);
             ctx.stroke();
 
-            // Arrowhead at end — direction from control point to end
+            // 5. Arrowhead — direction is from control point toward endpoint
             if (aSize > 0) {
-                var arrowDx = ex - cx;
-                var arrowDy = ey - cy;
+                var arrowDx = ex - cpX;
+                var arrowDy = ey - cpY;
                 var angle = Math.atan2(arrowDy, arrowDx);
                 drawArrowhead(ctx, ex, ey, angle, aSize, strokeColor);
             }
@@ -1303,7 +1300,7 @@ define([
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
                 ctx.moveTo(sx, sy);
-                ctx.quadraticCurveTo(cx, cy, ex, ey);
+                ctx.quadraticCurveTo(cpX, cpY, ex, ey);
                 ctx.stroke();
                 ctx.setLineDash([]);
                 ctx.restore();
@@ -1311,8 +1308,8 @@ define([
 
             // Edge count label at bezier midpoint t=0.5
             if (showLabel && count !== undefined) {
-                var midX = 0.25 * sx + 0.5 * cx + 0.25 * ex;
-                var midY = 0.25 * sy + 0.5 * cy + 0.25 * ey;
+                var midX = 0.25 * sx + 0.5 * cpX + 0.25 * ex;
+                var midY = 0.25 * sy + 0.5 * cpY + 0.25 * ey;
                 ctx.save();
                 // Small pill background
                 var labelText = formatCount(count);
@@ -1338,8 +1335,8 @@ define([
 
             // Draggable midpoint indicator (shown on hover)
             if (isHovered) {
-                var handleX = 0.25 * sx + 0.5 * cx + 0.25 * ex;
-                var handleY = 0.25 * sy + 0.5 * cy + 0.25 * ey;
+                var handleX = 0.25 * sx + 0.5 * cpX + 0.25 * ex;
+                var handleY = 0.25 * sy + 0.5 * cpY + 0.25 * ey;
                 ctx.beginPath();
                 ctx.arc(handleX, handleY, 4, 0, 2 * Math.PI);
                 ctx.fillStyle = 'rgba(255,255,255,0.5)';
@@ -1698,12 +1695,12 @@ define([
                 var mx = e.clientX - rect.left;
                 var my = e.clientY - rect.top;
 
-                // Handle loop dragging
+                // Handle loop dragging — store absolute offset from node center
                 if (self._isDraggingLoop && self._dragLoopNodeId) {
                     self._didDrag = true;
                     var kpiR3 = self._kpiReserve || 0;
                     var loopWorld = screenToWorld(mx, my, self._tx, self._ty, self._scale, kpiR3);
-                    // Find the node center to compute offset
+                    // Find the node center
                     var loopNodePos = null;
                     for (var lni = 0; lni < self._hitNodes.length; lni++) {
                         if (self._hitNodes[lni].id === self._dragLoopNodeId) {
@@ -1712,14 +1709,11 @@ define([
                         }
                     }
                     if (loopNodePos) {
-                        // Store as offset from default loop position
-                        var existing = self._draggedLoopOffsets[self._dragLoopNodeId] || { dx: 0, dy: 0 };
+                        // Store as absolute position relative to node center
                         self._draggedLoopOffsets[self._dragLoopNodeId] = {
-                            dx: (existing.dx || 0) + (loopWorld.x - (self._dragLoopOriginX || loopWorld.x)),
-                            dy: (existing.dy || 0) + (loopWorld.y - (self._dragLoopOriginY || loopWorld.y))
+                            absX: loopWorld.x - loopNodePos.x,
+                            absY: loopWorld.y - loopNodePos.y
                         };
-                        self._dragLoopOriginX = loopWorld.x;
-                        self._dragLoopOriginY = loopWorld.y;
                     }
                     self.canvas.style.cursor = 'move';
                     self.invalidateUpdateView();
@@ -2315,10 +2309,10 @@ define([
                         hitData.loopX = fromPos.x + hitNodeW + baseHitLoopR * 0.2;
                         hitData.loopY = fromPos.y - hitNodeH * 0.3;
                     }
-                    // Apply drag offset
-                    if (loopDragOff) {
-                        hitData.loopX += loopDragOff.dx || 0;
-                        hitData.loopY += loopDragOff.dy || 0;
+                    // Apply drag offset — absolute from node center
+                    if (loopDragOff && loopDragOff.absX !== undefined) {
+                        hitData.loopX = fromPos.x + loopDragOff.absX;
+                        hitData.loopY = fromPos.y + loopDragOff.absY;
                     }
                     hitData.loopR = baseHitLoopR;
                 } else {
@@ -2332,17 +2326,17 @@ define([
                         var eperpX = -euy;
                         var eperpY = eux;
                         var ecurve = (curveOff !== 0) ? curveOff : Math.min(edist * 0.1, 20);
-                        // Compute control point midpoint (same as drawEdge)
-                        var hitMidX = (fromPos.x + toPos.x) / 2 + eperpX * ecurve;
-                        var hitMidY = (fromPos.y + toPos.y) / 2 + eperpY * ecurve;
-                        var hitStart = edgeConnectionPoint(fromPos.x, fromPos.y, fromR, hitMidX, hitMidY, fShape);
-                        var hitEnd = edgeConnectionPoint(toPos.x, toPos.y, toR, hitMidX, hitMidY, tShape);
+                        // Control point using node centers (same as drawEdge)
+                        var hitCpX = (fromPos.x + toPos.x) / 2 + eperpX * ecurve;
+                        var hitCpY = (fromPos.y + toPos.y) / 2 + eperpY * ecurve;
+                        var hitStart = edgeConnectionPoint(fromPos.x, fromPos.y, fromR, hitCpX, hitCpY, fShape);
+                        var hitEnd = edgeConnectionPoint(toPos.x, toPos.y, toR, hitCpX, hitCpY, tShape);
                         hitData.sx = hitStart.x;
                         hitData.sy = hitStart.y;
                         hitData.ex = hitEnd.x;
                         hitData.ey = hitEnd.y;
-                        hitData.cpx = (hitData.sx + hitData.ex) / 2 + eperpX * ecurve;
-                        hitData.cpy = (hitData.sy + hitData.ey) / 2 + eperpY * ecurve;
+                        hitData.cpx = hitCpX;
+                        hitData.cpy = hitCpY;
                     }
                 }
                 this._hitEdges.push(hitData);
