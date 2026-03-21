@@ -19,3 +19,4 @@ display.visualizations.custom.process_mining.process_mining.shapeField = <string
 display.visualizations.custom.process_mining.process_mining.savedPositions = <string>
 display.visualizations.custom.process_mining.process_mining.arrowSize = <integer>
 display.visualizations.custom.process_mining.process_mining.loopSize = <string>
+display.visualizations.custom.process_mining.process_mining.loopPosition = <string>

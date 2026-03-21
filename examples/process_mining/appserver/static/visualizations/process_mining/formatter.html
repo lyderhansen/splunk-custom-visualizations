@@ -107,6 +107,15 @@
         </splunk-select>
     </splunk-control-group>
 
+    <splunk-control-group label="Loop Position" help="Default position of self-loop circles relative to nodes">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.loopPosition" value="right">
+            <option value="top">Top</option>
+            <option value="right">Right</option>
+            <option value="bottom">Bottom</option>
+            <option value="left">Left</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
 </form>
 
 <form class="splunk-formatter-section" section-label="KPIs">

@@ -1165,7 +1165,7 @@ define([
         return { x: cx + ux * r, y: cy + uy * r };
     }
 
-    function drawEdge(ctx, fromX, fromY, toX, toY, fromR, toR, count, color, thickness, isHovered, showLabel, isSelfLoop, animate, animOffset, curveOffset, arrowSize, loopSizeMultiplier, fromShape, toShape) {
+    function drawEdge(ctx, fromX, fromY, toX, toY, fromR, toR, count, color, thickness, isHovered, showLabel, isSelfLoop, animate, animOffset, curveOffset, arrowSize, loopSizeMultiplier, fromShape, toShape, loopPos, loopDragOffset) {
         ctx.save();
 
         var aSize = (arrowSize !== undefined && arrowSize !== null) ? parseInt(arrowSize, 10) : 6;
@@ -1178,7 +1178,8 @@ define([
         ctx.fillStyle = strokeColor;
 
         if (isSelfLoop) {
-            // Loop arc — position relative to actual node boundary, not radius
+            // Loop arc — position relative to actual node boundary
+            var lp = loopPos || 'right';
             var nodeW, nodeH;
             if (fShape === 'rectangle') {
                 nodeW = Math.max(50, fromR * 2.5);
@@ -1192,8 +1193,27 @@ define([
             }
             var baseLoopR = Math.max(12, Math.min(nodeW, nodeH) * 0.4);
             var loopR = baseLoopR * loopMult;
-            var loopX = fromX + nodeW + loopR * 0.2;
-            var loopY = fromY - nodeH * 0.3;
+            // Position based on setting
+            var loopX, loopY;
+            if (lp === 'top') {
+                loopX = fromX;
+                loopY = fromY - nodeH - loopR * 0.5;
+            } else if (lp === 'left') {
+                loopX = fromX - nodeW - loopR * 0.2;
+                loopY = fromY - nodeH * 0.3;
+            } else if (lp === 'bottom') {
+                loopX = fromX;
+                loopY = fromY + nodeH + loopR * 0.5;
+            } else {
+                // right (default)
+                loopX = fromX + nodeW + loopR * 0.2;
+                loopY = fromY - nodeH * 0.3;
+            }
+            // Apply drag offset if any
+            if (loopDragOffset) {
+                loopX += loopDragOffset.dx || 0;
+                loopY += loopDragOffset.dy || 0;
+            }
             ctx.beginPath();
             ctx.arc(loopX, loopY, loopR, 0.4, 2 * Math.PI - 0.4);
             ctx.stroke();
@@ -1578,6 +1598,9 @@ define([
             this._isDraggingEdge = false;
             this._dragEdgeKey    = null; // "from->to"
             this._draggedEdgeOffsets = {}; // "from->to" -> curveOffset number
+            this._isDraggingLoop = false;
+            this._dragLoopNodeId = null;
+            this._draggedLoopOffsets = {}; // nodeId -> {dx, dy}
             // Animation state
             this._animOffset    = 0;
             this._animTimer     = null;
@@ -1625,10 +1648,27 @@ define([
                         return;
                     }
                 }
-                // Check edges for dragging (midpoint handle)
+                // Check self-loops for dragging
                 if (!foundNode) {
                     var wx = worldCoord.x;
                     var wy = worldCoord.y;
+                    for (var ldi = 0; ldi < self._hitEdges.length; ldi++) {
+                        var le = self._hitEdges[ldi];
+                        if (le.isSelfLoop && le.loopR) {
+                            if (pointInCircle(wx, wy, le.loopX, le.loopY, le.loopR + 4)) {
+                                self._isDraggingLoop = true;
+                                self._dragLoopNodeId = le.from;
+                                self._dragLoopOriginX = le.loopX;
+                                self._dragLoopOriginY = le.loopY;
+                                self._didDrag = true;
+                                self.canvas.style.cursor = 'move';
+                                return;
+                            }
+                        }
+                    }
+                }
+                // Check edges for dragging (midpoint handle)
+                if (!foundNode) {
                     for (var edgi = 0; edgi < self._hitEdges.length; edgi++) {
                         var he = self._hitEdges[edgi];
                         if (he.isSelfLoop) continue;
@@ -1657,6 +1697,34 @@ define([
                 var rect = self.canvas.getBoundingClientRect();
                 var mx = e.clientX - rect.left;
                 var my = e.clientY - rect.top;
+
+                // Handle loop dragging
+                if (self._isDraggingLoop && self._dragLoopNodeId) {
+                    self._didDrag = true;
+                    var kpiR3 = self._kpiReserve || 0;
+                    var loopWorld = screenToWorld(mx, my, self._tx, self._ty, self._scale, kpiR3);
+                    // Find the node center to compute offset
+                    var loopNodePos = null;
+                    for (var lni = 0; lni < self._hitNodes.length; lni++) {
+                        if (self._hitNodes[lni].id === self._dragLoopNodeId) {
+                            loopNodePos = self._hitNodes[lni];
+                            break;
+                        }
+                    }
+                    if (loopNodePos) {
+                        // Store as offset from default loop position
+                        var existing = self._draggedLoopOffsets[self._dragLoopNodeId] || { dx: 0, dy: 0 };
+                        self._draggedLoopOffsets[self._dragLoopNodeId] = {
+                            dx: (existing.dx || 0) + (loopWorld.x - (self._dragLoopOriginX || loopWorld.x)),
+                            dy: (existing.dy || 0) + (loopWorld.y - (self._dragLoopOriginY || loopWorld.y))
+                        };
+                        self._dragLoopOriginX = loopWorld.x;
+                        self._dragLoopOriginY = loopWorld.y;
+                    }
+                    self.canvas.style.cursor = 'move';
+                    self.invalidateUpdateView();
+                    return;
+                }
 
                 // Handle node dragging
                 if (self._isDragging && self._dragNodeId) {
@@ -1801,6 +1869,8 @@ define([
                 self._dragNodeId = null;
                 self._isDraggingEdge = false;
                 self._dragEdgeKey = null;
+                self._isDraggingLoop = false;
+                self._dragLoopNodeId = null;
             };
 
             this._onClick = function(e) {
@@ -1829,6 +1899,7 @@ define([
                                 self._scale = 1;
                                 self._draggedPositions = {};
                                 self._draggedEdgeOffsets = {};
+                                self._draggedLoopOffsets = {};
                                 self._savedPosLoaded = false;
                             }
                             self.invalidateUpdateView();
@@ -1924,6 +1995,7 @@ define([
             var arrowSize = parseInt(config[ns + 'arrowSize'] || '6', 10);
             var loopSizeSetting = config[ns + 'loopSize'] || 'medium';
             var loopSizeMultiplier = loopSizeSetting === 'small' ? 0.6 : loopSizeSetting === 'large' ? 1.6 : loopSizeSetting === 'xlarge' ? 2.4 : 1;
+            var loopPosition = config[ns + 'loopPosition'] || 'right';
 
             // 3. Size canvas for HiDPI
             var el = this.el;
@@ -2201,7 +2273,8 @@ define([
                 }
                 var fShape = nodeShapeMap[edge.from] || 'circle';
                 var tShape = nodeShapeMap[edge.to] || 'circle';
-                drawEdge(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, fromR, toR, edge.count, thisEdgeColor, thickness, isHoveredEdge, showEdgeLabels, isSelfLoop, animateEdge, this._animOffset, curveOff, arrowSize, loopSizeMultiplier, fShape, tShape);
+                var loopDragOff = isSelfLoop ? (this._draggedLoopOffsets[edge.from] || null) : null;
+                drawEdge(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, fromR, toR, edge.count, thisEdgeColor, thickness, isHoveredEdge, showEdgeLabels, isSelfLoop, animateEdge, this._animOffset, curveOff, arrowSize, loopSizeMultiplier, fShape, tShape, loopPosition, loopDragOff);
                 if (isRareEdge && mainPathSet && layoutDirection !== 'freeform') {
                     ctx.setLineDash([]);
                     ctx.restore();
@@ -2215,8 +2288,7 @@ define([
                     isSelfLoop: isSelfLoop
                 };
                 if (isSelfLoop) {
-                    // Match drawEdge self-loop geometry
-                    // Match drawEdge self-loop geometry (shape-aware)
+                    // Match drawEdge self-loop geometry (shape + position aware)
                     var hitNodeW, hitNodeH;
                     if (fShape === 'rectangle') {
                         hitNodeW = Math.max(50, fromR * 2.5);
@@ -2229,8 +2301,25 @@ define([
                         hitNodeH = fromR;
                     }
                     var baseHitLoopR = Math.max(12, Math.min(hitNodeW, hitNodeH) * 0.4) * loopSizeMultiplier;
-                    hitData.loopX = fromPos.x + hitNodeW + baseHitLoopR * 0.2;
-                    hitData.loopY = fromPos.y - hitNodeH * 0.3;
+                    // Position matching drawEdge
+                    if (loopPosition === 'top') {
+                        hitData.loopX = fromPos.x;
+                        hitData.loopY = fromPos.y - hitNodeH - baseHitLoopR * 0.5;
+                    } else if (loopPosition === 'left') {
+                        hitData.loopX = fromPos.x - hitNodeW - baseHitLoopR * 0.2;
+                        hitData.loopY = fromPos.y - hitNodeH * 0.3;
+                    } else if (loopPosition === 'bottom') {
+                        hitData.loopX = fromPos.x;
+                        hitData.loopY = fromPos.y + hitNodeH + baseHitLoopR * 0.5;
+                    } else {
+                        hitData.loopX = fromPos.x + hitNodeW + baseHitLoopR * 0.2;
+                        hitData.loopY = fromPos.y - hitNodeH * 0.3;
+                    }
+                    // Apply drag offset
+                    if (loopDragOff) {
+                        hitData.loopX += loopDragOff.dx || 0;
+                        hitData.loopY += loopDragOff.dy || 0;
+                    }
                     hitData.loopR = baseHitLoopR;
                 } else {
                     // Match drawEdge bezier geometry — control-point-aware connection
