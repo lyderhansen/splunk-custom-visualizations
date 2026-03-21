@@ -12,6 +12,9 @@ __MACOSX/
 # Webpack output (built bundles — rebuild from source)
 examples/*/appserver/static/visualizations/*/visualization.js
 
+# Brainstorming
+.superpowers/
+
 # IDE
 .vscode/
 .idea/

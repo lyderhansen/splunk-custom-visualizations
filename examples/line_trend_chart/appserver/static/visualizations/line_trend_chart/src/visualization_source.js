@@ -433,12 +433,33 @@ define([
             ctx.fillRect(xLeft, pa.y, xRight - xLeft, pa.h);
 
             ctx.font = 'bold 11px sans-serif';
-            ctx.fillStyle = textColor;
+            var ztxt = currentZone;
+            var ztw = ctx.measureText(ztxt).width;
+            var zcx = (xLeft + xRight) / 2;
+            var zcy = pa.y - 6;
+            // Background pill for zone label
+            ctx.fillStyle = 'rgba(0,0,0,0.35)';
+            ctx.beginPath();
+            var zpr = 3;
+            var zpx = zcx - ztw / 2 - 6;
+            var zpy = zcy - 12;
+            var zpw = ztw + 12;
+            var zph = 16;
+            ctx.moveTo(zpx + zpr, zpy);
+            ctx.lineTo(zpx + zpw - zpr, zpy);
+            ctx.arcTo(zpx + zpw, zpy, zpx + zpw, zpy + zpr, zpr);
+            ctx.lineTo(zpx + zpw, zpy + zph - zpr);
+            ctx.arcTo(zpx + zpw, zpy + zph, zpx + zpw - zpr, zpy + zph, zpr);
+            ctx.lineTo(zpx + zpr, zpy + zph);
+            ctx.arcTo(zpx, zpy + zph, zpx, zpy + zph - zpr, zpr);
+            ctx.lineTo(zpx, zpy + zpr);
+            ctx.arcTo(zpx, zpy, zpx + zpr, zpy, zpr);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
-            ctx.globalAlpha = 0.6;
-            ctx.fillText(currentZone, (xLeft + xRight) / 2, pa.y - 4);
-            ctx.globalAlpha = 1.0;
+            ctx.fillText(ztxt, zcx, zcy + 2);
         }
 
         for (var i = 0; i < zones.length; i++) {
@@ -771,7 +792,7 @@ define([
         var xlX = snapX;
         var xlY = pa.y + pa.h + 6;
 
-        ctx.fillStyle = 'rgba(70,80,120,0.9)';
+        ctx.fillStyle = pillBg;
         ctx.beginPath();
         var rx = xlX - xlw / 2 - xlPad;
         var ry = xlY;
@@ -790,7 +811,7 @@ define([
         ctx.closePath();
         ctx.fill();
 
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = pillText;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.fillText(xlabel, xlX, xlY + 2);
@@ -813,7 +834,7 @@ define([
         var yRatio = (firstVal - yMin) / (yMax - yMin);
         var crosshairY = pa.y + pa.h - yRatio * pa.h;
 
-        ctx.strokeStyle = 'rgba(180,180,180,0.4)';
+        ctx.strokeStyle = crosshairCol;
         ctx.setLineDash([4, 4]);
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -827,11 +848,11 @@ define([
         if (yUnit) yLabel = yLabel + ' ' + yUnit;
         ctx.font = 'bold 11px monospace';
         var ylw = ctx.measureText(yLabel).width;
-        ctx.fillStyle = 'rgba(70,80,120,0.9)';
+        ctx.fillStyle = pillBg;
         var ylX = pa.x - ylw - 14;
         var ylY = crosshairY - 9;
         ctx.fillRect(ylX, ylY, ylw + 10, 18);
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = pillText;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.fillText(yLabel, ylX + 5, crosshairY);
@@ -858,10 +879,10 @@ define([
         if (tipX + tipW > pa.x + pa.w) tipX = snapX - tipW - 16;
 
         // Background
-        ctx.fillStyle = 'rgba(255,255,255,0.95)';
-        ctx.shadowColor = 'rgba(0,0,0,0.15)';
-        ctx.shadowBlur = 8;
-        ctx.shadowOffsetX = 2;
+        ctx.fillStyle = tipBg;
+        ctx.shadowColor = tipShadow;
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 2;
         ctx.beginPath();
         var tr = 4;
@@ -876,12 +897,15 @@ define([
         ctx.arcTo(tipX, tipY, tipX + tr, tipY, tr);
         ctx.closePath();
         ctx.fill();
+        ctx.strokeStyle = tipBorder;
+        ctx.lineWidth = 1;
+        ctx.stroke();
         ctx.shadowBlur = 0;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
 
         // Header
-        ctx.fillStyle = '#333';
+        ctx.fillStyle = tipHeaderCol;
         ctx.font = 'bold 12px sans-serif';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
@@ -897,11 +921,11 @@ define([
             ctx.arc(tipX + tipPad + 5, rowY + 7, 5, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.fillStyle = '#555';
+            ctx.fillStyle = tipNameCol;
             ctx.textAlign = 'left';
             ctx.fillText(sv.name, tipX + tipPad + 16, rowY);
 
-            ctx.fillStyle = '#333';
+            ctx.fillStyle = tipValCol;
             ctx.font = 'bold 12px sans-serif';
             ctx.textAlign = 'right';
             ctx.fillText(formatNumber(sv.val), tipX + tipW - tipPad, rowY);
@@ -1367,7 +1391,7 @@ define([
 
             var yLabelW = measureYLabelWidth(ctx, yMin, yMax, this._yUnit, gridSteps);
             var xLabelH = 30;
-            var zoneHeaderH = this._zoneField ? 20 : 0;
+            var zoneHeaderH = this._zoneField ? 24 : 0;
             var topPad = titleH + (legendPos === 'top' ? legendH : 0) + zoneHeaderH + 10;
             var bottomPad = xLabelH + (legendPos === 'bottom' ? legendH : 0) + 10;
             var leftPad = yLabelW + (legendPos === 'left' ? legendW : 0) + 10;
@@ -1473,7 +1497,7 @@ define([
                     ctx, this._hoverX, pa,
                     this._xLabels, xPositions,
                     this._seriesData, this._seriesNames, this._seriesColors,
-                    this._hiddenSeries, this._yMin, this._yMax, this._yUnit
+                    this._hiddenSeries, this._yMin, this._yMax, this._yUnit, isDark
                 );
             }
 

@@ -1130,11 +1130,48 @@ define([
      * Draw a directed edge (with arrowhead) between two node circles.
      * Optionally draws animated "marching ants" dashes on top to show flow direction.
      */
-    function drawEdge(ctx, fromX, fromY, toX, toY, fromR, toR, count, color, thickness, isHovered, showLabel, isSelfLoop, animate, animOffset, curveOffset, arrowSize, loopSizeMultiplier) {
+    /**
+     * Compute the point on a node's boundary where an edge should connect.
+     * For circles: point on circumference in direction of target.
+     * For rectangles: intersection with rect boundary.
+     * For diamonds: intersection with diamond boundary.
+     */
+    function edgeConnectionPoint(cx, cy, r, targetX, targetY, shape) {
+        var dx = targetX - cx;
+        var dy = targetY - cy;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 1) return { x: cx, y: cy };
+        var ux = dx / dist;
+        var uy = dy / dist;
+
+        if (shape === 'rectangle') {
+            var hw = Math.max(50, r * 2.5);
+            var hh = Math.max(20, r * 1.25);
+            // Ray-box intersection
+            var tx = (ux !== 0) ? hw / Math.abs(ux) : 99999;
+            var ty = (uy !== 0) ? hh / Math.abs(uy) : 99999;
+            var t = Math.min(tx, ty);
+            return { x: cx + ux * t, y: cy + uy * t };
+        } else if (shape === 'diamond') {
+            var dw = Math.max(35, r * 2);
+            var dh = Math.max(17.5, r);
+            // Diamond boundary: |x/dw| + |y/dh| = 1
+            var ax = Math.abs(ux);
+            var ay = Math.abs(uy);
+            var t2 = 1 / (ax / dw + ay / dh);
+            return { x: cx + ux * t2, y: cy + uy * t2 };
+        }
+        // Circle (default)
+        return { x: cx + ux * r, y: cy + uy * r };
+    }
+
+    function drawEdge(ctx, fromX, fromY, toX, toY, fromR, toR, count, color, thickness, isHovered, showLabel, isSelfLoop, animate, animOffset, curveOffset, arrowSize, loopSizeMultiplier, fromShape, toShape) {
         ctx.save();
 
         var aSize = (arrowSize !== undefined && arrowSize !== null) ? parseInt(arrowSize, 10) : 6;
         var loopMult = loopSizeMultiplier || 1;
+        var fShape = fromShape || 'circle';
+        var tShape = toShape || 'circle';
         var strokeColor = isHovered ? lightenColor(color, 0.4) : color;
         ctx.strokeStyle = strokeColor;
         ctx.lineWidth = isHovered ? thickness + 1 : thickness;
@@ -1189,11 +1226,13 @@ define([
             var ux = dx / dist;
             var uy = dy / dist;
 
-            // Start/end on circle edges
-            var sx = fromX + ux * fromR;
-            var sy = fromY + uy * fromR;
-            var ex = toX - ux * toR;
-            var ey = toY - uy * toR;
+            // Start/end on node boundary (shape-aware)
+            var startPt = edgeConnectionPoint(fromX, fromY, fromR, toX, toY, fShape);
+            var endPt = edgeConnectionPoint(toX, toY, toR, fromX, fromY, tShape);
+            var sx = startPt.x;
+            var sy = startPt.y;
+            var ex = endPt.x;
+            var ey = endPt.y;
 
             // Perpendicular offset for bezier control point
             var perpX = -uy;
@@ -2036,11 +2075,31 @@ define([
                 if (edgeGroups.hasOwnProperty(gk)) {
                     var egGroup = edgeGroups[gk];
                     if (egGroup.length <= 1) continue; // no spacing needed
-                    var egSpacing = 25;
+                    var egSpacing = 40;
                     var egTotalWidth = (egGroup.length - 1) * egSpacing;
                     for (var gi = 0; gi < egGroup.length; gi++) {
                         edgeAutoOffset[egGroup[gi]] = -egTotalWidth / 2 + gi * egSpacing;
                     }
+                }
+            }
+
+            // Precompute shape for each node
+            var nodeShapeMap = {};
+            for (var nsi = 0; nsi < graph.nodes.length; nsi++) {
+                var nsNode = graph.nodes[nsi];
+                if (nsNode.id === '__start__' || nsNode.id === '__end__') {
+                    nodeShapeMap[nsNode.id] = 'circle';
+                } else if (nodeShapeSetting === 'auto' && nsNode.shapes) {
+                    var tsShape = null, tsCount = 0;
+                    for (var tsk in nsNode.shapes) {
+                        if (nsNode.shapes.hasOwnProperty(tsk) && nsNode.shapes[tsk] > tsCount) {
+                            tsCount = nsNode.shapes[tsk];
+                            tsShape = tsk;
+                        }
+                    }
+                    nodeShapeMap[nsNode.id] = tsShape || 'rectangle';
+                } else {
+                    nodeShapeMap[nsNode.id] = nodeShapeSetting;
                 }
             }
 
@@ -2124,7 +2183,9 @@ define([
                     ctx.save();
                     ctx.setLineDash([4, 4]);
                 }
-                drawEdge(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, fromR, toR, edge.count, thisEdgeColor, thickness, isHoveredEdge, showEdgeLabels, isSelfLoop, animateEdge, this._animOffset, curveOff, arrowSize, loopSizeMultiplier);
+                var fShape = nodeShapeMap[edge.from] || 'circle';
+                var tShape = nodeShapeMap[edge.to] || 'circle';
+                drawEdge(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, fromR, toR, edge.count, thisEdgeColor, thickness, isHoveredEdge, showEdgeLabels, isSelfLoop, animateEdge, this._animOffset, curveOff, arrowSize, loopSizeMultiplier, fShape, tShape);
                 if (isRareEdge && mainPathSet && layoutDirection !== 'freeform') {
                     ctx.setLineDash([]);
                     ctx.restore();
@@ -2144,17 +2205,19 @@ define([
                     hitData.loopY = fromPos.y - fromR * 0.5 - baseHitLoopR * 0.3;
                     hitData.loopR = baseHitLoopR;
                 } else {
-                    // Match drawEdge bezier geometry (start/end on circle edges)
+                    // Match drawEdge bezier geometry (shape-aware connection points)
+                    var hitStart = edgeConnectionPoint(fromPos.x, fromPos.y, fromR, toPos.x, toPos.y, fShape);
+                    var hitEnd = edgeConnectionPoint(toPos.x, toPos.y, toR, fromPos.x, fromPos.y, tShape);
+                    hitData.sx = hitStart.x;
+                    hitData.sy = hitStart.y;
+                    hitData.ex = hitEnd.x;
+                    hitData.ey = hitEnd.y;
                     var edx = toPos.x - fromPos.x;
                     var edy = toPos.y - fromPos.y;
                     var edist = Math.sqrt(edx * edx + edy * edy);
                     if (edist > 0) {
-                        var eux = edx / edist;
                         var euy = edy / edist;
-                        hitData.sx = fromPos.x + eux * fromR;
-                        hitData.sy = fromPos.y + euy * fromR;
-                        hitData.ex = toPos.x - eux * toR;
-                        hitData.ey = toPos.y - euy * toR;
+                        var eux = edx / edist;
                         var eperpX = -euy;
                         var eperpY = eux;
                         var ecurve = (curveOff !== 0) ? curveOff : Math.min(edist * 0.1, 20);
