@@ -1178,11 +1178,22 @@ define([
         ctx.fillStyle = strokeColor;
 
         if (isSelfLoop) {
-            // Loop arc — size controlled by loopMult
-            var baseLoopR = Math.max(12, fromR * 0.6);
+            // Loop arc — position relative to actual node boundary, not radius
+            var nodeW, nodeH;
+            if (fShape === 'rectangle') {
+                nodeW = Math.max(50, fromR * 2.5);
+                nodeH = Math.max(20, fromR * 1.25);
+            } else if (fShape === 'diamond') {
+                nodeW = Math.max(35, fromR * 2);
+                nodeH = Math.max(17.5, fromR);
+            } else {
+                nodeW = fromR;
+                nodeH = fromR;
+            }
+            var baseLoopR = Math.max(12, Math.min(nodeW, nodeH) * 0.4);
             var loopR = baseLoopR * loopMult;
-            var loopX = fromX + fromR * 0.5 + loopR * 0.3;
-            var loopY = fromY - fromR * 0.5 - loopR * 0.3;
+            var loopX = fromX + nodeW + loopR * 0.2;
+            var loopY = fromY - nodeH * 0.3;
             ctx.beginPath();
             ctx.arc(loopX, loopY, loopR, 0.4, 2 * Math.PI - 0.4);
             ctx.stroke();
@@ -1215,7 +1226,7 @@ define([
             }
 
         } else {
-            // Calculate unit vector from -> to
+            // Calculate unit vector from -> to (straight line)
             var dx = toX - fromX;
             var dy = toY - fromY;
             var dist = Math.sqrt(dx * dx + dy * dy);
@@ -1226,15 +1237,7 @@ define([
             var ux = dx / dist;
             var uy = dy / dist;
 
-            // Start/end on node boundary (shape-aware)
-            var startPt = edgeConnectionPoint(fromX, fromY, fromR, toX, toY, fShape);
-            var endPt = edgeConnectionPoint(toX, toY, toR, fromX, fromY, tShape);
-            var sx = startPt.x;
-            var sy = startPt.y;
-            var ex = endPt.x;
-            var ey = endPt.y;
-
-            // Perpendicular offset for bezier control point
+            // Compute control point first (using center-to-center line for perpendicular)
             var perpX = -uy;
             var perpY = ux;
             var curvature;
@@ -1243,6 +1246,19 @@ define([
             } else {
                 curvature = Math.min(dist * 0.1, 20);
             }
+            var midX = (fromX + toX) / 2 + perpX * curvature;
+            var midY = (fromY + toY) / 2 + perpY * curvature;
+
+            // Now compute connection points using the direction the curve
+            // actually arrives from (control point direction, not straight line)
+            var startPt = edgeConnectionPoint(fromX, fromY, fromR, midX, midY, fShape);
+            var endPt = edgeConnectionPoint(toX, toY, toR, midX, midY, tShape);
+            var sx = startPt.x;
+            var sy = startPt.y;
+            var ex = endPt.x;
+            var ey = endPt.y;
+
+            // Recompute control point using actual start/end (not centers)
             var cx = (sx + ex) / 2 + perpX * curvature;
             var cy = (sy + ey) / 2 + perpY * curvature;
 
@@ -1251,7 +1267,7 @@ define([
             ctx.quadraticCurveTo(cx, cy, ex, ey);
             ctx.stroke();
 
-            // Arrowhead angle at end of bezier (from control point toward end)
+            // Arrowhead at end — direction from control point to end
             if (aSize > 0) {
                 var arrowDx = ex - cx;
                 var arrowDy = ey - cy;
@@ -2200,27 +2216,42 @@ define([
                 };
                 if (isSelfLoop) {
                     // Match drawEdge self-loop geometry
-                    var baseHitLoopR = Math.max(12, fromR * 0.6) * loopSizeMultiplier;
-                    hitData.loopX = fromPos.x + fromR * 0.5 + baseHitLoopR * 0.3;
-                    hitData.loopY = fromPos.y - fromR * 0.5 - baseHitLoopR * 0.3;
+                    // Match drawEdge self-loop geometry (shape-aware)
+                    var hitNodeW, hitNodeH;
+                    if (fShape === 'rectangle') {
+                        hitNodeW = Math.max(50, fromR * 2.5);
+                        hitNodeH = Math.max(20, fromR * 1.25);
+                    } else if (fShape === 'diamond') {
+                        hitNodeW = Math.max(35, fromR * 2);
+                        hitNodeH = Math.max(17.5, fromR);
+                    } else {
+                        hitNodeW = fromR;
+                        hitNodeH = fromR;
+                    }
+                    var baseHitLoopR = Math.max(12, Math.min(hitNodeW, hitNodeH) * 0.4) * loopSizeMultiplier;
+                    hitData.loopX = fromPos.x + hitNodeW + baseHitLoopR * 0.2;
+                    hitData.loopY = fromPos.y - hitNodeH * 0.3;
                     hitData.loopR = baseHitLoopR;
                 } else {
-                    // Match drawEdge bezier geometry (shape-aware connection points)
-                    var hitStart = edgeConnectionPoint(fromPos.x, fromPos.y, fromR, toPos.x, toPos.y, fShape);
-                    var hitEnd = edgeConnectionPoint(toPos.x, toPos.y, toR, fromPos.x, fromPos.y, tShape);
-                    hitData.sx = hitStart.x;
-                    hitData.sy = hitStart.y;
-                    hitData.ex = hitEnd.x;
-                    hitData.ey = hitEnd.y;
+                    // Match drawEdge bezier geometry — control-point-aware connection
                     var edx = toPos.x - fromPos.x;
                     var edy = toPos.y - fromPos.y;
                     var edist = Math.sqrt(edx * edx + edy * edy);
                     if (edist > 0) {
-                        var euy = edy / edist;
                         var eux = edx / edist;
+                        var euy = edy / edist;
                         var eperpX = -euy;
                         var eperpY = eux;
                         var ecurve = (curveOff !== 0) ? curveOff : Math.min(edist * 0.1, 20);
+                        // Compute control point midpoint (same as drawEdge)
+                        var hitMidX = (fromPos.x + toPos.x) / 2 + eperpX * ecurve;
+                        var hitMidY = (fromPos.y + toPos.y) / 2 + eperpY * ecurve;
+                        var hitStart = edgeConnectionPoint(fromPos.x, fromPos.y, fromR, hitMidX, hitMidY, fShape);
+                        var hitEnd = edgeConnectionPoint(toPos.x, toPos.y, toR, hitMidX, hitMidY, tShape);
+                        hitData.sx = hitStart.x;
+                        hitData.sy = hitStart.y;
+                        hitData.ex = hitEnd.x;
+                        hitData.ey = hitEnd.y;
                         hitData.cpx = (hitData.sx + hitData.ex) / 2 + eperpX * ecurve;
                         hitData.cpy = (hitData.sy + hitData.ey) / 2 + eperpY * ecurve;
                     }

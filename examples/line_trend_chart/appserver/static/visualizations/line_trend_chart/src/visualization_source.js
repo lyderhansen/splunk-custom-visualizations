@@ -954,6 +954,7 @@ define([
             this._hiddenSeries = {};
             this._legendHitRects = [];
             this._hoverX = -1;
+            this._hoverY = -1;
             this._plotArea = null;
             this._xPositions = [];
             this._xLabels = [];
@@ -1006,12 +1007,14 @@ define([
 
                 if (self._showTooltip) {
                     self._hoverX = mx;
+                    self._hoverY = my;
                     self._drawFrame();
                 }
             });
 
             this.canvas.addEventListener('mouseleave', function() {
                 self._hoverX = -1;
+                self._hoverY = -1;
                 self._isDragging = false;
                 self.canvas.style.cursor = 'default';
                 self._drawFrame();
@@ -1437,6 +1440,28 @@ define([
             ctx.lineWidth = 1;
             ctx.strokeRect(pa.x, pa.y, pa.w, pa.h);
 
+            // Find hovered series (closest Y to mouse at closest X index)
+            var hoveredSeriesIdx = -1;
+            var hoverClosestIdx = -1;
+            if (this._showTooltip && this._hoverX >= 0 && !this._isDragging) {
+                var bestDist = Infinity;
+                for (var i = 0; i < xPositions.length; i++) {
+                    var dx = Math.abs(xPositions[i] - this._hoverX);
+                    if (dx < bestDist) { bestDist = dx; hoverClosestIdx = i; }
+                }
+                if (hoverClosestIdx >= 0 && this._hoverY >= 0) {
+                    var bestYDist = Infinity;
+                    for (var s = 0; s < this._seriesNames.length; s++) {
+                        if (this._hiddenSeries[this._seriesNames[s]]) continue;
+                        var yR = (this._seriesData[s][hoverClosestIdx] - this._yMin) / (this._yMax - this._yMin);
+                        var ptY = pa.y + pa.h - yR * pa.h;
+                        var dy = Math.abs(ptY - this._hoverY);
+                        if (dy < bestYDist) { bestYDist = dy; hoveredSeriesIdx = s; }
+                    }
+                }
+            }
+            var hasHover = hoveredSeriesIdx >= 0;
+
             // Draw series
             var smooth = this._lineStyle === 'smooth';
             for (var s = 0; s < this._seriesNames.length; s++) {
@@ -1452,20 +1477,41 @@ define([
                 }
 
                 var color = this._seriesColors[s];
-                var colorStr = rgbaStr(color, 1);
+                var isHovered = hasHover && s === hoveredSeriesIdx;
+                var isDimmed = hasHover && s !== hoveredSeriesIdx;
+                var lineAlpha = isDimmed ? 0.25 : 1;
+                var colorStr = rgbaStr(color, lineAlpha);
+                var lw = isHovered ? this._lineWidth + 1.5 : this._lineWidth;
                 var zlc = this._zoneLineColor || '';
                 var sValues = this._seriesData[s];
                 var tOpts = { mode: this._trendColorMode, risingColor: this._risingColor, fallingColor: this._fallingColor };
 
                 if (this._showArea) {
-                    var areaAlpha = this._areaOpacity;
-                    drawAreaFill(ctx, pts, pa.y + pa.h, rgbaStr(color, areaAlpha), smooth, this._zones, zlc, areaAlpha, sValues, tOpts);
+                    var areaAlpha = this._areaOpacity * (isDimmed ? 0.3 : 1);
+                    drawAreaFill(ctx, pts, pa.y + pa.h, rgbaStr(color, areaAlpha), smooth, isDimmed ? [] : this._zones, zlc, areaAlpha, sValues, isDimmed ? { mode: 'off' } : tOpts);
                 }
 
-                drawLineSeries(ctx, pts, colorStr, this._lineWidth, smooth, this._zones, zlc, this._lineDash, sValues, tOpts);
+                drawLineSeries(ctx, pts, colorStr, lw, smooth, isDimmed ? [] : this._zones, zlc, this._lineDash, sValues, isDimmed ? { mode: 'off' } : tOpts);
 
                 if (this._showPoints) {
-                    drawPoints(ctx, pts, colorStr, this._pointSize, this._zones, zlc, this._pointShape, this._pointFill, sValues, tOpts);
+                    var ptSize = isHovered ? this._pointSize + 2 : this._pointSize;
+                    drawPoints(ctx, pts, colorStr, ptSize, isDimmed ? [] : this._zones, zlc, this._pointShape, this._pointFill, sValues, isDimmed ? { mode: 'off' } : tOpts);
+                }
+
+                // Draw highlight dot on hovered series at hovered x
+                if (isHovered && hoverClosestIdx >= 0 && hoverClosestIdx < pts.length) {
+                    var hp = pts[hoverClosestIdx];
+                    ctx.beginPath();
+                    ctx.arc(hp.x, hp.y, this._pointSize + 4, 0, Math.PI * 2);
+                    ctx.fillStyle = rgbaStr(color, 0.3);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(hp.x, hp.y, this._pointSize + 1, 0, Math.PI * 2);
+                    ctx.fillStyle = '#fff';
+                    ctx.fill();
+                    ctx.strokeStyle = rgbaStr(color, 1);
+                    ctx.lineWidth = 2.5;
+                    ctx.stroke();
                 }
             }
 
