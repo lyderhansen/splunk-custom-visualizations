@@ -6,6 +6,7 @@
     "gauge",
     "radar_chart",
     "line_trend_chart",
-    "process_mining"
+    "process_mining",
+    "live_ticker"
   ]
 }
