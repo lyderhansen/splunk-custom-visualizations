@@ -1139,6 +1139,43 @@ define([
         return { x: px, y: py, w: popW, h: popH, hits: hits };
     }
 
+    // ── Tooltip Drawing ─────────────────────────────────────────────
+
+    function drawTooltip(ctx, text, x, y, w, h, isDark) {
+        var lines = text.split('\n');
+        var lineH = 16;
+        var padding = 8;
+        var maxW = 0;
+        ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        for (var i = 0; i < lines.length; i++) {
+            var lw = ctx.measureText(lines[i]).width;
+            if (lw > maxW) maxW = lw;
+        }
+        var tw = maxW + padding * 2;
+        var th = lines.length * lineH + padding * 2;
+        var tx = Math.min(x + 12, w - tw - 4);
+        var ty = Math.min(y + 12, h - th - 4);
+        if (tx < 4) tx = 4;
+        if (ty < 4) ty = 4;
+
+        // Draw background
+        ctx.fillStyle = isDark ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.95)';
+        roundRect(ctx, tx, ty, tw, th, 6);
+        ctx.fill();
+        ctx.strokeStyle = isDark ? '#334155' : '#e2e8f0';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Draw text
+        ctx.fillStyle = isDark ? '#f1f5f9' : '#1e293b';
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+        for (var j = 0; j < lines.length; j++) {
+            ctx.fillText(lines[j], tx + padding, ty + padding + j * lineH);
+        }
+        ctx.textBaseline = 'alphabetic';
+    }
+
     // ── Hit Test Helper for Nodes ─────────────────────────────────
 
     function hitTestNode(px, py, node) {
@@ -1848,6 +1885,10 @@ define([
                 if (hoverChanged) {
                     self.invalidateUpdateView();
                 }
+                // In view mode, always re-render when hovering for tooltip positioning
+                if (!self._editMode && self._hoverItem && (self._hoverItem.type === 'node' || self._hoverItem.type === 'connection')) {
+                    self.invalidateUpdateView();
+                }
             };
 
             // ── Mouse Up ──
@@ -1900,26 +1941,29 @@ define([
 
                 // Handle drag end
                 if (self._isDragging && self._dragNodeId) {
+                    var wasDrag = self._didDrag;
+                    var draggedId = self._dragNodeId;
+
                     if (self._editMode) {
                         // Edit mode: persist position to editorState
-                        if (self._didDrag) {
+                        if (wasDrag) {
                             for (var ni = 0; ni < self._computedNodes.length; ni++) {
-                                if (self._computedNodes[ni].id === self._dragNodeId) {
+                                if (self._computedNodes[ni].id === draggedId) {
                                     var movedNode = self._computedNodes[ni];
-                                    if (!self._editorState.nodes[self._dragNodeId]) {
-                                        self._editorState.nodes[self._dragNodeId] = {};
+                                    if (!self._editorState.nodes[draggedId]) {
+                                        self._editorState.nodes[draggedId] = {};
                                     }
-                                    self._editorState.nodes[self._dragNodeId].x = movedNode.x;
-                                    self._editorState.nodes[self._dragNodeId].y = movedNode.y;
+                                    self._editorState.nodes[draggedId].x = movedNode.x;
+                                    self._editorState.nodes[draggedId].y = movedNode.y;
                                     break;
                                 }
                             }
                         }
                     } else {
                         // View mode: snap back to original position
-                        if (self._snapBackPos && self._didDrag) {
+                        if (self._snapBackPos && wasDrag) {
                             for (var sni = 0; sni < self._computedNodes.length; sni++) {
-                                if (self._computedNodes[sni].id === self._dragNodeId) {
+                                if (self._computedNodes[sni].id === draggedId) {
                                     self._computedNodes[sni].x = self._snapBackPos.x;
                                     self._computedNodes[sni].y = self._snapBackPos.y;
                                     break;
@@ -1928,6 +1972,43 @@ define([
                             self.invalidateUpdateView();
                         }
                         self._snapBackPos = null;
+
+                        // Drilldown on non-drag click in view mode
+                        if (!wasDrag) {
+                            var hitNode = null;
+                            for (var ddi = 0; ddi < self._computedNodes.length; ddi++) {
+                                if (self._computedNodes[ddi].id === draggedId) {
+                                    hitNode = self._computedNodes[ddi];
+                                    break;
+                                }
+                            }
+                            if (hitNode) {
+                                var drilldownData = {};
+                                drilldownData[self._drilldownField] = hitNode.label;
+                                e.preventDefault();
+                                self.drilldown({
+                                    action: SplunkVisualizationBase.FIELD_VALUE_DRILLDOWN,
+                                    data: drilldownData
+                                }, e);
+                            }
+                        }
+                    }
+                } else if (!self._editMode) {
+                    // View mode click on node (lock mode — no drag started)
+                    var vmx = self._mouseX;
+                    var vmy = self._mouseY;
+                    for (var vhi = 0; vhi < self._computedNodes.length; vhi++) {
+                        var vhNode = self._computedNodes[vhi];
+                        if (hitTestNode(vmx, vmy, vhNode)) {
+                            var drillData = {};
+                            drillData[self._drilldownField] = vhNode.label;
+                            e.preventDefault();
+                            self.drilldown({
+                                action: SplunkVisualizationBase.FIELD_VALUE_DRILLDOWN,
+                                data: drillData
+                            }, e);
+                            break;
+                        }
                     }
                 }
 
@@ -2160,6 +2241,10 @@ define([
 
             // 6. Get palette colors
             var colors = PALETTES[palette] || PALETTES.corporate;
+            // Monochrome palette: reverse for light mode so dark chips show on light bg
+            if (!isDark && palette === 'mono') {
+                colors = colors.slice().reverse();
+            }
 
             // 7. Resolve nodes from data
             var resolvedNodes = [];
@@ -2345,7 +2430,29 @@ define([
                 }
             }
 
-            // 20. Store hit data
+            // 20. Hover tooltips in view mode
+            if (!this._editMode && this._hoverItem) {
+                if (this._hoverItem.type === 'node') {
+                    var ttNode = nodeMap[this._hoverItem.id];
+                    if (ttNode) {
+                        var ttText = ttNode.label;
+                        if (ttNode.value !== null && ttNode.value !== undefined) {
+                            ttText = ttText + '\n' + formatCount(ttNode.value);
+                        }
+                        if (ttNode.subtitle) {
+                            ttText = ttText + '\n' + ttNode.subtitle;
+                        }
+                        drawTooltip(ctx, ttText, this._mouseX, this._mouseY, w, h, isDark);
+                    }
+                } else if (this._hoverItem.type === 'connection') {
+                    var ttConn = connections[this._hoverItem.index];
+                    if (ttConn && ttConn.label) {
+                        drawTooltip(ctx, ttConn.label, this._mouseX, this._mouseY, w, h, isDark);
+                    }
+                }
+            }
+
+            // 21. Store hit data
             this._hitNodes = positioned;
             this._hitConnections = connections;
         },
