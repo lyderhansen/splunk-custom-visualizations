@@ -25,6 +25,8 @@
     { "name": "kpiColor", "label": "KPI Color", "type": "text", "default": "#00bcd4" },
     { "name": "showEdgeLabels", "label": "Edge Labels", "type": "radio", "options": ["true", "false"], "default": "true" },
     { "name": "showNodeCounts", "label": "Node Counts", "type": "radio", "options": ["true", "false"], "default": "true" },
+    { "name": "arrowSize", "label": "Arrow Size", "type": "select", "options": ["0", "4", "6", "10", "14"], "default": "6" },
+    { "name": "loopSize", "label": "Loop Size", "type": "radio", "options": ["small", "medium", "large", "xlarge"], "default": "medium" },
     { "name": "drilldownField", "label": "Drilldown Field", "type": "text", "default": "activity" }
   ],
   "data": {

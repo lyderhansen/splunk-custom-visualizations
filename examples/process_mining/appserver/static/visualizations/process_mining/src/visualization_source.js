@@ -1130,25 +1130,30 @@ define([
      * Draw a directed edge (with arrowhead) between two node circles.
      * Optionally draws animated "marching ants" dashes on top to show flow direction.
      */
-    function drawEdge(ctx, fromX, fromY, toX, toY, fromR, toR, count, color, thickness, isHovered, showLabel, isSelfLoop, animate, animOffset, curveOffset) {
+    function drawEdge(ctx, fromX, fromY, toX, toY, fromR, toR, count, color, thickness, isHovered, showLabel, isSelfLoop, animate, animOffset, curveOffset, arrowSize, loopSizeMultiplier) {
         ctx.save();
 
+        var aSize = (arrowSize !== undefined && arrowSize !== null) ? parseInt(arrowSize, 10) : 6;
+        var loopMult = loopSizeMultiplier || 1;
         var strokeColor = isHovered ? lightenColor(color, 0.4) : color;
         ctx.strokeStyle = strokeColor;
         ctx.lineWidth = isHovered ? thickness + 1 : thickness;
         ctx.fillStyle = strokeColor;
 
         if (isSelfLoop) {
-            // Small loop arc at top-right of node
-            var loopR = Math.max(8, fromR * 0.5);
-            var loopX = fromX + fromR * 0.6;
-            var loopY = fromY - fromR * 0.6;
+            // Loop arc — size controlled by loopMult
+            var baseLoopR = Math.max(12, fromR * 0.6);
+            var loopR = baseLoopR * loopMult;
+            var loopX = fromX + fromR * 0.5 + loopR * 0.3;
+            var loopY = fromY - fromR * 0.5 - loopR * 0.3;
             ctx.beginPath();
-            ctx.arc(loopX, loopY, loopR, 0.3, 2 * Math.PI - 0.3);
+            ctx.arc(loopX, loopY, loopR, 0.4, 2 * Math.PI - 0.4);
             ctx.stroke();
 
-            var arrowAngle = Math.PI * 0.6;
-            drawArrowhead(ctx, loopX - loopR * Math.cos(0.3), loopY + loopR * Math.sin(0.3), arrowAngle, 5, strokeColor);
+            if (aSize > 0) {
+                var arrowAngle = Math.PI * 0.65;
+                drawArrowhead(ctx, loopX - loopR * Math.cos(0.4), loopY + loopR * Math.sin(0.4), arrowAngle, aSize, strokeColor);
+            }
 
             if (animate) {
                 ctx.save();
@@ -1157,7 +1162,7 @@ define([
                 ctx.strokeStyle = 'rgba(255,255,255,0.6)';
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
-                ctx.arc(loopX, loopY, loopR, 0.3, 2 * Math.PI - 0.3);
+                ctx.arc(loopX, loopY, loopR, 0.4, 2 * Math.PI - 0.4);
                 ctx.stroke();
                 ctx.setLineDash([]);
                 ctx.restore();
@@ -1165,10 +1170,11 @@ define([
 
             if (showLabel && count !== undefined) {
                 ctx.fillStyle = 'rgba(255,255,255,0.85)';
-                ctx.font = 'bold 9px monospace';
+                var loopFontSize = Math.max(9, Math.min(12, loopR * 0.4));
+                ctx.font = 'bold ' + loopFontSize + 'px monospace';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'bottom';
-                ctx.fillText(String(count), loopX, loopY - loopR - 2);
+                ctx.fillText(formatCount(count), loopX, loopY - loopR - 3);
             }
 
         } else {
@@ -1207,10 +1213,12 @@ define([
             ctx.stroke();
 
             // Arrowhead angle at end of bezier (from control point toward end)
-            var arrowDx = ex - cx;
-            var arrowDy = ey - cy;
-            var angle = Math.atan2(arrowDy, arrowDx);
-            drawArrowhead(ctx, ex, ey, angle, 6, strokeColor);
+            if (aSize > 0) {
+                var arrowDx = ex - cx;
+                var arrowDy = ey - cy;
+                var angle = Math.atan2(arrowDy, arrowDx);
+                drawArrowhead(ctx, ex, ey, angle, aSize, strokeColor);
+            }
 
             if (animate) {
                 ctx.save();
@@ -1771,6 +1779,9 @@ define([
             var animateFlow = config[ns + 'animateFlow'] || 'hover';
             this._animateFlow = animateFlow;
             this._drilldownField = config[ns + 'drilldownField'] || 'activity';
+            var arrowSize = parseInt(config[ns + 'arrowSize'] || '6', 10);
+            var loopSizeSetting = config[ns + 'loopSize'] || 'medium';
+            var loopSizeMultiplier = loopSizeSetting === 'small' ? 0.6 : loopSizeSetting === 'large' ? 1.6 : loopSizeSetting === 'xlarge' ? 2.4 : 1;
 
             // 3. Size canvas for HiDPI
             var el = this.el;
@@ -1970,7 +1981,7 @@ define([
                     ctx.save();
                     ctx.setLineDash([4, 4]);
                 }
-                drawEdge(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, fromR, toR, edge.count, thisEdgeColor, thickness, isHoveredEdge, showEdgeLabels, isSelfLoop, animateEdge, this._animOffset, curveOff);
+                drawEdge(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, fromR, toR, edge.count, thisEdgeColor, thickness, isHoveredEdge, showEdgeLabels, isSelfLoop, animateEdge, this._animOffset, curveOff, arrowSize, loopSizeMultiplier);
                 if (isRareEdge && mainPathSet && layoutDirection !== 'freeform') {
                     ctx.setLineDash([]);
                     ctx.restore();
@@ -1985,9 +1996,10 @@ define([
                 };
                 if (isSelfLoop) {
                     // Match drawEdge self-loop geometry
-                    hitData.loopX = fromPos.x + fromR * 0.6;
-                    hitData.loopY = fromPos.y - fromR * 0.6;
-                    hitData.loopR = Math.max(8, fromR * 0.5);
+                    var baseHitLoopR = Math.max(12, fromR * 0.6) * loopSizeMultiplier;
+                    hitData.loopX = fromPos.x + fromR * 0.5 + baseHitLoopR * 0.3;
+                    hitData.loopY = fromPos.y - fromR * 0.5 - baseHitLoopR * 0.3;
+                    hitData.loopR = baseHitLoopR;
                 } else {
                     // Match drawEdge bezier geometry (start/end on circle edges)
                     var edx = toPos.x - fromPos.x;

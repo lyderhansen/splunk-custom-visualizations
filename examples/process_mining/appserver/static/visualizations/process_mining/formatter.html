@@ -88,6 +88,25 @@
         </splunk-color-picker>
     </splunk-control-group>
 
+    <splunk-control-group label="Arrow Size" help="Size of arrowheads on edges">
+        <splunk-select name="{{VIZ_NAMESPACE}}.arrowSize" value="6">
+            <option value="0">None</option>
+            <option value="4">Small</option>
+            <option value="6">Medium</option>
+            <option value="10">Large</option>
+            <option value="14">X-Large</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Loop Size" help="Size of self-loop circles">
+        <splunk-select name="{{VIZ_NAMESPACE}}.loopSize" value="medium">
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+            <option value="xlarge">X-Large</option>
+        </splunk-select>
+    </splunk-control-group>
+
 </form>
 
 <form class="splunk-formatter-section" section-label="KPIs">

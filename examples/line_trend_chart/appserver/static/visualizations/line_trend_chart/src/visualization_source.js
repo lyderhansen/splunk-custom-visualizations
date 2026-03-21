@@ -726,9 +726,20 @@ define([
         return hitRects;
     }
 
-    function drawTooltip(ctx, mx, plotArea, xLabels, xPositions, seriesData, seriesNames, seriesColors, hiddenSeries, yMin, yMax, yUnit) {
+    function drawTooltip(ctx, mx, plotArea, xLabels, xPositions, seriesData, seriesNames, seriesColors, hiddenSeries, yMin, yMax, yUnit, isDark) {
         var pa = plotArea;
         if (mx < pa.x || mx > pa.x + pa.w) return null;
+
+        // Theme colors
+        var pillBg = isDark ? 'rgba(50,55,80,0.92)' : 'rgba(55,65,100,0.9)';
+        var pillText = '#fff';
+        var tipBg = isDark ? 'rgba(30,33,45,0.95)' : 'rgba(255,255,255,0.96)';
+        var tipBorder = isDark ? 'rgba(80,90,120,0.5)' : 'rgba(180,185,200,0.6)';
+        var tipShadow = isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.12)';
+        var tipHeaderCol = isDark ? 'rgba(220,225,240,0.9)' : '#333';
+        var tipNameCol = isDark ? 'rgba(180,185,200,0.85)' : '#555';
+        var tipValCol = isDark ? 'rgba(240,242,255,0.95)' : '#222';
+        var crosshairCol = isDark ? 'rgba(180,180,180,0.35)' : 'rgba(100,100,100,0.3)';
 
         var closestIdx = 0;
         var closestDist = Infinity;
@@ -743,7 +754,7 @@ define([
         var snapX = xPositions[closestIdx];
 
         // Vertical crosshair line
-        ctx.strokeStyle = 'rgba(180,180,180,0.5)';
+        ctx.strokeStyle = crosshairCol;
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 4]);
         ctx.beginPath();
