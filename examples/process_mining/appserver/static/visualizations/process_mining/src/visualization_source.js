@@ -1130,7 +1130,7 @@ define([
      * Draw a directed edge (with arrowhead) between two node circles.
      * Optionally draws animated "marching ants" dashes on top to show flow direction.
      */
-    function drawEdge(ctx, fromX, fromY, toX, toY, fromR, toR, count, color, thickness, isHovered, showLabel, isSelfLoop, animate, animOffset) {
+    function drawEdge(ctx, fromX, fromY, toX, toY, fromR, toR, count, color, thickness, isHovered, showLabel, isSelfLoop, animate, animOffset, curveOffset) {
         ctx.save();
 
         var strokeColor = isHovered ? lightenColor(color, 0.4) : color;
@@ -1189,10 +1189,15 @@ define([
             var ex = toX - ux * toR;
             var ey = toY - uy * toR;
 
-            // Gentle perpendicular offset for bezier control point
+            // Perpendicular offset for bezier control point
             var perpX = -uy;
             var perpY = ux;
-            var curvature = Math.min(dist * 0.1, 20);
+            var curvature;
+            if (curveOffset !== undefined && curveOffset !== null && curveOffset !== 0) {
+                curvature = curveOffset;
+            } else {
+                curvature = Math.min(dist * 0.1, 20);
+            }
             var cx = (sx + ex) / 2 + perpX * curvature;
             var cy = (sy + ey) / 2 + perpY * curvature;
 
@@ -1942,12 +1947,30 @@ define([
                     }
                 }
 
+                // Compute curve offset for skip edges in linear layouts
+                var curveOff = 0;
+                if (mainPathSet && layoutDirection !== 'freeform' && !isSelfLoop) {
+                    var fromIdx = mainPathSet[edge.from];
+                    var toIdx = mainPathSet[edge.to];
+                    if (fromIdx !== undefined && toIdx !== undefined) {
+                        var skipDist = Math.abs(toIdx - fromIdx);
+                        if (skipDist > 1) {
+                            // Non-adjacent main path edge — route below (positive = down in horizontal, right in vertical)
+                            var skipSign = (toIdx < fromIdx) ? 1 : -1; // backwards = curve more
+                            curveOff = skipSign * (40 + skipDist * 25);
+                        }
+                    } else {
+                        // Side branch edge — small offset to avoid overlap with main line
+                        curveOff = 15;
+                    }
+                }
+
                 // Draw dashed for rare edges in linear layouts
                 if (isRareEdge && mainPathSet && layoutDirection !== 'freeform') {
                     ctx.save();
                     ctx.setLineDash([4, 4]);
                 }
-                drawEdge(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, fromR, toR, edge.count, thisEdgeColor, thickness, isHoveredEdge, showEdgeLabels, isSelfLoop, animateEdge, this._animOffset);
+                drawEdge(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, fromR, toR, edge.count, thisEdgeColor, thickness, isHoveredEdge, showEdgeLabels, isSelfLoop, animateEdge, this._animOffset, curveOff);
                 if (isRareEdge && mainPathSet && layoutDirection !== 'freeform') {
                     ctx.setLineDash([]);
                     ctx.restore();
@@ -1979,7 +2002,7 @@ define([
                         hitData.ey = toPos.y - euy * toR;
                         var eperpX = -euy;
                         var eperpY = eux;
-                        var ecurve = Math.min(edist * 0.1, 20);
+                        var ecurve = (curveOff !== 0) ? curveOff : Math.min(edist * 0.1, 20);
                         hitData.cpx = (hitData.sx + hitData.ex) / 2 + eperpX * ecurve;
                         hitData.cpy = (hitData.sy + hitData.ey) / 2 + eperpY * ecurve;
                     }
