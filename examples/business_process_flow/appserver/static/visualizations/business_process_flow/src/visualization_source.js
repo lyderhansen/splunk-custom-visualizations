@@ -795,7 +795,7 @@ define([
 
     // ── Toolbar Drawing ───────────────────────────────────────────
 
-    function drawToolbar(ctx, w, theme, toolbarH, buttons) {
+    function drawToolbar(ctx, w, theme, toolbarH, buttons, hoverItem, lockMode) {
         // Background
         ctx.fillStyle = theme.toolbarBg;
         ctx.fillRect(0, 0, w, toolbarH);
@@ -808,50 +808,69 @@ define([
         ctx.lineTo(w, toolbarH - 0.5);
         ctx.stroke();
 
-        // Title
-        ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = theme.text;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('Edit Mode', 12, toolbarH / 2);
-
-        // Buttons
-        var btnX = 110;
-        var btnH = 26;
-        var btnY = (toolbarH - btnH) / 2;
-        var btnPad = 8;
-
         // Clear the buttons array and populate
         buttons.length = 0;
 
-        var btnLabels = ['Add Connection', 'Delete Selected', 'Reset Layout'];
-        for (var i = 0; i < btnLabels.length; i++) {
-            ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            var tw = ctx.measureText(btnLabels[i]).width + 16;
+        var btnH = 26;
+        var btnY = (toolbarH - btnH) / 2;
+        var btnPad = 8;
+        var btnX = 12;
 
-            roundRect(ctx, btnX, btnY, tw, btnH, 4);
-            ctx.fillStyle = theme.nodeBg;
+        var btnDefs = [
+            { label: 'Save',  icon: 'Save',  action: 'save',           w: 60 },
+            { label: lockMode ? '\uD83D\uDD12' : '\uD83D\uDD13', icon: '', action: 'lock', w: 36 },
+            { label: '+',     icon: '+',     action: 'addNode',        w: 36 },
+            { label: '\u2192', icon: '', action: 'addConnection',  w: 36 },
+            { label: '\u2715', icon: '', action: 'delete',         w: 36, tint: 'red' },
+            { label: '\u229E', icon: '', action: 'fit',            w: 36 }
+        ];
+
+        for (var i = 0; i < btnDefs.length; i++) {
+            var def = btnDefs[i];
+            var bw = def.w;
+            var isHovered = hoverItem && hoverItem.type === 'button' && hoverItem.index === i;
+
+            // Button background
+            roundRect(ctx, btnX, btnY, bw, btnH, 4);
+            if (isHovered) {
+                ctx.fillStyle = theme.nodeBorder;
+            } else {
+                ctx.fillStyle = theme.nodeBg;
+            }
             ctx.fill();
             ctx.strokeStyle = theme.nodeBorder;
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            ctx.fillStyle = theme.text;
+            // Button text
+            ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            if (def.tint === 'red') {
+                ctx.fillStyle = '#ef4444';
+            } else {
+                ctx.fillStyle = theme.text;
+            }
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(btnLabels[i], btnX + tw / 2, toolbarH / 2);
+            ctx.fillText(def.label, btnX + bw / 2, toolbarH / 2);
 
             buttons.push({
                 x: btnX,
                 y: btnY,
-                w: tw,
+                w: bw,
                 h: btnH,
-                label: btnLabels[i],
-                action: btnLabels[i].toLowerCase().replace(/ /g, '_')
+                label: def.label,
+                action: def.action
             });
 
-            btnX += tw + btnPad;
+            btnX += bw + btnPad;
         }
+
+        // Right-aligned "EDIT MODE" label
+        ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillStyle = theme.textMuted;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('EDIT MODE', w - 12, toolbarH / 2);
 
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
@@ -895,6 +914,9 @@ define([
             this._dragStartY = 0;
             this._dragNodeStartX = 0;
             this._dragNodeStartY = 0;
+            this._didDrag = false;
+            this._snapBackPos = null; // {x, y} for view-mode snap-back
+            this._pendingToolbarAction = null;
             this._isConnecting = false;
             this._connectFromId = null;
             this._isResizing = false;
@@ -915,13 +937,196 @@ define([
 
             var self = this;
 
-            this._onMouseDown = function(e) {
-                var rect = self.canvas.getBoundingClientRect();
-                self._mouseX = e.clientX - rect.left;
-                self._mouseY = e.clientY - rect.top;
-                // Full drag/connect/resize logic in Tasks 4-5
+            // ── Save editor state to formatter DOM ──
+            this._saveEditorState = function() {
+                var stateJson = JSON.stringify(self._editorState);
+                // Try to find the formatter textarea for editorState
+                var ns = '';
+                try {
+                    ns = self.getPropertyNamespaceInfo().propertyNamespace;
+                } catch (e) {
+                    // ignore
+                }
+                var settingName = ns + 'editorState';
+                // Search for splunk-text-area and textarea elements
+                var found = false;
+                var textAreas = document.querySelectorAll('splunk-text-area, textarea');
+                for (var tai = 0; tai < textAreas.length; tai++) {
+                    var ta = textAreas[tai];
+                    var taName = ta.getAttribute('name') || '';
+                    if (taName === settingName) {
+                        if (ta.tagName.toLowerCase() === 'splunk-text-area') {
+                            ta.setAttribute('value', stateJson);
+                            // Also try setting the inner textarea
+                            var inner = ta.querySelector('textarea');
+                            if (inner) {
+                                inner.value = stateJson;
+                            }
+                            // Dispatch change event so Splunk picks it up
+                            var evt = document.createEvent('Event');
+                            evt.initEvent('change', true, true);
+                            ta.dispatchEvent(evt);
+                        } else {
+                            ta.value = stateJson;
+                            var evt2 = document.createEvent('Event');
+                            evt2.initEvent('change', true, true);
+                            ta.dispatchEvent(evt2);
+                        }
+                        found = true;
+                        break;
+                    }
+                }
+                // Store internally regardless — will be available on next updateView
+                self._pendingSaveState = stateJson;
             };
 
+            // ── Execute toolbar action ──
+            this._executeToolbarAction = function(action) {
+                if (action === 'save') {
+                    self._saveEditorState();
+                } else if (action === 'lock') {
+                    self._editorState.lock = !self._editorState.lock;
+                    self._lockMode = self._editorState.lock;
+                    self.invalidateUpdateView();
+                } else if (action === 'addNode') {
+                    // Create a new node at center of canvas
+                    var newId = 'new_node_' + Date.now();
+                    var rect = self.canvas.getBoundingClientRect();
+                    var cx = rect.width / 2 - 90;
+                    var cy = rect.height / 2 - 60;
+                    self._editorState.nodes[newId] = {
+                        x: cx,
+                        y: cy,
+                        w: 180,
+                        h: 120,
+                        shape: 'rect',
+                        label: 'New Node'
+                    };
+                    self.invalidateUpdateView();
+                } else if (action === 'addConnection') {
+                    // Start connection mode — user picks from/to nodes
+                    self._isConnecting = true;
+                    self._connectFromId = self._selectedNodeId || null;
+                } else if (action === 'delete') {
+                    // Delete selected node or connection
+                    if (self._selectedNodeId) {
+                        delete self._editorState.nodes[self._selectedNodeId];
+                        // Remove connections involving this node
+                        var filteredConns = [];
+                        var conns = self._editorState.connections || [];
+                        for (var dci = 0; dci < conns.length; dci++) {
+                            if (conns[dci].from !== self._selectedNodeId && conns[dci].to !== self._selectedNodeId) {
+                                filteredConns.push(conns[dci]);
+                            }
+                        }
+                        self._editorState.connections = filteredConns;
+                        self._selectedNodeId = null;
+                        self.invalidateUpdateView();
+                    } else if (self._selectedConnection) {
+                        var selFrom = self._selectedConnection.from;
+                        var selTo = self._selectedConnection.to;
+                        var keptConns = [];
+                        var eConns = self._editorState.connections || [];
+                        for (var dci2 = 0; dci2 < eConns.length; dci2++) {
+                            if (eConns[dci2].from !== selFrom || eConns[dci2].to !== selTo) {
+                                keptConns.push(eConns[dci2]);
+                            }
+                        }
+                        self._editorState.connections = keptConns;
+                        self._selectedConnection = null;
+                        self.invalidateUpdateView();
+                    }
+                } else if (action === 'fit') {
+                    // Reset all positions
+                    self._editorState.nodes = {};
+                    self.invalidateUpdateView();
+                }
+            };
+
+            // ── Mouse Down ──
+            this._onMouseDown = function(e) {
+                var rect = self.canvas.getBoundingClientRect();
+                var mx = e.clientX - rect.left;
+                var my = e.clientY - rect.top;
+                self._mouseX = mx;
+                self._mouseY = my;
+                self._didDrag = false;
+                self._pendingToolbarAction = null;
+
+                if (self._editMode) {
+                    // Check toolbar buttons
+                    for (var bi = 0; bi < self._toolbarButtons.length; bi++) {
+                        var btn = self._toolbarButtons[bi];
+                        if (pointInRect(mx, my, btn.x, btn.y, btn.w, btn.h)) {
+                            self._pendingToolbarAction = btn.action;
+                            return;
+                        }
+                    }
+
+                    // Check node hits — start drag in edit mode
+                    for (var ni = 0; ni < self._computedNodes.length; ni++) {
+                        var nd = self._computedNodes[ni];
+                        if (hitTestNode(mx, my, nd)) {
+                            self._isDragging = true;
+                            self._dragNodeId = nd.id;
+                            self._dragStartX = mx;
+                            self._dragStartY = my;
+                            self._dragNodeStartX = nd.x;
+                            self._dragNodeStartY = nd.y;
+                            self._selectedNodeId = nd.id;
+                            self._selectedConnection = null;
+                            self.invalidateUpdateView();
+                            return;
+                        }
+                    }
+
+                    // Check connection hits for selection
+                    for (var cci = 0; cci < self._computedConnections.length; cci++) {
+                        var cc = self._computedConnections[cci];
+                        var fromNd = null;
+                        var toNd = null;
+                        for (var fni = 0; fni < self._computedNodes.length; fni++) {
+                            if (self._computedNodes[fni].id === cc.from) fromNd = self._computedNodes[fni];
+                            if (self._computedNodes[fni].id === cc.to) toNd = self._computedNodes[fni];
+                        }
+                        if (fromNd && toNd) {
+                            var fCx = fromNd.x + fromNd.w / 2;
+                            var fCy = fromNd.y + fromNd.h / 2;
+                            var tCx = toNd.x + toNd.w / 2;
+                            var tCy = toNd.y + toNd.h / 2;
+                            if (pointNearLine(mx, my, fCx, fCy, tCx, tCy, 8)) {
+                                self._selectedConnection = { from: cc.from, to: cc.to };
+                                self._selectedNodeId = null;
+                                self.invalidateUpdateView();
+                                return;
+                            }
+                        }
+                    }
+
+                    // Clicked empty space — deselect
+                    self._selectedNodeId = null;
+                    self._selectedConnection = null;
+                    self.invalidateUpdateView();
+                } else if (!self._lockMode) {
+                    // View mode, lock off — allow temporary drag
+                    for (var vni = 0; vni < self._computedNodes.length; vni++) {
+                        var vnd = self._computedNodes[vni];
+                        if (hitTestNode(mx, my, vnd)) {
+                            self._isDragging = true;
+                            self._dragNodeId = vnd.id;
+                            self._dragStartX = mx;
+                            self._dragStartY = my;
+                            self._dragNodeStartX = vnd.x;
+                            self._dragNodeStartY = vnd.y;
+                            // Save original position for snap-back
+                            self._snapBackPos = { x: vnd.x, y: vnd.y };
+                            return;
+                        }
+                    }
+                }
+            };
+
+            // ── Mouse Move ──
             this._onMouseMove = function(e) {
                 var rect = self.canvas.getBoundingClientRect();
                 var mx = e.clientX - rect.left;
@@ -929,7 +1134,29 @@ define([
                 self._mouseX = mx;
                 self._mouseY = my;
 
-                // Update hover state for cursor changes
+                // Handle dragging
+                if (self._isDragging && self._dragNodeId) {
+                    self._didDrag = true;
+                    var deltaX = mx - self._dragStartX;
+                    var deltaY = my - self._dragStartY;
+                    var newX = self._dragNodeStartX + deltaX;
+                    var newY = self._dragNodeStartY + deltaY;
+
+                    // Update computed node position for visual feedback
+                    for (var di = 0; di < self._computedNodes.length; di++) {
+                        if (self._computedNodes[di].id === self._dragNodeId) {
+                            self._computedNodes[di].x = newX;
+                            self._computedNodes[di].y = newY;
+                            break;
+                        }
+                    }
+                    self.invalidateUpdateView();
+                    // Update cursor
+                    self.canvas.style.cursor = self._editMode ? 'move' : 'grabbing';
+                    return;
+                }
+
+                // Update hover state
                 var oldHover = self._hoverItem;
                 self._hoverItem = null;
 
@@ -955,12 +1182,43 @@ define([
                     }
                 }
 
-                // Update cursor
+                // Check connections
+                if (!self._hoverItem) {
+                    for (var cci = 0; cci < self._computedConnections.length; cci++) {
+                        var cc = self._computedConnections[cci];
+                        var fromNd = null;
+                        var toNd = null;
+                        for (var fni = 0; fni < self._computedNodes.length; fni++) {
+                            if (self._computedNodes[fni].id === cc.from) fromNd = self._computedNodes[fni];
+                            if (self._computedNodes[fni].id === cc.to) toNd = self._computedNodes[fni];
+                        }
+                        if (fromNd && toNd) {
+                            var fCx = fromNd.x + fromNd.w / 2;
+                            var fCy = fromNd.y + fromNd.h / 2;
+                            var tCx = toNd.x + toNd.w / 2;
+                            var tCy = toNd.y + toNd.h / 2;
+                            if (pointNearLine(mx, my, fCx, fCy, tCx, tCy, 8)) {
+                                self._hoverItem = { type: 'connection', index: cci };
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Update cursor based on state
                 if (self._hoverItem) {
                     if (self._hoverItem.type === 'button') {
                         self.canvas.style.cursor = 'pointer';
                     } else if (self._hoverItem.type === 'node') {
-                        self.canvas.style.cursor = self._editMode ? 'grab' : 'pointer';
+                        if (self._editMode) {
+                            self.canvas.style.cursor = 'move';
+                        } else if (self._lockMode) {
+                            self.canvas.style.cursor = 'pointer';
+                        } else {
+                            self.canvas.style.cursor = 'grab';
+                        }
+                    } else if (self._hoverItem.type === 'connection') {
+                        self.canvas.style.cursor = self._editMode ? 'pointer' : 'default';
                     }
                 } else {
                     self.canvas.style.cursor = 'default';
@@ -980,11 +1238,67 @@ define([
                 }
             };
 
+            // ── Mouse Up ──
             this._onMouseUp = function(e) {
                 var rect = self.canvas.getBoundingClientRect();
                 self._mouseX = e.clientX - rect.left;
                 self._mouseY = e.clientY - rect.top;
-                // Full logic in Tasks 4-5
+
+                // Handle pending toolbar action
+                if (self._pendingToolbarAction) {
+                    var action = self._pendingToolbarAction;
+                    self._pendingToolbarAction = null;
+                    // Verify mouse is still over the button
+                    var mx = self._mouseX;
+                    var my = self._mouseY;
+                    for (var bi = 0; bi < self._toolbarButtons.length; bi++) {
+                        var btn = self._toolbarButtons[bi];
+                        if (btn.action === action && pointInRect(mx, my, btn.x, btn.y, btn.w, btn.h)) {
+                            self._executeToolbarAction(action);
+                            break;
+                        }
+                    }
+                    self._isDragging = false;
+                    self._dragNodeId = null;
+                    return;
+                }
+
+                // Handle drag end
+                if (self._isDragging && self._dragNodeId) {
+                    if (self._editMode) {
+                        // Edit mode: persist position to editorState
+                        if (self._didDrag) {
+                            for (var ni = 0; ni < self._computedNodes.length; ni++) {
+                                if (self._computedNodes[ni].id === self._dragNodeId) {
+                                    var movedNode = self._computedNodes[ni];
+                                    if (!self._editorState.nodes[self._dragNodeId]) {
+                                        self._editorState.nodes[self._dragNodeId] = {};
+                                    }
+                                    self._editorState.nodes[self._dragNodeId].x = movedNode.x;
+                                    self._editorState.nodes[self._dragNodeId].y = movedNode.y;
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        // View mode: snap back to original position
+                        if (self._snapBackPos && self._didDrag) {
+                            for (var sni = 0; sni < self._computedNodes.length; sni++) {
+                                if (self._computedNodes[sni].id === self._dragNodeId) {
+                                    self._computedNodes[sni].x = self._snapBackPos.x;
+                                    self._computedNodes[sni].y = self._snapBackPos.y;
+                                    break;
+                                }
+                            }
+                            self.invalidateUpdateView();
+                        }
+                        self._snapBackPos = null;
+                    }
+                }
+
+                self._isDragging = false;
+                self._dragNodeId = null;
+                self._didDrag = false;
             };
 
             this.canvas.addEventListener('mousedown', this._onMouseDown);
@@ -1211,7 +1525,7 @@ define([
             }
 
             // 8. Toolbar height
-            var toolbarH = this._editMode ? 44 : 0;
+            var toolbarH = this._editMode ? 36 : 0;
 
             // 9. Compute node positions
             var positioned = computeNodePositions(resolvedNodes, this._editorState, w, h, toolbarH);
@@ -1233,7 +1547,7 @@ define([
 
             // 13. Draw toolbar if edit mode
             if (this._editMode) {
-                drawToolbar(ctx, w, theme, toolbarH, this._toolbarButtons);
+                drawToolbar(ctx, w, theme, toolbarH, this._toolbarButtons, this._hoverItem, this._lockMode);
             }
 
             // 14. Draw all connections (behind nodes)
