@@ -876,6 +876,269 @@ define([
         ctx.textBaseline = 'alphabetic';
     }
 
+    // ── Resize Handles ─────────────────────────────────────────────
+
+    function getResizeHandles(node) {
+        var s = 6;
+        return [
+            { x: node.x - s / 2, y: node.y - s / 2, w: s, h: s, cursor: 'nwse-resize', corner: 'tl' },
+            { x: node.x + node.w - s / 2, y: node.y - s / 2, w: s, h: s, cursor: 'nesw-resize', corner: 'tr' },
+            { x: node.x - s / 2, y: node.y + node.h - s / 2, w: s, h: s, cursor: 'nesw-resize', corner: 'bl' },
+            { x: node.x + node.w - s / 2, y: node.y + node.h - s / 2, w: s, h: s, cursor: 'nwse-resize', corner: 'br' }
+        ];
+    }
+
+    function drawResizeHandles(ctx, node, theme) {
+        var handles = getResizeHandles(node);
+        for (var i = 0; i < handles.length; i++) {
+            var hd = handles[i];
+            ctx.fillStyle = theme.toolbarBg;
+            ctx.fillRect(hd.x, hd.y, hd.w, hd.h);
+            ctx.strokeStyle = theme.text;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(hd.x, hd.y, hd.w, hd.h);
+        }
+    }
+
+    // ── Node Property Popup ──────────────────────────────────────
+
+    function drawNodePopup(ctx, node, editorNode, palette, theme, w, h) {
+        var popW = 210;
+        var popH = 130;
+        var px = node.x + node.w + 10;
+        var py = node.y;
+        if (px + popW > w) px = node.x - popW - 10;
+        if (py + popH > h) py = h - popH - 10;
+        if (px < 0) px = 10;
+        if (py < 0) py = 10;
+
+        var hits = [];
+
+        // Background
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.2)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 2;
+        roundRect(ctx, px, py, popW, popH, 6);
+        ctx.fillStyle = theme.toolbarBg;
+        ctx.fill();
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = theme.toolbarBorder;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+
+        var rowY = py + 10;
+        var leftX = px + 10;
+
+        // Label row
+        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillStyle = theme.textMuted;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Label:', leftX, rowY);
+        var labelText = (editorNode && editorNode.label) ? editorNode.label : (node.label || '');
+        var isManual = editorNode && editorNode.manual;
+        ctx.fillStyle = theme.text;
+        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        var labelDispX = leftX + 42;
+        var labelDispW = popW - 62;
+        ctx.fillText(truncateText(labelText, 16) + (isManual ? ' \u270E' : ''), labelDispX, rowY);
+        if (isManual) {
+            hits.push({ type: 'label', x: labelDispX, y: rowY - 2, w: labelDispW, h: 16 });
+        }
+        rowY += 22;
+
+        // Shape row
+        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillStyle = theme.textMuted;
+        ctx.fillText('Shape:', leftX, rowY);
+
+        var shapes = ['rect', 'circle', 'diamond'];
+        var shapeLabels = ['\u25AD', '\u25CB', '\u25C7'];
+        var currentShape = (editorNode && editorNode.shape) ? editorNode.shape : (node.shape || 'rect');
+        var shapeX = leftX + 42;
+        for (var si = 0; si < shapes.length; si++) {
+            var isActive = currentShape === shapes[si];
+            roundRect(ctx, shapeX, rowY - 2, 24, 16, 3);
+            ctx.fillStyle = isActive ? node.color : theme.nodeBg;
+            ctx.fill();
+            ctx.strokeStyle = theme.nodeBorder;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.fillStyle = isActive ? '#fff' : theme.text;
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(shapeLabels[si], shapeX + 12, rowY + 6);
+            ctx.textAlign = 'left';
+            hits.push({ type: 'shape', value: shapes[si], x: shapeX, y: rowY - 2, w: 24, h: 16 });
+            shapeX += 30;
+        }
+        rowY += 22;
+
+        // Color row
+        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillStyle = theme.textMuted;
+        ctx.textBaseline = 'top';
+        ctx.fillText('Color:', leftX, rowY);
+
+        var swatchX = leftX + 42;
+        var swatchS = 16;
+        var currentColor = (editorNode && editorNode.color) ? editorNode.color : '';
+        for (var ci = 0; ci < palette.length; ci++) {
+            ctx.fillStyle = palette[ci];
+            ctx.fillRect(swatchX, rowY - 1, swatchS, swatchS);
+            if (currentColor === palette[ci]) {
+                ctx.strokeStyle = theme.text;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(swatchX - 1, rowY - 2, swatchS + 2, swatchS + 2);
+            }
+            hits.push({ type: 'color', value: palette[ci], x: swatchX, y: rowY - 1, w: swatchS, h: swatchS });
+            swatchX += swatchS + 4;
+            if (ci === 3) {
+                // Wrap to next row
+                swatchX = leftX + 42;
+                rowY += swatchS + 4;
+            }
+        }
+
+        ctx.textBaseline = 'alphabetic';
+        ctx.lineWidth = 1;
+
+        return { x: px, y: py, w: popW, h: popH, hits: hits };
+    }
+
+    // ── Connection Formatting Popup ──────────────────────────────
+
+    function drawConnectionPopup(ctx, conn, connIdx, palette, theme, mouseX, mouseY, w, h) {
+        var popW = 210;
+        var popH = 190;
+        var px = mouseX + 10;
+        var py = mouseY + 10;
+        if (px + popW > w) px = w - popW - 10;
+        if (py + popH > h) py = h - popH - 10;
+        if (px < 0) px = 10;
+        if (py < 0) py = 10;
+
+        var hits = [];
+
+        // Background
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.2)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 2;
+        roundRect(ctx, px, py, popW, popH, 6);
+        ctx.fillStyle = theme.toolbarBg;
+        ctx.fill();
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = theme.toolbarBorder;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+
+        var rowY = py + 10;
+        var leftX = px + 10;
+        var btnX;
+
+        // Helper to draw toggle button
+        function toggleBtn(x, y, w2, h2, label, active, hitType, hitValue) {
+            roundRect(ctx, x, y, w2, h2, 3);
+            ctx.fillStyle = active ? '#3b82f6' : theme.nodeBg;
+            ctx.fill();
+            ctx.strokeStyle = theme.nodeBorder;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.fillStyle = active ? '#fff' : theme.text;
+            ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, x + w2 / 2, y + h2 / 2);
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            hits.push({ type: hitType, value: hitValue, x: x, y: y, w: w2, h: h2 });
+        }
+
+        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.textBaseline = 'top';
+
+        // Row 1: Style
+        ctx.fillStyle = theme.textMuted;
+        ctx.fillText('Style:', leftX, rowY);
+        btnX = leftX + 42;
+        toggleBtn(btnX, rowY - 2, 50, 16, 'Straight', conn.style !== 'curved', 'style', 'straight');
+        toggleBtn(btnX + 56, rowY - 2, 50, 16, 'Curved', conn.style === 'curved', 'style', 'curved');
+        rowY += 22;
+
+        // Row 2: Width
+        ctx.fillStyle = theme.textMuted;
+        ctx.fillText('Width:', leftX, rowY);
+        btnX = leftX + 42;
+        var widths = [1, 2, 4];
+        for (var wi = 0; wi < widths.length; wi++) {
+            toggleBtn(btnX + wi * 32, rowY - 2, 26, 16, String(widths[wi]), conn.width === widths[wi], 'width', widths[wi]);
+        }
+        rowY += 22;
+
+        // Row 3: Dash
+        ctx.fillStyle = theme.textMuted;
+        ctx.fillText('Dash:', leftX, rowY);
+        btnX = leftX + 42;
+        toggleBtn(btnX, rowY - 2, 42, 16, 'Solid', !conn.dash, 'dash', false);
+        toggleBtn(btnX + 48, rowY - 2, 42, 16, 'Dashed', !!conn.dash, 'dash', true);
+        rowY += 22;
+
+        // Row 4: Arrow
+        ctx.fillStyle = theme.textMuted;
+        ctx.fillText('Arrow:', leftX, rowY);
+        btnX = leftX + 42;
+        var arrows = [
+            { label: 'None', value: 'none' },
+            { label: '\u2192', value: 'forward' },
+            { label: '\u2190', value: 'backward' },
+            { label: '\u2194', value: 'both' }
+        ];
+        for (var ai = 0; ai < arrows.length; ai++) {
+            toggleBtn(btnX + ai * 34, rowY - 2, 28, 16, arrows[ai].label, conn.arrow === arrows[ai].value, 'arrow', arrows[ai].value);
+        }
+        rowY += 22;
+
+        // Row 5: Color
+        ctx.fillStyle = theme.textMuted;
+        ctx.fillText('Color:', leftX, rowY);
+        var swatchX = leftX + 42;
+        var swatchS = 16;
+        for (var ci2 = 0; ci2 < palette.length; ci2++) {
+            ctx.fillStyle = palette[ci2];
+            ctx.fillRect(swatchX, rowY - 1, swatchS, swatchS);
+            if (conn.color === palette[ci2]) {
+                ctx.strokeStyle = theme.text;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(swatchX - 1, rowY - 2, swatchS + 2, swatchS + 2);
+            }
+            hits.push({ type: 'connColor', value: palette[ci2], x: swatchX, y: rowY - 1, w: swatchS, h: swatchS });
+            swatchX += swatchS + 4;
+        }
+        rowY += 22;
+
+        // Row 6: Label
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillText('Label:', leftX, rowY);
+        var labelText = conn.label || 'click to edit';
+        ctx.fillStyle = conn.label ? theme.text : theme.textMuted;
+        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        var lblX = leftX + 42;
+        ctx.fillText(truncateText(labelText, 18), lblX, rowY);
+        hits.push({ type: 'connLabel', x: lblX, y: rowY - 2, w: popW - 62, h: 16 });
+
+        ctx.textBaseline = 'alphabetic';
+        ctx.lineWidth = 1;
+
+        return { x: px, y: py, w: popW, h: popH, hits: hits };
+    }
+
     // ── Hit Test Helper for Nodes ─────────────────────────────────
 
     function hitTestNode(px, py, node) {
@@ -934,6 +1197,21 @@ define([
             this._toolbarButtons = [];
             this._computedNodes = [];
             this._computedConnections = [];
+            this._showNodePopup = false;
+            this._nodePopupId = null;
+            this._nodePopupHits = [];
+            this._nodePopupRect = null;
+            this._showConnPopup = false;
+            this._connPopupIdx = null;
+            this._connPopupHits = [];
+            this._connPopupPos = { x: 0, y: 0 };
+            this._connPopupRect = null;
+            this._resizeStartX = 0;
+            this._resizeStartY = 0;
+            this._resizeStartNodeX = 0;
+            this._resizeStartNodeY = 0;
+            this._resizeStartNodeW = 0;
+            this._resizeStartNodeH = 0;
 
             var self = this;
 
@@ -989,8 +1267,8 @@ define([
                     self._lockMode = self._editorState.lock;
                     self.invalidateUpdateView();
                 } else if (action === 'addNode') {
-                    // Create a new node at center of canvas
-                    var newId = 'new_node_' + Date.now();
+                    // Create a new manual node at center of canvas
+                    var newId = 'manual_' + Date.now();
                     var rect = self.canvas.getBoundingClientRect();
                     var cx = rect.width / 2 - 90;
                     var cy = rect.height / 2 - 60;
@@ -1000,29 +1278,19 @@ define([
                         w: 180,
                         h: 120,
                         shape: 'rect',
-                        label: 'New Node'
+                        label: 'New Node',
+                        manual: true,
+                        color: ''
                     };
                     self.invalidateUpdateView();
                 } else if (action === 'addConnection') {
                     // Start connection mode — user picks from/to nodes
                     self._isConnecting = true;
-                    self._connectFromId = self._selectedNodeId || null;
+                    self._connectFromId = null;
+                    self.canvas.style.cursor = 'crosshair';
                 } else if (action === 'delete') {
-                    // Delete selected node or connection
-                    if (self._selectedNodeId) {
-                        delete self._editorState.nodes[self._selectedNodeId];
-                        // Remove connections involving this node
-                        var filteredConns = [];
-                        var conns = self._editorState.connections || [];
-                        for (var dci = 0; dci < conns.length; dci++) {
-                            if (conns[dci].from !== self._selectedNodeId && conns[dci].to !== self._selectedNodeId) {
-                                filteredConns.push(conns[dci]);
-                            }
-                        }
-                        self._editorState.connections = filteredConns;
-                        self._selectedNodeId = null;
-                        self.invalidateUpdateView();
-                    } else if (self._selectedConnection) {
+                    // Delete selected connection first, then check node
+                    if (self._selectedConnection !== null) {
                         var selFrom = self._selectedConnection.from;
                         var selTo = self._selectedConnection.to;
                         var keptConns = [];
@@ -1034,11 +1302,61 @@ define([
                         }
                         self._editorState.connections = keptConns;
                         self._selectedConnection = null;
+                        self._showConnPopup = false;
                         self.invalidateUpdateView();
+                    } else if (self._selectedNodeId) {
+                        var delNode = self._editorState.nodes[self._selectedNodeId];
+                        // Only delete manual nodes
+                        if (delNode && delNode.manual === true) {
+                            delete self._editorState.nodes[self._selectedNodeId];
+                            // Remove connections involving this node
+                            var filteredConns = [];
+                            var conns = self._editorState.connections || [];
+                            for (var dci = 0; dci < conns.length; dci++) {
+                                if (conns[dci].from !== self._selectedNodeId && conns[dci].to !== self._selectedNodeId) {
+                                    filteredConns.push(conns[dci]);
+                                }
+                            }
+                            self._editorState.connections = filteredConns;
+                            self._selectedNodeId = null;
+                            self._showNodePopup = false;
+                            self.invalidateUpdateView();
+                        }
                     }
                 } else if (action === 'fit') {
-                    // Reset all positions
-                    self._editorState.nodes = {};
+                    // Fit all nodes within canvas
+                    var fitNodes = self._computedNodes;
+                    if (fitNodes.length === 0) return;
+                    var fitRect = self.canvas.getBoundingClientRect();
+                    var fitW = fitRect.width;
+                    var fitH = fitRect.height;
+                    var fitToolbarH = self._editMode ? 36 : 0;
+                    var fitPad = 40;
+                    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    for (var fi2 = 0; fi2 < fitNodes.length; fi2++) {
+                        var fn = fitNodes[fi2];
+                        if (fn.x < minX) minX = fn.x;
+                        if (fn.y < minY) minY = fn.y;
+                        if (fn.x + fn.w > maxX) maxX = fn.x + fn.w;
+                        if (fn.y + fn.h > maxY) maxY = fn.y + fn.h;
+                    }
+                    var bboxW = maxX - minX;
+                    var bboxH = maxY - minY;
+                    if (bboxW <= 0) bboxW = 1;
+                    if (bboxH <= 0) bboxH = 1;
+                    var scaleX = (fitW - fitPad * 2) / bboxW;
+                    var scaleY = (fitH - fitToolbarH - fitPad * 2) / bboxH;
+                    var fitScale = Math.min(scaleX, scaleY, 1);
+                    for (var fi3 = 0; fi3 < fitNodes.length; fi3++) {
+                        var fn2 = fitNodes[fi3];
+                        var newFx = fitPad + (fn2.x - minX) * fitScale;
+                        var newFy = fitPad + fitToolbarH + (fn2.y - minY) * fitScale;
+                        if (!self._editorState.nodes[fn2.id]) {
+                            self._editorState.nodes[fn2.id] = {};
+                        }
+                        self._editorState.nodes[fn2.id].x = newFx;
+                        self._editorState.nodes[fn2.id].y = newFy;
+                    }
                     self.invalidateUpdateView();
                 }
             };
@@ -1063,6 +1381,201 @@ define([
                         }
                     }
 
+                    // Check node popup hits
+                    if (self._showNodePopup && self._nodePopupRect) {
+                        if (pointInRect(mx, my, self._nodePopupRect.x, self._nodePopupRect.y, self._nodePopupRect.w, self._nodePopupRect.h)) {
+                            // Check individual popup hit areas
+                            for (var nph = 0; nph < self._nodePopupHits.length; nph++) {
+                                var nHit = self._nodePopupHits[nph];
+                                if (pointInRect(mx, my, nHit.x, nHit.y, nHit.w, nHit.h)) {
+                                    var popNodeId = self._nodePopupId;
+                                    if (!self._editorState.nodes[popNodeId]) {
+                                        self._editorState.nodes[popNodeId] = {};
+                                    }
+                                    if (nHit.type === 'shape') {
+                                        self._editorState.nodes[popNodeId].shape = nHit.value;
+                                        self.invalidateUpdateView();
+                                    } else if (nHit.type === 'color') {
+                                        self._editorState.nodes[popNodeId].color = nHit.value;
+                                        self.invalidateUpdateView();
+                                    } else if (nHit.type === 'label') {
+                                        // Create temporary input for label editing
+                                        var popNode = null;
+                                        for (var pni = 0; pni < self._computedNodes.length; pni++) {
+                                            if (self._computedNodes[pni].id === popNodeId) {
+                                                popNode = self._computedNodes[pni];
+                                                break;
+                                            }
+                                        }
+                                        var currentLabel = (self._editorState.nodes[popNodeId] && self._editorState.nodes[popNodeId].label) || (popNode ? popNode.label : '');
+                                        var inp = document.createElement('input');
+                                        inp.type = 'text';
+                                        inp.value = currentLabel;
+                                        inp.style.position = 'absolute';
+                                        var canvasRect = self.canvas.getBoundingClientRect();
+                                        inp.style.left = (canvasRect.left + nHit.x) + 'px';
+                                        inp.style.top = (canvasRect.top + nHit.y) + 'px';
+                                        inp.style.width = nHit.w + 'px';
+                                        inp.style.height = '18px';
+                                        inp.style.fontSize = '11px';
+                                        inp.style.border = '1px solid #3b82f6';
+                                        inp.style.padding = '0 4px';
+                                        inp.style.zIndex = '9999';
+                                        document.body.appendChild(inp);
+                                        inp.focus();
+                                        inp.select();
+                                        var inputDone = false;
+                                        function finishLabelEdit() {
+                                            if (inputDone) return;
+                                            inputDone = true;
+                                            self._editorState.nodes[popNodeId].label = inp.value;
+                                            if (inp.parentNode) inp.parentNode.removeChild(inp);
+                                            self.invalidateUpdateView();
+                                        }
+                                        inp.addEventListener('blur', finishLabelEdit);
+                                        inp.addEventListener('keydown', function(ke) {
+                                            if (ke.key === 'Enter') finishLabelEdit();
+                                        });
+                                    }
+                                    return;
+                                }
+                            }
+                            // Click inside popup but not on a hit area — do nothing
+                            return;
+                        } else {
+                            // Click outside popup — close it
+                            self._showNodePopup = false;
+                            self._nodePopupId = null;
+                            self.invalidateUpdateView();
+                        }
+                    }
+
+                    // Check connection popup hits
+                    if (self._showConnPopup && self._connPopupRect) {
+                        if (pointInRect(mx, my, self._connPopupRect.x, self._connPopupRect.y, self._connPopupRect.w, self._connPopupRect.h)) {
+                            var cIdx = self._connPopupIdx;
+                            var edConns = self._editorState.connections;
+                            for (var cph = 0; cph < self._connPopupHits.length; cph++) {
+                                var cHit = self._connPopupHits[cph];
+                                if (pointInRect(mx, my, cHit.x, cHit.y, cHit.w, cHit.h)) {
+                                    if (cHit.type === 'style' && edConns[cIdx]) {
+                                        edConns[cIdx].style = cHit.value;
+                                    } else if (cHit.type === 'width' && edConns[cIdx]) {
+                                        edConns[cIdx].width = cHit.value;
+                                    } else if (cHit.type === 'dash' && edConns[cIdx]) {
+                                        edConns[cIdx].dash = cHit.value;
+                                    } else if (cHit.type === 'arrow' && edConns[cIdx]) {
+                                        edConns[cIdx].arrow = cHit.value;
+                                    } else if (cHit.type === 'connColor' && edConns[cIdx]) {
+                                        edConns[cIdx].color = cHit.value;
+                                    } else if (cHit.type === 'connLabel' && edConns[cIdx]) {
+                                        // Create temporary input for label editing
+                                        var currLabel = edConns[cIdx].label || '';
+                                        var cInp = document.createElement('input');
+                                        cInp.type = 'text';
+                                        cInp.value = currLabel;
+                                        cInp.style.position = 'absolute';
+                                        var cCanvasRect = self.canvas.getBoundingClientRect();
+                                        cInp.style.left = (cCanvasRect.left + cHit.x) + 'px';
+                                        cInp.style.top = (cCanvasRect.top + cHit.y) + 'px';
+                                        cInp.style.width = cHit.w + 'px';
+                                        cInp.style.height = '18px';
+                                        cInp.style.fontSize = '11px';
+                                        cInp.style.border = '1px solid #3b82f6';
+                                        cInp.style.padding = '0 4px';
+                                        cInp.style.zIndex = '9999';
+                                        document.body.appendChild(cInp);
+                                        cInp.focus();
+                                        cInp.select();
+                                        var cInputDone = false;
+                                        var capturedIdx = cIdx;
+                                        function finishConnLabelEdit() {
+                                            if (cInputDone) return;
+                                            cInputDone = true;
+                                            if (self._editorState.connections[capturedIdx]) {
+                                                self._editorState.connections[capturedIdx].label = cInp.value;
+                                            }
+                                            if (cInp.parentNode) cInp.parentNode.removeChild(cInp);
+                                            self.invalidateUpdateView();
+                                        }
+                                        cInp.addEventListener('blur', finishConnLabelEdit);
+                                        cInp.addEventListener('keydown', function(cke) {
+                                            if (cke.key === 'Enter') finishConnLabelEdit();
+                                        });
+                                        return;
+                                    }
+                                    self.invalidateUpdateView();
+                                    return;
+                                }
+                            }
+                            return;
+                        } else {
+                            self._showConnPopup = false;
+                            self._connPopupIdx = null;
+                            self.invalidateUpdateView();
+                        }
+                    }
+
+                    // In connecting mode, handle node clicks
+                    if (self._isConnecting) {
+                        for (var cni = 0; cni < self._computedNodes.length; cni++) {
+                            var cnd = self._computedNodes[cni];
+                            if (hitTestNode(mx, my, cnd)) {
+                                if (!self._connectFromId) {
+                                    self._connectFromId = cnd.id;
+                                    self.invalidateUpdateView();
+                                } else if (cnd.id !== self._connectFromId) {
+                                    // Create the connection
+                                    if (!self._editorState.connections) self._editorState.connections = [];
+                                    self._editorState.connections.push({
+                                        from: self._connectFromId,
+                                        to: cnd.id,
+                                        style: 'straight',
+                                        color: '',
+                                        width: 2,
+                                        dash: false,
+                                        arrow: 'forward',
+                                        label: '',
+                                        manual: true
+                                    });
+                                    self._isConnecting = false;
+                                    self._connectFromId = null;
+                                    self.canvas.style.cursor = 'default';
+                                    self.invalidateUpdateView();
+                                }
+                                return;
+                            }
+                        }
+                        return;
+                    }
+
+                    // Check resize handles on selected/hovered node
+                    if (self._selectedNodeId) {
+                        for (var rni = 0; rni < self._computedNodes.length; rni++) {
+                            if (self._computedNodes[rni].id === self._selectedNodeId) {
+                                var rsNode = self._computedNodes[rni];
+                                var handles = getResizeHandles(rsNode);
+                                for (var rhi = 0; rhi < handles.length; rhi++) {
+                                    var rh = handles[rhi];
+                                    if (pointInRect(mx, my, rh.x - 2, rh.y - 2, rh.w + 4, rh.h + 4)) {
+                                        self._isResizing = true;
+                                        self._resizeNodeId = rsNode.id;
+                                        self._resizeHandle = rh.corner;
+                                        self._resizeStartX = mx;
+                                        self._resizeStartY = my;
+                                        self._resizeStartNodeX = rsNode.x;
+                                        self._resizeStartNodeY = rsNode.y;
+                                        self._resizeStartNodeW = rsNode.w;
+                                        self._resizeStartNodeH = rsNode.h;
+                                        self.canvas.style.cursor = rh.cursor;
+                                        return;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+
                     // Check node hits — start drag in edit mode
                     for (var ni = 0; ni < self._computedNodes.length; ni++) {
                         var nd = self._computedNodes[ni];
@@ -1075,6 +1588,7 @@ define([
                             self._dragNodeStartY = nd.y;
                             self._selectedNodeId = nd.id;
                             self._selectedConnection = null;
+                            self._showConnPopup = false;
                             self.invalidateUpdateView();
                             return;
                         }
@@ -1097,6 +1611,34 @@ define([
                             if (pointNearLine(mx, my, fCx, fCy, tCx, tCy, 8)) {
                                 self._selectedConnection = { from: cc.from, to: cc.to };
                                 self._selectedNodeId = null;
+                                self._showNodePopup = false;
+                                // Show connection popup — find matching editorState index
+                                var edConnIdx = -1;
+                                var edCS = self._editorState.connections || [];
+                                for (var eci = 0; eci < edCS.length; eci++) {
+                                    if (edCS[eci].from === cc.from && edCS[eci].to === cc.to) {
+                                        edConnIdx = eci;
+                                        break;
+                                    }
+                                }
+                                if (edConnIdx === -1) {
+                                    // Connection not in editorState yet — add it so we can format it
+                                    if (!self._editorState.connections) self._editorState.connections = [];
+                                    self._editorState.connections.push({
+                                        from: cc.from, to: cc.to,
+                                        style: cc.style || 'straight',
+                                        color: cc.color || '',
+                                        width: cc.width || 2,
+                                        dash: cc.dash || false,
+                                        arrow: cc.arrow || 'forward',
+                                        label: cc.label || '',
+                                        manual: cc.manual || false
+                                    });
+                                    edConnIdx = self._editorState.connections.length - 1;
+                                }
+                                self._showConnPopup = true;
+                                self._connPopupIdx = edConnIdx;
+                                self._connPopupPos = { x: mx, y: my };
                                 self.invalidateUpdateView();
                                 return;
                             }
@@ -1106,6 +1648,8 @@ define([
                     // Clicked empty space — deselect
                     self._selectedNodeId = null;
                     self._selectedConnection = null;
+                    self._showNodePopup = false;
+                    self._showConnPopup = false;
                     self.invalidateUpdateView();
                 } else if (!self._lockMode) {
                     // View mode, lock off — allow temporary drag
@@ -1133,6 +1677,53 @@ define([
                 var my = e.clientY - rect.top;
                 self._mouseX = mx;
                 self._mouseY = my;
+
+                // Handle resizing
+                if (self._isResizing && self._resizeNodeId) {
+                    var rdx = mx - self._resizeStartX;
+                    var rdy = my - self._resizeStartY;
+                    var rCorner = self._resizeHandle;
+                    var rnx = self._resizeStartNodeX;
+                    var rny = self._resizeStartNodeY;
+                    var rnw = self._resizeStartNodeW;
+                    var rnh = self._resizeStartNodeH;
+                    var newNx = rnx, newNy = rny, newNw = rnw, newNh = rnh;
+
+                    if (rCorner === 'br') {
+                        newNw = Math.max(80, rnw + rdx);
+                        newNh = Math.max(60, rnh + rdy);
+                    } else if (rCorner === 'bl') {
+                        newNw = Math.max(80, rnw - rdx);
+                        newNh = Math.max(60, rnh + rdy);
+                        newNx = rnx + rnw - newNw;
+                    } else if (rCorner === 'tr') {
+                        newNw = Math.max(80, rnw + rdx);
+                        newNh = Math.max(60, rnh - rdy);
+                        newNy = rny + rnh - newNh;
+                    } else if (rCorner === 'tl') {
+                        newNw = Math.max(80, rnw - rdx);
+                        newNh = Math.max(60, rnh - rdy);
+                        newNx = rnx + rnw - newNw;
+                        newNy = rny + rnh - newNh;
+                    }
+
+                    for (var rdi = 0; rdi < self._computedNodes.length; rdi++) {
+                        if (self._computedNodes[rdi].id === self._resizeNodeId) {
+                            self._computedNodes[rdi].x = newNx;
+                            self._computedNodes[rdi].y = newNy;
+                            self._computedNodes[rdi].w = newNw;
+                            self._computedNodes[rdi].h = newNh;
+                            break;
+                        }
+                    }
+                    self.invalidateUpdateView();
+                    return;
+                }
+
+                // In connecting mode, redraw for temp line
+                if (self._isConnecting && self._connectFromId) {
+                    self.invalidateUpdateView();
+                }
 
                 // Handle dragging
                 if (self._isDragging && self._dragNodeId) {
@@ -1206,16 +1797,37 @@ define([
                 }
 
                 // Update cursor based on state
-                if (self._hoverItem) {
+                if (self._isConnecting) {
+                    self.canvas.style.cursor = 'crosshair';
+                } else if (self._hoverItem) {
                     if (self._hoverItem.type === 'button') {
                         self.canvas.style.cursor = 'pointer';
                     } else if (self._hoverItem.type === 'node') {
-                        if (self._editMode) {
-                            self.canvas.style.cursor = 'move';
-                        } else if (self._lockMode) {
-                            self.canvas.style.cursor = 'pointer';
-                        } else {
-                            self.canvas.style.cursor = 'grab';
+                        // Check resize handles first
+                        var onHandle = false;
+                        if (self._editMode && self._selectedNodeId && self._hoverItem.id === self._selectedNodeId) {
+                            for (var rhi2 = 0; rhi2 < self._computedNodes.length; rhi2++) {
+                                if (self._computedNodes[rhi2].id === self._selectedNodeId) {
+                                    var hHandles = getResizeHandles(self._computedNodes[rhi2]);
+                                    for (var hhi = 0; hhi < hHandles.length; hhi++) {
+                                        if (pointInRect(mx, my, hHandles[hhi].x - 2, hHandles[hhi].y - 2, hHandles[hhi].w + 4, hHandles[hhi].h + 4)) {
+                                            self.canvas.style.cursor = hHandles[hhi].cursor;
+                                            onHandle = true;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        if (!onHandle) {
+                            if (self._editMode) {
+                                self.canvas.style.cursor = 'move';
+                            } else if (self._lockMode) {
+                                self.canvas.style.cursor = 'pointer';
+                            } else {
+                                self.canvas.style.cursor = 'grab';
+                            }
                         }
                     } else if (self._hoverItem.type === 'connection') {
                         self.canvas.style.cursor = self._editMode ? 'pointer' : 'default';
@@ -1263,6 +1875,29 @@ define([
                     return;
                 }
 
+                // Handle resize end
+                if (self._isResizing && self._resizeNodeId) {
+                    for (var rui = 0; rui < self._computedNodes.length; rui++) {
+                        if (self._computedNodes[rui].id === self._resizeNodeId) {
+                            var resizedNode = self._computedNodes[rui];
+                            if (!self._editorState.nodes[self._resizeNodeId]) {
+                                self._editorState.nodes[self._resizeNodeId] = {};
+                            }
+                            self._editorState.nodes[self._resizeNodeId].x = resizedNode.x;
+                            self._editorState.nodes[self._resizeNodeId].y = resizedNode.y;
+                            self._editorState.nodes[self._resizeNodeId].w = resizedNode.w;
+                            self._editorState.nodes[self._resizeNodeId].h = resizedNode.h;
+                            break;
+                        }
+                    }
+                    self._isResizing = false;
+                    self._resizeNodeId = null;
+                    self._resizeHandle = null;
+                    self.canvas.style.cursor = 'default';
+                    self.invalidateUpdateView();
+                    return;
+                }
+
                 // Handle drag end
                 if (self._isDragging && self._dragNodeId) {
                     if (self._editMode) {
@@ -1301,9 +1936,71 @@ define([
                 self._didDrag = false;
             };
 
+            // ── Double Click ──
+            this._onDblClick = function(e) {
+                if (!self._editMode) return;
+                var rect = self.canvas.getBoundingClientRect();
+                var mx = e.clientX - rect.left;
+                var my = e.clientY - rect.top;
+
+                for (var dni = 0; dni < self._computedNodes.length; dni++) {
+                    var dnd = self._computedNodes[dni];
+                    if (hitTestNode(mx, my, dnd)) {
+                        self._showNodePopup = true;
+                        self._nodePopupId = dnd.id;
+                        self._showConnPopup = false;
+                        self.invalidateUpdateView();
+                        return;
+                    }
+                }
+            };
+
+            // ── Right Click — cancel connecting ──
+            this._onContextMenu = function(e) {
+                if (self._isConnecting) {
+                    e.preventDefault();
+                    self._isConnecting = false;
+                    self._connectFromId = null;
+                    self.canvas.style.cursor = 'default';
+                    self.invalidateUpdateView();
+                }
+            };
+
+            // ── Keydown ──
+            this._onKeyDown = function(e) {
+                if (e.key === 'Escape') {
+                    var changed = false;
+                    if (self._isConnecting) {
+                        self._isConnecting = false;
+                        self._connectFromId = null;
+                        self.canvas.style.cursor = 'default';
+                        changed = true;
+                    }
+                    if (self._showNodePopup) {
+                        self._showNodePopup = false;
+                        self._nodePopupId = null;
+                        changed = true;
+                    }
+                    if (self._showConnPopup) {
+                        self._showConnPopup = false;
+                        self._connPopupIdx = null;
+                        changed = true;
+                    }
+                    if (self._selectedNodeId || self._selectedConnection) {
+                        self._selectedNodeId = null;
+                        self._selectedConnection = null;
+                        changed = true;
+                    }
+                    if (changed) self.invalidateUpdateView();
+                }
+            };
+
             this.canvas.addEventListener('mousedown', this._onMouseDown);
             this.canvas.addEventListener('mousemove', this._onMouseMove);
             this.canvas.addEventListener('mouseup', this._onMouseUp);
+            this.canvas.addEventListener('dblclick', this._onDblClick);
+            this.canvas.addEventListener('contextmenu', this._onContextMenu);
+            document.addEventListener('keydown', this._onKeyDown);
         },
 
         getInitialDataParams: function() {
@@ -1524,6 +2221,30 @@ define([
                 }
             }
 
+            // 7b. Add manual nodes from editorState that aren't data-driven
+            var existingIds = {};
+            for (var eid = 0; eid < resolvedNodes.length; eid++) {
+                existingIds[resolvedNodes[eid].id] = true;
+            }
+            var edNodeKeys = Object.keys(this._editorState.nodes);
+            for (var ek = 0; ek < edNodeKeys.length; ek++) {
+                var eKey = edNodeKeys[ek];
+                var eNode = this._editorState.nodes[eKey];
+                if (eNode.manual && !existingIds[eKey]) {
+                    resolvedNodes.push({
+                        id: eKey,
+                        label: eNode.label || 'New Node',
+                        value: null,
+                        step: null,
+                        connectsTo: [],
+                        series: [],
+                        subtitle: '',
+                        color: eNode.color || colors[resolvedNodes.length % colors.length],
+                        rowIndex: -1
+                    });
+                }
+            }
+
             // 8. Toolbar height
             var toolbarH = this._editMode ? 36 : 0;
 
@@ -1573,7 +2294,58 @@ define([
                 drawNode(ctx, pn, theme, accentLine, sparklineType, nodeRadius, isNodeSelected, isNodeHovered);
             }
 
-            // 16. Store hit data
+            // 16. Draw resize handles on selected node in edit mode
+            if (this._editMode && this._selectedNodeId) {
+                for (var rhi3 = 0; rhi3 < positioned.length; rhi3++) {
+                    if (positioned[rhi3].id === this._selectedNodeId) {
+                        drawResizeHandles(ctx, positioned[rhi3], theme);
+                        break;
+                    }
+                }
+            }
+
+            // 17. Draw temporary connecting line
+            if (this._editMode && this._isConnecting && this._connectFromId) {
+                var fromConnNode = nodeMap[this._connectFromId];
+                if (fromConnNode) {
+                    var fcx = fromConnNode.x + fromConnNode.w / 2;
+                    var fcy = fromConnNode.y + fromConnNode.h / 2;
+                    ctx.save();
+                    ctx.setLineDash([6, 4]);
+                    ctx.strokeStyle = theme.textMuted;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(fcx, fcy);
+                    ctx.lineTo(this._mouseX, this._mouseY);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.restore();
+                }
+            }
+
+            // 18. Draw node popup
+            if (this._editMode && this._showNodePopup && this._nodePopupId) {
+                var popupNode = nodeMap[this._nodePopupId];
+                if (popupNode) {
+                    var edPopNode = this._editorState.nodes[this._nodePopupId] || {};
+                    var popResult = drawNodePopup(ctx, popupNode, edPopNode, colors, theme, w, h);
+                    this._nodePopupRect = { x: popResult.x, y: popResult.y, w: popResult.w, h: popResult.h };
+                    this._nodePopupHits = popResult.hits;
+                }
+            }
+
+            // 19. Draw connection popup
+            if (this._editMode && this._showConnPopup && this._connPopupIdx !== null) {
+                var edConns2 = this._editorState.connections || [];
+                if (edConns2[this._connPopupIdx]) {
+                    var popConn = edConns2[this._connPopupIdx];
+                    var cpResult = drawConnectionPopup(ctx, popConn, this._connPopupIdx, colors, theme, this._connPopupPos.x, this._connPopupPos.y, w, h);
+                    this._connPopupRect = { x: cpResult.x, y: cpResult.y, w: cpResult.w, h: cpResult.h };
+                    this._connPopupHits = cpResult.hits;
+                }
+            }
+
+            // 20. Store hit data
             this._hitNodes = positioned;
             this._hitConnections = connections;
         },
