@@ -1209,10 +1209,12 @@ define([
                 loopX = fromX + nodeW + loopR * 0.2;
                 loopY = fromY - nodeH * 0.3;
             }
-            // Apply drag offset — absolute position from node center
-            if (loopDragOffset && loopDragOffset.absX !== undefined) {
-                loopX = fromX + loopDragOffset.absX;
-                loopY = fromY + loopDragOffset.absY;
+            // Apply drag — constrain loop to node edge using angle
+            if (loopDragOffset && loopDragOffset.angle !== undefined) {
+                var la = loopDragOffset.angle;
+                var edgePt = edgeConnectionPoint(fromX, fromY, fromR, fromX + Math.cos(la) * 200, fromY + Math.sin(la) * 200, fShape);
+                loopX = edgePt.x + Math.cos(la) * loopR;
+                loopY = edgePt.y + Math.sin(la) * loopR;
             }
             ctx.beginPath();
             ctx.arc(loopX, loopY, loopR, 0.4, 2 * Math.PI - 0.4);
@@ -1695,12 +1697,11 @@ define([
                 var mx = e.clientX - rect.left;
                 var my = e.clientY - rect.top;
 
-                // Handle loop dragging — store absolute offset from node center
+                // Handle loop dragging — store angle from node center
                 if (self._isDraggingLoop && self._dragLoopNodeId) {
                     self._didDrag = true;
                     var kpiR3 = self._kpiReserve || 0;
                     var loopWorld = screenToWorld(mx, my, self._tx, self._ty, self._scale, kpiR3);
-                    // Find the node center
                     var loopNodePos = null;
                     for (var lni = 0; lni < self._hitNodes.length; lni++) {
                         if (self._hitNodes[lni].id === self._dragLoopNodeId) {
@@ -1709,10 +1710,11 @@ define([
                         }
                     }
                     if (loopNodePos) {
-                        // Store as absolute position relative to node center
+                        // Store angle — loop will be constrained to node edge
+                        var ldx = loopWorld.x - loopNodePos.x;
+                        var ldy = loopWorld.y - loopNodePos.y;
                         self._draggedLoopOffsets[self._dragLoopNodeId] = {
-                            absX: loopWorld.x - loopNodePos.x,
-                            absY: loopWorld.y - loopNodePos.y
+                            angle: Math.atan2(ldy, ldx)
                         };
                     }
                     self.canvas.style.cursor = 'move';
@@ -2309,10 +2311,12 @@ define([
                         hitData.loopX = fromPos.x + hitNodeW + baseHitLoopR * 0.2;
                         hitData.loopY = fromPos.y - hitNodeH * 0.3;
                     }
-                    // Apply drag offset — absolute from node center
-                    if (loopDragOff && loopDragOff.absX !== undefined) {
-                        hitData.loopX = fromPos.x + loopDragOff.absX;
-                        hitData.loopY = fromPos.y + loopDragOff.absY;
+                    // Apply drag — constrain to node edge using angle
+                    if (loopDragOff && loopDragOff.angle !== undefined) {
+                        var hla = loopDragOff.angle;
+                        var hEdgePt = edgeConnectionPoint(fromPos.x, fromPos.y, fromR, fromPos.x + Math.cos(hla) * 200, fromPos.y + Math.sin(hla) * 200, fShape);
+                        hitData.loopX = hEdgePt.x + Math.cos(hla) * baseHitLoopR;
+                        hitData.loopY = hEdgePt.y + Math.sin(hla) * baseHitLoopR;
                     }
                     hitData.loopR = baseHitLoopR;
                 } else {
