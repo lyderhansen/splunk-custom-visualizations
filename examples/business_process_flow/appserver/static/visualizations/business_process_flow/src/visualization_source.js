@@ -978,7 +978,8 @@ define([
             midX = 0.25 * points[0].x + 0.5 * cpx + 0.25 * points[1].x;
             midY = 0.25 * points[0].y + 0.5 * cpy + 0.25 * points[1].y;
             endAngle = Math.atan2(endPt.y - cpy, endPt.x - cpx);
-            startAngle = Math.atan2(startPt.y - cpx, startPt.x - cpy) + Math.PI;
+            // Start angle: point FROM start TOWARD first segment (along line, away from node)
+            startAngle = Math.atan2(cpy - startPt.y, cpx - startPt.x);
         } else if (conn.style === 'curved' && points.length > 2) {
             // Multi-point smooth curve using quadratic bezier through waypoints
             ctx.beginPath();
@@ -994,7 +995,7 @@ define([
             midX = points[midIdx].x;
             midY = points[midIdx].y;
             endAngle = Math.atan2(endPt.y - pPrev.y, endPt.x - pPrev.x);
-            startAngle = Math.atan2(startPt.y - p1.y, startPt.x - p1.x);
+            startAngle = Math.atan2(p1.y - startPt.y, p1.x - startPt.x);
         } else {
             // Straight polyline through all points
             ctx.beginPath();
@@ -1007,7 +1008,7 @@ define([
             midX = (points[midIdx2 - 1].x + points[midIdx2].x) / 2;
             midY = (points[midIdx2 - 1].y + points[midIdx2].y) / 2;
             endAngle = Math.atan2(endPt.y - pPrev.y, endPt.x - pPrev.x);
-            startAngle = Math.atan2(startPt.y - p1.y, startPt.x - p1.x);
+            startAngle = Math.atan2(p1.y - startPt.y, p1.x - startPt.x);
         }
 
         ctx.setLineDash([]);
@@ -1407,8 +1408,8 @@ define([
                 drawEndpoint(ctx, dd.endPtX, dd.endPtY, dd.endAngle, dd.endEp, dd.epSize, dd.lineColor);
             }
             if (dd.startEp !== 'none') {
-                // Start endpoint points TOWARD the start node (arrow tip at node edge)
-                drawEndpoint(ctx, dd.startPtX, dd.startPtY, dd.startAngle, dd.startEp, dd.epSize, dd.lineColor);
+                // Start endpoint: flip 180° so arrow tip points TOWARD the source node
+                drawEndpoint(ctx, dd.startPtX, dd.startPtY, dd.startAngle + Math.PI, dd.startEp, dd.epSize, dd.lineColor);
             }
             // Waypoint handles — with clickable delete button on hover
             if (dd.editMode && dd.waypoints && dd.waypoints.length > 0) {

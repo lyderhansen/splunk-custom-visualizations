@@ -1,5 +1,8 @@
 # Business Process Flow — Changelog
 
+## v4.5.4 — 2026-03-22 18:40
+- **Fix: start endpoint direction** — Start arrows now correctly point TOWARD the source node (←), giving proper `<---->` bidirectional arrows. Previously both ends pointed in the same direction (→→).
+
 ## v4.5.3 — 2026-03-22 18:25
 - **Clickable waypoint delete buttons** — Red × icon appears above hovered waypoints; click to delete (no keyboard needed, works in Splunk)
 - **Removed keyboard dependency** — Backspace doesn't work in Splunk's context, so all delete actions now have click-based alternatives
