@@ -2463,6 +2463,9 @@ define([
             this._resizeStartNodeW = 0;
             this._resizeStartNodeH = 0;
             this._editBtnRect = null;
+            this._gridEnabled = false;
+            this._gridSize = 20;
+            this._snapEnabled = false;
 
             var self = this;
 
@@ -4197,14 +4200,195 @@ define([
                 this._buildNodePanel(body, nodeId, ns, colors);
             } else if (this._selectedNodeIds.length > 1) {
                 this._panelTitle.textContent = this._selectedNodeIds.length + ' nodes';
-                // Multi-select panel — placeholder for Task 6
+                this._buildMultiSelectPanel(body);
             } else if (this._selectedConnection !== null && this._selectedConnection !== undefined) {
                 this._panelTitle.textContent = 'Connection';
                 this._buildConnectionPanel(body);
             } else {
                 this._panelTitle.textContent = 'Canvas Tools';
-                // Canvas tools — placeholder for Task 6
+                this._buildCanvasToolsPanel(body);
             }
+        },
+
+        _buildCanvasToolsPanel: function(body) {
+            var self = this;
+
+            // ── Canvas Tools Section ──
+            var toolsSec = createPanelSection('Canvas Tools', '', true);
+            var toolsBody = toolsSec._body;
+
+            toolsBody.appendChild(createToggleRow('Grid', [
+                {value: 'off', label: 'Off'},
+                {value: 'on', label: 'On'}
+            ], self._gridEnabled ? 'on' : 'off', function(val) {
+                self._gridEnabled = (val === 'on');
+                self.invalidateUpdateView();
+            }));
+
+            toolsBody.appendChild(createToggleRow('Grid Size', [
+                {value: '10', label: '10'},
+                {value: '20', label: '20'},
+                {value: '50', label: '50'}
+            ], String(self._gridSize), function(val) {
+                self._gridSize = parseInt(val, 10);
+                self.invalidateUpdateView();
+            }));
+
+            toolsBody.appendChild(createToggleRow('Snap', [
+                {value: 'off', label: 'Off'},
+                {value: 'on', label: 'On'}
+            ], self._snapEnabled ? 'on' : 'off', function(val) {
+                self._snapEnabled = (val === 'on');
+                self.invalidateUpdateView();
+            }));
+
+            body.appendChild(toolsSec);
+
+            // ── Align Section (collapsed, needs multi-select) ──
+            var alignSec = createPanelSection('Align', '', false);
+            var alignBody = alignSec._body;
+
+            var noteEl = document.createElement('div');
+            noteEl.textContent = 'Select 2+ nodes';
+            noteEl.style.cssText = 'color:#94a3b8;font:11px -apple-system,BlinkMacSystemFont,sans-serif;padding:6px 10px 2px 10px;';
+            alignBody.appendChild(noteEl);
+
+            var alignBtnGroups = [
+                [{label: 'Left'}, {label: 'Center'}, {label: 'Right'}],
+                [{label: 'Top'}, {label: 'Middle'}, {label: 'Bottom'}],
+                [{label: 'Distrib H'}, {label: 'Distrib V'}]
+            ];
+            for (var gi = 0; gi < alignBtnGroups.length; gi++) {
+                var grp = alignBtnGroups[gi];
+                var row = document.createElement('div');
+                row.style.cssText = 'display:flex;gap:4px;padding:4px 10px;';
+                for (var bi = 0; bi < grp.length; bi++) {
+                    var btn = document.createElement('button');
+                    btn.textContent = grp[bi].label;
+                    btn.disabled = true;
+                    btn.style.cssText = 'flex:1;padding:4px 2px;border-radius:4px;border:1px solid #334155;background:rgba(30,41,59,0.5);color:#475569;font:10px -apple-system,BlinkMacSystemFont,sans-serif;cursor:not-allowed;';
+                    row.appendChild(btn);
+                }
+                alignBody.appendChild(row);
+            }
+
+            body.appendChild(alignSec);
+        },
+
+        _buildMultiSelectPanel: function(body) {
+            var self = this;
+            var es = this._editorState;
+
+            // ── Selection Section ──
+            var selSec = createPanelSection('Selection', '', true);
+            var selBody = selSec._body;
+
+            var countEl = document.createElement('div');
+            countEl.textContent = self._selectedNodeIds.length + ' nodes selected';
+            countEl.style.cssText = 'color:#cbd5e1;font:11px -apple-system,BlinkMacSystemFont,sans-serif;padding:6px 10px 8px 10px;';
+            selBody.appendChild(countEl);
+
+            // Align buttons
+            var alignRows = [
+                [{label: 'Left'}, {label: 'Center'}, {label: 'Right'}],
+                [{label: 'Top'}, {label: 'Middle'}, {label: 'Bottom'}]
+            ];
+            for (var ai = 0; ai < alignRows.length; ai++) {
+                var aRow = document.createElement('div');
+                aRow.style.cssText = 'display:flex;gap:4px;padding:2px 10px;';
+                for (var abi = 0; abi < alignRows[ai].length; abi++) {
+                    (function() {
+                        var btn = document.createElement('button');
+                        btn.textContent = alignRows[ai][abi].label;
+                        btn.style.cssText = 'flex:1;padding:5px 2px;border-radius:4px;border:1px solid #334155;background:rgba(30,41,59,0.8);color:#cbd5e1;font:10px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;';
+                        btn.addEventListener('click', function() {
+                            self._statusMessage = 'Align: coming in Task 8';
+                            self.invalidateUpdateView();
+                        });
+                        btn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                        aRow.appendChild(btn);
+                    })();
+                }
+                selBody.appendChild(aRow);
+            }
+
+            // Distribute buttons
+            var distRow = document.createElement('div');
+            distRow.style.cssText = 'display:flex;gap:4px;padding:4px 10px 6px 10px;';
+            var distBtns = [{label: 'Distrib H'}, {label: 'Distrib V'}];
+            for (var di = 0; di < distBtns.length; di++) {
+                (function() {
+                    var btn = document.createElement('button');
+                    btn.textContent = distBtns[di].label;
+                    btn.style.cssText = 'flex:1;padding:5px 2px;border-radius:4px;border:1px solid #334155;background:rgba(30,41,59,0.8);color:#cbd5e1;font:10px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;';
+                    btn.addEventListener('click', function() {
+                        self._statusMessage = 'Align: coming in Task 8';
+                        self.invalidateUpdateView();
+                    });
+                    btn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                    distRow.appendChild(btn);
+                })();
+            }
+            selBody.appendChild(distRow);
+
+            body.appendChild(selSec);
+
+            // ── Shared Properties Section ──
+            var sharedSec = createPanelSection('Shared Properties', '', true);
+            var sharedBody = sharedSec._body;
+
+            // Determine mixed values
+            function sharedValue(prop, defaultVal) {
+                var first = null;
+                for (var si = 0; si < self._selectedNodeIds.length; si++) {
+                    var nd = es.nodes[self._selectedNodeIds[si]] || {};
+                    var v = nd[prop] || defaultVal;
+                    if (first === null) { first = v; }
+                    else if (v !== first) { return 'mixed'; }
+                }
+                return first || defaultVal;
+            }
+
+            function makeMultiOnChange(prop) {
+                return function(val) {
+                    for (var si = 0; si < self._selectedNodeIds.length; si++) {
+                        var sid = self._selectedNodeIds[si];
+                        if (!es.nodes[sid]) es.nodes[sid] = {};
+                        es.nodes[sid][prop] = val;
+                    }
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                    self._updatePanel();
+                };
+            }
+
+            var currentShape = sharedValue('shape', 'rect');
+            var shapeOptions = [
+                {value: 'rect', label: 'Rect'}, {value: 'circle', label: 'Circle'},
+                {value: 'diamond', label: 'Diamond'}, {value: 'hexagon', label: 'Hexagon'},
+                {value: 'triangle', label: 'Triangle'}, {value: 'cylinder', label: 'Cylinder'},
+                {value: 'cloud', label: 'Cloud'}, {value: 'pill', label: 'Pill'}
+            ];
+            if (currentShape === 'mixed') {
+                shapeOptions.push({value: 'mixed', label: 'Mixed'});
+            }
+            sharedBody.appendChild(createToggleRow('Shape', shapeOptions, currentShape, makeMultiOnChange('shape')));
+
+            var colors = PALETTES[this._currentPalette || 'corporate'] || PALETTES.corporate;
+            var currentColor = sharedValue('color', '');
+            sharedBody.appendChild(createColorRow('Color', colors, currentColor === 'mixed' ? '' : currentColor, makeMultiOnChange('color')));
+
+            var currentOpacity = sharedValue('opacity', 'default');
+            var opacityOptions = [
+                {value: 'default', label: '100%'}, {value: '0.8', label: '80%'},
+                {value: '0.6', label: '60%'}, {value: '0.4', label: '40%'}
+            ];
+            if (currentOpacity === 'mixed') {
+                opacityOptions.push({value: 'mixed', label: 'Mixed'});
+            }
+            sharedBody.appendChild(createToggleRow('Opacity', opacityOptions, currentOpacity, makeMultiOnChange('opacity')));
+
+            body.appendChild(sharedSec);
         },
 
         _buildNodePanel: function(body, nodeId, ns, colors) {
