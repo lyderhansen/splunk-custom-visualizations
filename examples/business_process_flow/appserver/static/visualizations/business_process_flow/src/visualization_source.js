@@ -1465,7 +1465,7 @@ define([
 
                         // Highlighted pre (behind textarea)
                         var pre = document.createElement('pre');
-                        pre.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;margin:0;padding:8px 12px;overflow:auto;font-size:12px;line-height:1.5;color:#e2e8f0;white-space:pre-wrap;word-wrap:break-word;pointer-events:none;';
+                        pre.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;margin:0;padding:8px 12px;overflow:auto;font-size:12px;line-height:1.5;color:#cbd5e1;white-space:pre-wrap;word-wrap:break-word;pointer-events:none;background:transparent;';
 
                         // Transparent textarea (on top, captures input)
                         var ta = document.createElement('textarea');
@@ -1542,16 +1542,16 @@ define([
             this._highlightJson = function(pre, json) {
                 // Escape HTML first
                 var escaped = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                // Apply syntax colors
+                // Apply syntax colors — bright colors for dark background
                 var highlighted = escaped.replace(
                     /("(?:\\.|[^"\\])*")\s*:/g,
-                    '<span style="color:#7dd3fc;">$1</span>:'  // keys: light blue
+                    '<span style="color:#38bdf8;">$1</span>:'  // keys: bright sky blue
                 ).replace(
                     /:\s*("(?:\\.|[^"\\])*")/g,
-                    ': <span style="color:#86efac;">$1</span>'  // string values: green
+                    ': <span style="color:#4ade80;">$1</span>'  // string values: bright green
                 ).replace(
                     /:\s*(-?\d+\.?\d*)/g,
-                    ': <span style="color:#fbbf24;">$1</span>'  // numbers: amber
+                    ': <span style="color:#fb923c;">$1</span>'  // numbers: bright orange
                 ).replace(
                     /:\s*(true|false)/g,
                     ': <span style="color:#c084fc;">$1</span>'  // booleans: purple
@@ -2688,6 +2688,16 @@ define([
 
             this._hitNodes = positioned;
             this._hitConnections = connections;
+
+            // Live-update code editor if open
+            if (this._showCodeEditor && this._codeTa && this._codePre) {
+                var liveJson = JSON.stringify(this._editorState, null, 2);
+                // Only update if user isn't actively typing (textarea not focused)
+                if (document.activeElement !== this._codeTa) {
+                    this._codeTa.value = liveJson;
+                    this._highlightJson(this._codePre, liveJson);
+                }
+            }
         },
 
         reflow: function() {
