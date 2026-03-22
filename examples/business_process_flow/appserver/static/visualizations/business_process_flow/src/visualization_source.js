@@ -473,7 +473,9 @@ define([
                     sourceAnchorOffset: mc.sourceAnchorOffset || 0,
                     targetAnchorOffset: mc.targetAnchorOffset || 0,
                     endpointSize: mc.endpointSize,
-                    waypoints: mc.waypoints || []
+                    waypoints: mc.waypoints || [],
+                    labelOffsetX: mc.labelOffsetX || 0,
+                    labelOffsetY: mc.labelOffsetY || 0
                 });
             }
         }
@@ -1003,25 +1005,15 @@ define([
             waypoints: waypoints, isSelected: isSelected, editMode: editMode
         };
 
-        // Label
+        // Label — deferred to overlay pass, include position for dragging
         if (conn.label) {
-            ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            var labelW = ctx.measureText(conn.label).width + 8;
-            var labelH = 16;
-
-            // Background for readability
-            roundRect(ctx, midX - labelW / 2, midY - labelH / 2, labelW, labelH, 3);
-            ctx.fillStyle = theme.nodeBg;
-            ctx.globalAlpha = 0.9;
-            ctx.fill();
-            ctx.globalAlpha = 1;
-
-            ctx.fillStyle = theme.textMuted;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(conn.label, midX, midY);
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'alphabetic';
+            var lblOffX = conn.labelOffsetX || 0;
+            var lblOffY = conn.labelOffsetY || 0;
+            conn._deferredDraw.label = conn.label;
+            conn._deferredDraw.labelX = midX + lblOffX;
+            conn._deferredDraw.labelY = midY + lblOffY;
+            conn._deferredDraw.midX = midX;
+            conn._deferredDraw.midY = midY;
         }
     }
 
@@ -1153,8 +1145,9 @@ define([
 
         // Count rows to calculate height
         // Label, Shape, Value, Chart, Font Size, Chart Height, Opacity, Color (2 rows)
-        var numRows = 11; // Label, Shape, Value, Prefix, Suffix, Chart, Font, GraphH, Opacity, Border, Color+specials
-        var popH = pad * 2 + numRows * rowH + 22; // extra for color 2nd row
+        var numFixedRows = 10; // Label, Shape, Value, Prefix, Suffix, Chart, Font, GraphH, Opacity, Border
+        var colorRows = Math.ceil(palette.length / Math.floor(((popW - pad * 2 - labelColW) + 3) / (18 + 3))); // palette swatch rows
+        var popH = pad * 2 + numFixedRows * rowH + colorRows * (18 + 3) + rowH + 30; // +rowH for hex row, +30 padding
 
         var px = node.x + node.w + 10;
         var py = node.y;
@@ -1324,11 +1317,11 @@ define([
 
         // ── 9. Color (palette swatches) ──
         drawLabel('Color');
-        var swatchX = contentX;
         var swatchS = 18;
         var swatchGap = 3;
         var currentColor = (editorNode && editorNode.color) ? editorNode.color : '';
         var swatchPerRow = Math.floor((contentW + swatchGap) / (swatchS + swatchGap));
+        var swatchX = contentX;
         for (var ci = 0; ci < palette.length; ci++) {
             if (ci > 0 && ci % swatchPerRow === 0) {
                 swatchX = contentX;
@@ -1349,68 +1342,38 @@ define([
             hits.push({ type: 'color', value: palette[ci], x: swatchX, y: rowY + 1, w: swatchS, h: swatchS });
             swatchX += swatchS + swatchGap;
         }
-        rowY += swatchS + swatchGap + 4;
+        rowY += swatchS + swatchGap + 2;
 
-        // Special colors: transparent, white, black + current color preview + hex input
-        var specials = [
-            { value: 'transparent', label: '\u2215', bg: 'transparent', border: '#ef4444' },
-            { value: '#ffffff', label: '', bg: '#ffffff', border: '#94a3b8' },
-            { value: '#000000', label: '', bg: '#000000', border: '#94a3b8' }
-        ];
-        swatchX = contentX;
-        for (var spi = 0; spi < specials.length; spi++) {
-            var sp = specials[spi];
-            roundRect(ctx, swatchX, rowY, swatchS, swatchS, 3);
-            if (sp.bg === 'transparent') {
-                // Draw X pattern for transparent
-                ctx.strokeStyle = '#ef4444';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.moveTo(swatchX + 3, rowY + 3);
-                ctx.lineTo(swatchX + swatchS - 3, rowY + swatchS - 3);
-                ctx.moveTo(swatchX + swatchS - 3, rowY + 3);
-                ctx.lineTo(swatchX + 3, rowY + swatchS - 3);
-                ctx.stroke();
-            } else {
-                ctx.fillStyle = sp.bg;
-                ctx.fill();
-            }
-            ctx.strokeStyle = currentColor === sp.value ? '#fff' : sp.border;
-            ctx.lineWidth = currentColor === sp.value ? 2 : 0.5;
-            roundRect(ctx, swatchX, rowY, swatchS, swatchS, 3);
-            ctx.stroke();
-            hits.push({ type: 'color', value: sp.value, x: swatchX, y: rowY, w: swatchS, h: swatchS });
-            swatchX += swatchS + swatchGap;
-        }
-
-        // Current color preview
-        swatchX += 4;
-        roundRect(ctx, swatchX, rowY, swatchS, swatchS, 3);
+        // ── 10. Custom color hex input ──
+        drawLabel('Hex');
+        // Color preview swatch
+        roundRect(ctx, contentX, rowY + 1, swatchS, swatchS, 3);
         ctx.fillStyle = currentColor || node.color || '#3b82f6';
         ctx.fill();
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 1;
         ctx.stroke();
-        swatchX += swatchS + 6;
-
-        // Hex input display
-        ctx.font = '10px monospace';
+        // Hex text (clickable)
+        var hexDispX = contentX + swatchS + 6;
+        ctx.font = '11px monospace';
         ctx.fillStyle = theme.text;
         ctx.textBaseline = 'middle';
-        ctx.fillText(currentColor || 'theme', swatchX, rowY + swatchS / 2);
-        hits.push({ type: 'colorHex', x: swatchX, y: rowY, w: contentW - (swatchX - contentX), h: swatchS });
+        ctx.fillText(currentColor || '(click to set)', hexDispX, rowY + swatchS / 2);
+        hits.push({ type: 'colorHex', x: hexDispX, y: rowY, w: contentW - swatchS - 6, h: swatchS });
 
         ctx.textBaseline = 'alphabetic';
         ctx.lineWidth = 1;
 
-        return { x: px, y: py, w: popW, h: popH, hits: hits };
+        // Compute actual popup height from final rowY
+        var actualH = rowY + swatchS + pad + 4 - py;
+        return { x: px, y: py, w: popW, h: actualH, hits: hits };
     }
 
     /**
      * Draw deferred connection overlays (endpoints, waypoints, labels).
      * Called AFTER nodes are drawn so they appear on top.
      */
-    function drawConnectionOverlays(ctx, connections) {
+    function drawConnectionOverlays(ctx, connections, theme) {
         for (var oi = 0; oi < connections.length; oi++) {
             var dd = connections[oi]._deferredDraw;
             if (!dd) continue;
@@ -1434,6 +1397,29 @@ define([
                     ctx.stroke();
                 }
                 ctx.lineWidth = 1;
+            }
+            // Labels (drawn on top of everything)
+            if (dd.label) {
+                ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                var lblW = ctx.measureText(dd.label).width + 8;
+                var lblH = 16;
+                roundRect(ctx, dd.labelX - lblW / 2, dd.labelY - lblH / 2, lblW, lblH, 3);
+                ctx.fillStyle = theme.nodeBg;
+                ctx.globalAlpha = 0.9;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+                ctx.strokeStyle = theme.nodeBorder;
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+                ctx.fillStyle = theme.textMuted;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(dd.label, dd.labelX, dd.labelY);
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'alphabetic';
+                ctx.lineWidth = 1;
+                // Store hit rect for label dragging
+                connections[oi]._labelHitRect = { x: dd.labelX - lblW / 2, y: dd.labelY - lblH / 2, w: lblW, h: lblH };
             }
         }
     }
@@ -1744,6 +1730,12 @@ define([
             this._isDraggingWaypoint = false;
             this._dragWpConnIdx = null;
             this._dragWpIdx = null;
+            this._isDraggingLabel = false;
+            this._dragLabelConnIdx = null;
+            this._dragLabelStartX = 0;
+            this._dragLabelStartY = 0;
+            this._dragLabelOrigOffX = 0;
+            this._dragLabelOrigOffY = 0;
             this._hitNodes = [];
             this._hitConnections = [];
             this._hoverItem = null;
@@ -2407,6 +2399,30 @@ define([
                         }
                     }
 
+                    // Check connection label hit for dragging
+                    for (var lhi = 0; lhi < self._computedConnections.length; lhi++) {
+                        var lhc = self._computedConnections[lhi];
+                        if (lhc._labelHitRect && lhc.label) {
+                            var lr = lhc._labelHitRect;
+                            if (pointInRect(mx, my, lr.x, lr.y, lr.w, lr.h)) {
+                                // Find editorState connection index
+                                var edcArr = self._editorState.connections || [];
+                                for (var leci = 0; leci < edcArr.length; leci++) {
+                                    if (edcArr[leci].from === lhc.from && edcArr[leci].to === lhc.to) {
+                                        self._isDraggingLabel = true;
+                                        self._dragLabelConnIdx = leci;
+                                        self._dragLabelStartX = mx;
+                                        self._dragLabelStartY = my;
+                                        self._dragLabelOrigOffX = edcArr[leci].labelOffsetX || 0;
+                                        self._dragLabelOrigOffY = edcArr[leci].labelOffsetY || 0;
+                                        self.canvas.style.cursor = 'move';
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Check resize handles on selected/hovered node
                     if (self._selectedNodeId) {
                         for (var rni = 0; rni < self._computedNodes.length; rni++) {
@@ -2574,6 +2590,18 @@ define([
                     var wpConns = self._editorState.connections;
                     if (wpConns[self._dragWpConnIdx] && wpConns[self._dragWpConnIdx].waypoints) {
                         wpConns[self._dragWpConnIdx].waypoints[self._dragWpIdx] = { x: mx, y: my };
+                    }
+                    self.invalidateUpdateView();
+                    self.canvas.style.cursor = 'move';
+                    return;
+                }
+
+                // Handle label dragging
+                if (self._isDraggingLabel && self._dragLabelConnIdx !== null) {
+                    var lblConns = self._editorState.connections;
+                    if (lblConns[self._dragLabelConnIdx]) {
+                        lblConns[self._dragLabelConnIdx].labelOffsetX = self._dragLabelOrigOffX + (mx - self._dragLabelStartX);
+                        lblConns[self._dragLabelConnIdx].labelOffsetY = self._dragLabelOrigOffY + (my - self._dragLabelStartY);
                     }
                     self.invalidateUpdateView();
                     self.canvas.style.cursor = 'move';
@@ -2807,6 +2835,15 @@ define([
                     return;
                 }
 
+                // Handle label drag end
+                if (self._isDraggingLabel) {
+                    self._isDraggingLabel = false;
+                    self._dragLabelConnIdx = null;
+                    self.canvas.style.cursor = 'default';
+                    self.invalidateUpdateView();
+                    return;
+                }
+
                 // Handle resize end
                 if (self._isResizing && self._resizeNodeId) {
                     for (var rui = 0; rui < self._computedNodes.length; rui++) {
@@ -3033,6 +3070,23 @@ define([
                         changed = true;
                     }
                     if (changed) self.invalidateUpdateView();
+                }
+                // Delete/Backspace — remove waypoint under cursor or selected item
+                if ((e.key === 'Delete' || e.key === 'Backspace') && self._editMode) {
+                    // Check if cursor is over a waypoint
+                    var edcWp = self._editorState.connections || [];
+                    for (var dwci = 0; dwci < edcWp.length; dwci++) {
+                        var dwps = edcWp[dwci].waypoints;
+                        if (!dwps) continue;
+                        for (var dwpi = 0; dwpi < dwps.length; dwpi++) {
+                            if (pointInCircle(self._mouseX, self._mouseY, dwps[dwpi].x, dwps[dwpi].y, 10)) {
+                                dwps.splice(dwpi, 1);
+                                self.invalidateUpdateView();
+                                e.preventDefault();
+                                return;
+                            }
+                        }
+                    }
                 }
             };
 
@@ -3395,7 +3449,7 @@ define([
             }
 
             // Draw connection overlays (endpoints, waypoints) ON TOP of nodes
-            drawConnectionOverlays(ctx, connections);
+            drawConnectionOverlays(ctx, connections, theme);
 
             // Edit mode UI extras
             if (this._editMode) {
