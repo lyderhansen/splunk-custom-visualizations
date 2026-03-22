@@ -145,6 +145,61 @@ define([
         ctx.closePath();
     }
 
+    function drawHexagonPath(ctx, x, y, w, h) {
+        var cx = x + w / 2, cy = y + h / 2;
+        var rx = w / 2, ry = h / 2;
+        ctx.beginPath();
+        for (var i = 0; i < 6; i++) {
+            var angle = (Math.PI / 3) * i - Math.PI / 2;
+            var px = cx + rx * Math.cos(angle);
+            var py = cy + ry * Math.sin(angle);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+    }
+
+    function drawTrianglePath(ctx, x, y, w, h) {
+        ctx.beginPath();
+        ctx.moveTo(x + w / 2, y);
+        ctx.lineTo(x + w, y + h);
+        ctx.lineTo(x, y + h);
+        ctx.closePath();
+    }
+
+    function drawCylinderPath(ctx, x, y, w, h) {
+        var ellH = Math.min(h * 0.15, 20);
+        ctx.beginPath();
+        ctx.ellipse(x + w / 2, y + ellH, w / 2, ellH, 0, Math.PI, 0);
+        ctx.lineTo(x + w, y + h - ellH);
+        ctx.ellipse(x + w / 2, y + h - ellH, w / 2, ellH, 0, 0, Math.PI);
+        ctx.closePath();
+    }
+
+    function drawCloudPath(ctx, x, y, w, h) {
+        var cx1 = x + w * 0.25, cy1 = y + h * 0.6, r1 = w * 0.2;
+        var cx2 = x + w * 0.45, cy2 = y + h * 0.35, r2 = w * 0.25;
+        var cx3 = x + w * 0.7, cy3 = y + h * 0.45, r3 = w * 0.2;
+        var cx4 = x + w * 0.5, cy4 = y + h * 0.65, r4 = w * 0.22;
+        ctx.beginPath();
+        ctx.arc(cx1, cy1, r1, 0, Math.PI * 2);
+        ctx.arc(cx2, cy2, r2, 0, Math.PI * 2);
+        ctx.arc(cx3, cy3, r3, 0, Math.PI * 2);
+        ctx.arc(cx4, cy4, r4, 0, Math.PI * 2);
+        ctx.closePath();
+    }
+
+    function drawPillPath(ctx, x, y, w, h) {
+        var r = Math.min(h / 2, w / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.arc(x + w - r, y + r, r, -Math.PI / 2, Math.PI / 2);
+        ctx.lineTo(x + r, y + h);
+        ctx.arc(x + r, y + r, r, Math.PI / 2, -Math.PI / 2);
+        ctx.closePath();
+    }
+
     /**
      * Draw arrowhead at a point with given angle.
      */
@@ -907,6 +962,16 @@ define([
                 ctx.lineTo(x + w / 2, y + h);
                 ctx.lineTo(x, y + h / 2);
                 ctx.closePath();
+            } else if (shape === 'hexagon') {
+                drawHexagonPath(ctx, x, y, w, h);
+            } else if (shape === 'triangle') {
+                drawTrianglePath(ctx, x, y, w, h);
+            } else if (shape === 'cylinder') {
+                drawCylinderPath(ctx, x, y, w, h);
+            } else if (shape === 'cloud') {
+                drawCloudPath(ctx, x, y, w, h);
+            } else if (shape === 'pill') {
+                drawPillPath(ctx, x, y, w, h);
             } else {
                 roundRect(ctx, x, y, w, h, radius);
             }
@@ -2149,6 +2214,9 @@ define([
         }
         if (shape === 'diamond') {
             return pointInDiamond(px, py, node.x + node.w / 2, node.y + node.h / 2, node.w, node.h);
+        }
+        if (shape === 'hexagon' || shape === 'triangle' || shape === 'cylinder' || shape === 'cloud' || shape === 'pill') {
+            return px >= node.x && px <= node.x + node.w && py >= node.y && py <= node.y + node.h;
         }
         return pointInRect(px, py, node.x, node.y, node.w, node.h);
     }
