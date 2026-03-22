@@ -215,6 +215,21 @@ define([
         return s.slice(0, limit - 1) + '\u2026';
     }
 
+    /**
+     * Draw value text auto-sized to fit within maxWidth.
+     * Shrinks font until it fits. Never truncates.
+     */
+    function drawFitText(ctx, text, cx, cy, maxW, startSize, fontFamily) {
+        var size = startSize;
+        ctx.font = 'bold ' + size + 'px ' + fontFamily;
+        while (ctx.measureText(text).width > maxW && size > 8) {
+            size--;
+            ctx.font = 'bold ' + size + 'px ' + fontFamily;
+        }
+        ctx.fillText(text, cx, cy);
+        return size;
+    }
+
     // ── Hit Testing ───────────────────────────────────────────────
 
     function pointInRect(px, py, x, y, w, h) {
@@ -823,11 +838,10 @@ define([
             ctx.fillText(truncateText(node.label, 18), x + w / 2, y + textPadY);
             // Value
             if (showValue) {
-                ctx.font = 'bold ' + valueFontSize + 'px "SF Mono", "Fira Code", "Consolas", monospace';
                 ctx.fillStyle = theme.text;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(valueText, x + w / 2, y + h * 0.5);
+                drawFitText(ctx, valueText, x + w / 2, y + h * 0.5, w - 16, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else if (sparkPos === 'above' && hasSpark) {
             // ABOVE: sparkline in top portion, text below
@@ -841,11 +855,10 @@ define([
             ctx.fillText(truncateText(node.label, 18), x + w / 2, y + abSparkH + 2);
             // Value
             if (showValue) {
-                ctx.font = 'bold ' + valueFontSize + 'px "SF Mono", "Fira Code", "Consolas", monospace';
                 ctx.fillStyle = theme.text;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(valueText, x + w / 2, y + abSparkH + labelFontSize + (h - abSparkH) * 0.35);
+                drawFitText(ctx, valueText, x + w / 2, y + abSparkH + labelFontSize + (h - abSparkH) * 0.35, w - 16, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else if (sparkPos === 'left' && hasSpark) {
             // LEFT: sparkline on left, text on right
@@ -861,11 +874,10 @@ define([
             ctx.fillText(truncateText(node.label, 12), rightX + rightW / 2, y + textPadY);
             // Value on right
             if (showValue) {
-                ctx.font = 'bold ' + valueFontSize + 'px "SF Mono", "Fira Code", "Consolas", monospace';
                 ctx.fillStyle = theme.text;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(valueText, rightX + rightW / 2, y + h * 0.55);
+                drawFitText(ctx, valueText, rightX + rightW / 2, y + h * 0.55, rightW - 8, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else {
             // DEFAULT (below): label top, value middle, sparkline bottom
@@ -880,13 +892,12 @@ define([
             // Value
             var valueY = y + h * 0.48;
             if (showValue) {
-                ctx.font = 'bold ' + valueFontSize + 'px "SF Mono", "Fira Code", "Consolas", monospace';
                 ctx.fillStyle = theme.text;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 if (hasSpark) valueY = y + h * 0.38;
                 if (node.subtitle) valueY = y + h * 0.35;
-                ctx.fillText(valueText, x + w / 2, valueY);
+                drawFitText(ctx, valueText, x + w / 2, valueY, w - 16, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
             // Subtitle
             if (node.subtitle) {
@@ -1276,7 +1287,8 @@ define([
         // Label, Shape, Value, Chart, Font Size, Chart Height, Opacity, Color (2 rows)
         var numFixedRows = 11; // Label, Shape, Value, Prefix, Suffix, Chart, SparkPos, Font, GraphH, Opacity, Border
         var colorRows = Math.ceil(palette.length / Math.floor(((popW - pad * 2 - labelColW) + 3) / (18 + 3))); // palette swatch rows
-        var popH = pad * 2 + numFixedRows * rowH + colorRows * (18 + 3) + rowH + 30; // +rowH for hex row, +30 padding
+        var condCount = (editorNode && editorNode.conditions) ? editorNode.conditions.length : 0;
+        var popH = pad * 2 + numFixedRows * rowH + colorRows * (18 + 3) + rowH + 30 + (condCount + 2) * rowH; // +conditions rows +add button
 
         var px = node.x + node.w + 10;
         var py = node.y;
@@ -3111,16 +3123,41 @@ define([
                             var fCy = fromNd.y + fromNd.h / 2;
                             var tCx = toNd.x + toNd.w / 2;
                             var tCy = toNd.y + toNd.h / 2;
-                            // Check all segments (including waypoints)
+                            // Check all segments — sample bezier for curved lines
                             var ccWps = cc.waypoints || [];
                             var ccPts = [{ x: fCx, y: fCy }];
                             for (var cwi = 0; cwi < ccWps.length; cwi++) ccPts.push(ccWps[cwi]);
                             ccPts.push({ x: tCx, y: tCy });
                             var ccHit = false;
-                            for (var csi = 0; csi < ccPts.length - 1; csi++) {
-                                if (pointNearLine(mx, my, ccPts[csi].x, ccPts[csi].y, ccPts[csi + 1].x, ccPts[csi + 1].y, 16)) {
-                                    ccHit = true;
-                                    break;
+                            if ((cc.style === 'curved') && ccPts.length === 2) {
+                                // Simple bezier — sample 10 points along curve
+                                var bx0 = ccPts[0].x, by0 = ccPts[0].y;
+                                var bx2 = ccPts[1].x, by2 = ccPts[1].y;
+                                var bmx = (bx0 + bx2) / 2, bmy = (by0 + by2) / 2;
+                                var bdx = bx2 - bx0, bdy = by2 - by0;
+                                var blen = Math.sqrt(bdx * bdx + bdy * bdy);
+                                var boff = Math.min(40, blen * 0.2);
+                                var bnx = blen > 0 ? -bdy / blen : 0;
+                                var bny = blen > 0 ? bdx / blen : 0;
+                                var bcpx = bmx + bnx * boff, bcpy = bmy + bny * boff;
+                                var prevBx = bx0, prevBy = by0;
+                                for (var bsi = 1; bsi <= 10; bsi++) {
+                                    var bt = bsi / 10;
+                                    var bpx = (1 - bt) * (1 - bt) * bx0 + 2 * (1 - bt) * bt * bcpx + bt * bt * bx2;
+                                    var bpy = (1 - bt) * (1 - bt) * by0 + 2 * (1 - bt) * bt * bcpy + bt * bt * by2;
+                                    if (pointNearLine(mx, my, prevBx, prevBy, bpx, bpy, 16)) {
+                                        ccHit = true;
+                                        break;
+                                    }
+                                    prevBx = bpx;
+                                    prevBy = bpy;
+                                }
+                            } else {
+                                for (var csi = 0; csi < ccPts.length - 1; csi++) {
+                                    if (pointNearLine(mx, my, ccPts[csi].x, ccPts[csi].y, ccPts[csi + 1].x, ccPts[csi + 1].y, 16)) {
+                                        ccHit = true;
+                                        break;
+                                    }
                                 }
                             }
                             if (ccHit) {
@@ -3399,10 +3436,34 @@ define([
                             for (var hwi = 0; hwi < hvWps.length; hwi++) hvPts.push(hvWps[hwi]);
                             hvPts.push({ x: tCx, y: tCy });
                             var hvHit = false;
-                            for (var hsi = 0; hsi < hvPts.length - 1; hsi++) {
-                                if (pointNearLine(mx, my, hvPts[hsi].x, hvPts[hsi].y, hvPts[hsi + 1].x, hvPts[hsi + 1].y, 16)) {
-                                    hvHit = true;
-                                    break;
+                            if ((cc.style === 'curved') && hvPts.length === 2) {
+                                var hbx0 = hvPts[0].x, hby0 = hvPts[0].y;
+                                var hbx2 = hvPts[1].x, hby2 = hvPts[1].y;
+                                var hbmx = (hbx0 + hbx2) / 2, hbmy = (hby0 + hby2) / 2;
+                                var hbdx = hbx2 - hbx0, hbdy = hby2 - hby0;
+                                var hblen = Math.sqrt(hbdx * hbdx + hbdy * hbdy);
+                                var hboff = Math.min(40, hblen * 0.2);
+                                var hbnx = hblen > 0 ? -hbdy / hblen : 0;
+                                var hbny = hblen > 0 ? hbdx / hblen : 0;
+                                var hbcpx = hbmx + hbnx * hboff, hbcpy = hbmy + hbny * hboff;
+                                var hprevX = hbx0, hprevY = hby0;
+                                for (var hbi = 1; hbi <= 10; hbi++) {
+                                    var hbt = hbi / 10;
+                                    var hbpx = (1 - hbt) * (1 - hbt) * hbx0 + 2 * (1 - hbt) * hbt * hbcpx + hbt * hbt * hbx2;
+                                    var hbpy = (1 - hbt) * (1 - hbt) * hby0 + 2 * (1 - hbt) * hbt * hbcpy + hbt * hbt * hby2;
+                                    if (pointNearLine(mx, my, hprevX, hprevY, hbpx, hbpy, 16)) {
+                                        hvHit = true;
+                                        break;
+                                    }
+                                    hprevX = hbpx;
+                                    hprevY = hbpy;
+                                }
+                            } else {
+                                for (var hsi = 0; hsi < hvPts.length - 1; hsi++) {
+                                    if (pointNearLine(mx, my, hvPts[hsi].x, hvPts[hsi].y, hvPts[hsi + 1].x, hvPts[hsi + 1].y, 16)) {
+                                        hvHit = true;
+                                        break;
+                                    }
                                 }
                             }
                             if (hvHit) {

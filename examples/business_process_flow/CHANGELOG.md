@@ -1,5 +1,10 @@
 # Business Process Flow — Changelog
 
+## v4.9.1 — 2026-03-22 21:00
+- **Fix: curved line selection** — Hit testing now samples bezier curve (10 points) instead of testing straight segment. Curved lines can now be clicked/hovered properly.
+- **Auto-fit value text** — Values auto-shrink font to fit node width instead of truncating. Long numbers like "1,234,567" or "$45,678 events" shrink gracefully.
+- **Fix: rule overflow** — Popup height now accounts for conditional formatting rules count
+
 ## v4.9.0 — 2026-03-22 20:30
 - **Conditional formatting** — Per-node color rules based on value
   - Operators: `<`, `<=`, `>`, `>=`, `=`, `!=`, `contains`
