@@ -845,7 +845,7 @@ define([
         return { x: cx, y: cy }; // center or auto
     }
 
-    function drawConnection(ctx, fromNode, toNode, conn, theme, isSelected) {
+    function drawConnection(ctx, fromNode, toNode, conn, theme, isSelected, editMode) {
         var fromCx = fromNode.x + fromNode.w / 2;
         var fromCy = fromNode.y + fromNode.h / 2;
         var toCx = toNode.x + toNode.w / 2;
@@ -1002,15 +1002,16 @@ define([
             drawEndpoint(ctx, startPt.x, startPt.y, startAngle + Math.PI, startEp, epSize, lineColor);
         }
 
-        // Draw waypoint handles in edit mode (small circles)
-        if (isSelected && waypoints.length > 0) {
+        // Draw waypoint handles — visible in edit mode, highlighted when selected
+        if (editMode && waypoints.length > 0) {
             for (var wph = 0; wph < waypoints.length; wph++) {
+                var wpRadius = isSelected ? 6 : 4;
                 ctx.beginPath();
-                ctx.arc(waypoints[wph].x, waypoints[wph].y, 4, 0, Math.PI * 2);
-                ctx.fillStyle = '#3b82f6';
+                ctx.arc(waypoints[wph].x, waypoints[wph].y, wpRadius, 0, Math.PI * 2);
+                ctx.fillStyle = isSelected ? '#3b82f6' : 'rgba(59,130,246,0.5)';
                 ctx.fill();
                 ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 1.5;
+                ctx.lineWidth = isSelected ? 2 : 1;
                 ctx.stroke();
             }
             ctx.lineWidth = 1;
@@ -1166,7 +1167,7 @@ define([
 
         // Count rows to calculate height
         // Label, Shape, Value, Chart, Font Size, Chart Height, Opacity, Color (2 rows)
-        var numRows = 11; // Label, Shape, Value, Prefix, Suffix, Chart, Font, GraphH, Opacity, Border, Color
+        var numRows = 11; // Label, Shape, Value, Prefix, Suffix, Chart, Font, GraphH, Opacity, Border, Color+specials
         var popH = pad * 2 + numRows * rowH + 22; // extra for color 2nd row
 
         var px = node.x + node.w + 10;
@@ -1335,7 +1336,7 @@ define([
         ], border, 'borderWidth');
         rowY += rowH;
 
-        // ── 9. Color ──
+        // ── 9. Color (palette swatches) ──
         drawLabel('Color');
         var swatchX = contentX;
         var swatchS = 18;
@@ -1362,6 +1363,56 @@ define([
             hits.push({ type: 'color', value: palette[ci], x: swatchX, y: rowY + 1, w: swatchS, h: swatchS });
             swatchX += swatchS + swatchGap;
         }
+        rowY += swatchS + swatchGap + 4;
+
+        // Special colors: transparent, white, black + current color preview + hex input
+        var specials = [
+            { value: 'transparent', label: '\u2215', bg: 'transparent', border: '#ef4444' },
+            { value: '#ffffff', label: '', bg: '#ffffff', border: '#94a3b8' },
+            { value: '#000000', label: '', bg: '#000000', border: '#94a3b8' }
+        ];
+        swatchX = contentX;
+        for (var spi = 0; spi < specials.length; spi++) {
+            var sp = specials[spi];
+            roundRect(ctx, swatchX, rowY, swatchS, swatchS, 3);
+            if (sp.bg === 'transparent') {
+                // Draw X pattern for transparent
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(swatchX + 3, rowY + 3);
+                ctx.lineTo(swatchX + swatchS - 3, rowY + swatchS - 3);
+                ctx.moveTo(swatchX + swatchS - 3, rowY + 3);
+                ctx.lineTo(swatchX + 3, rowY + swatchS - 3);
+                ctx.stroke();
+            } else {
+                ctx.fillStyle = sp.bg;
+                ctx.fill();
+            }
+            ctx.strokeStyle = currentColor === sp.value ? '#fff' : sp.border;
+            ctx.lineWidth = currentColor === sp.value ? 2 : 0.5;
+            roundRect(ctx, swatchX, rowY, swatchS, swatchS, 3);
+            ctx.stroke();
+            hits.push({ type: 'color', value: sp.value, x: swatchX, y: rowY, w: swatchS, h: swatchS });
+            swatchX += swatchS + swatchGap;
+        }
+
+        // Current color preview
+        swatchX += 4;
+        roundRect(ctx, swatchX, rowY, swatchS, swatchS, 3);
+        ctx.fillStyle = currentColor || node.color || '#3b82f6';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        swatchX += swatchS + 6;
+
+        // Hex input display
+        ctx.font = '10px monospace';
+        ctx.fillStyle = theme.text;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(currentColor || 'theme', swatchX, rowY + swatchS / 2);
+        hits.push({ type: 'colorHex', x: swatchX, y: rowY, w: contentW - (swatchX - contentX), h: swatchS });
 
         ctx.textBaseline = 'alphabetic';
         ctx.lineWidth = 1;
@@ -2062,6 +2113,40 @@ define([
                                             self._editorState.nodes[popNodeId][nHit.type] = nHit.value;
                                         }
                                         self.invalidateUpdateView();
+                                    } else if (nHit.type === 'colorHex') {
+                                        // Open hex color input
+                                        var hexVal = (self._editorState.nodes[popNodeId] && self._editorState.nodes[popNodeId].color) || '';
+                                        var hexInp = document.createElement('input');
+                                        hexInp.type = 'text';
+                                        hexInp.value = hexVal;
+                                        hexInp.placeholder = '#ff6b00 or rgb(...)';
+                                        hexInp.style.cssText = 'position:absolute;z-index:9999;font-size:11px;font-family:monospace;border:1px solid #3b82f6;padding:0 4px;height:18px;background:#1e293b;color:#f1f5f9;border-radius:3px;';
+                                        var hexRect = self.canvas.getBoundingClientRect();
+                                        hexInp.style.left = (hexRect.left + nHit.x) + 'px';
+                                        hexInp.style.top = (hexRect.top + nHit.y) + 'px';
+                                        hexInp.style.width = nHit.w + 'px';
+                                        document.body.appendChild(hexInp);
+                                        hexInp.focus();
+                                        hexInp.select();
+                                        var hexDone = false;
+                                        var hexNodeId = popNodeId;
+                                        function finishHexEdit() {
+                                            if (hexDone) return;
+                                            hexDone = true;
+                                            var hv = hexInp.value.trim();
+                                            if (!self._editorState.nodes[hexNodeId]) self._editorState.nodes[hexNodeId] = {};
+                                            if (hv) {
+                                                self._editorState.nodes[hexNodeId].color = hv;
+                                            } else {
+                                                delete self._editorState.nodes[hexNodeId].color;
+                                            }
+                                            if (hexInp.parentNode) hexInp.parentNode.removeChild(hexInp);
+                                            self.invalidateUpdateView();
+                                        }
+                                        hexInp.addEventListener('blur', finishHexEdit);
+                                        hexInp.addEventListener('keydown', function(hke) {
+                                            if (hke.key === 'Enter') finishHexEdit();
+                                        });
                                     } else if (nHit.type === 'prefix' || nHit.type === 'suffix') {
                                         // Create temporary input for prefix/suffix editing
                                         var psField = nHit.type;
@@ -2375,7 +2460,19 @@ define([
                             var fCy = fromNd.y + fromNd.h / 2;
                             var tCx = toNd.x + toNd.w / 2;
                             var tCy = toNd.y + toNd.h / 2;
-                            if (pointNearLine(mx, my, fCx, fCy, tCx, tCy, 8)) {
+                            // Check all segments (including waypoints)
+                            var ccWps = cc.waypoints || [];
+                            var ccPts = [{ x: fCx, y: fCy }];
+                            for (var cwi = 0; cwi < ccWps.length; cwi++) ccPts.push(ccWps[cwi]);
+                            ccPts.push({ x: tCx, y: tCy });
+                            var ccHit = false;
+                            for (var csi = 0; csi < ccPts.length - 1; csi++) {
+                                if (pointNearLine(mx, my, ccPts[csi].x, ccPts[csi].y, ccPts[csi + 1].x, ccPts[csi + 1].y, 12)) {
+                                    ccHit = true;
+                                    break;
+                                }
+                            }
+                            if (ccHit) {
                                 self._selectedConnection = { from: cc.from, to: cc.to };
                                 self._selectedNodeId = null;
                                 self._showNodePopup = false;
@@ -2576,7 +2673,18 @@ define([
                             var fCy = fromNd.y + fromNd.h / 2;
                             var tCx = toNd.x + toNd.w / 2;
                             var tCy = toNd.y + toNd.h / 2;
-                            if (pointNearLine(mx, my, fCx, fCy, tCx, tCy, 8)) {
+                            var hvWps = cc.waypoints || [];
+                            var hvPts = [{ x: fCx, y: fCy }];
+                            for (var hwi = 0; hwi < hvWps.length; hwi++) hvPts.push(hvWps[hwi]);
+                            hvPts.push({ x: tCx, y: tCy });
+                            var hvHit = false;
+                            for (var hsi = 0; hsi < hvPts.length - 1; hsi++) {
+                                if (pointNearLine(mx, my, hvPts[hsi].x, hvPts[hsi].y, hvPts[hsi + 1].x, hvPts[hsi + 1].y, 12)) {
+                                    hvHit = true;
+                                    break;
+                                }
+                            }
+                            if (hvHit) {
                                 self._hoverItem = { type: 'connection', index: cci };
                                 break;
                             }
@@ -3254,7 +3362,7 @@ define([
                     var connSelected = this._editMode && this._selectedConnection !== null &&
                         this._selectedConnection.from === conn.from &&
                         this._selectedConnection.to === conn.to;
-                    drawConnection(ctx, fromNd, toNd, conn, theme, connSelected);
+                    drawConnection(ctx, fromNd, toNd, conn, theme, connSelected, this._editMode);
                 }
             }
 
