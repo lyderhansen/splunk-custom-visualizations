@@ -469,7 +469,11 @@ define([
                     startEndpoint: mc.startEndpoint,
                     endEndpoint: mc.endEndpoint,
                     sourceAnchor: mc.sourceAnchor || 'auto',
-                    targetAnchor: mc.targetAnchor || 'auto'
+                    targetAnchor: mc.targetAnchor || 'auto',
+                    sourceAnchorOffset: mc.sourceAnchorOffset || 0,
+                    targetAnchorOffset: mc.targetAnchorOffset || 0,
+                    endpointSize: mc.endpointSize,
+                    waypoints: mc.waypoints || []
                 });
             }
         }
@@ -862,60 +866,25 @@ define([
             endPt = getEdgeConnectionPoint(toNode, fromCx, fromCy);
         }
 
+        // Apply anchor offset (px shift along the node edge)
+        var srcOff = parseInt(conn.sourceAnchorOffset, 10) || 0;
+        var tgtOff = parseInt(conn.targetAnchorOffset, 10) || 0;
+        if (srcOff && srcAnchor !== 'auto') {
+            if (srcAnchor === 'top' || srcAnchor === 'bottom') startPt.x += srcOff;
+            else startPt.y += srcOff;
+        }
+        if (tgtOff && tgtAnchor !== 'auto') {
+            if (tgtAnchor === 'top' || tgtAnchor === 'bottom') endPt.x += tgtOff;
+            else endPt.y += tgtOff;
+        }
+
         var lineColor = conn.color || theme.lineBg;
         var lineWidth = conn.width || 2;
 
-        ctx.strokeStyle = lineColor;
-        ctx.lineWidth = isSelected ? lineWidth + 1.5 : lineWidth;
+        // Endpoint size scales with line width, with optional override
+        var epSize = conn.endpointSize ? parseInt(conn.endpointSize, 10) : Math.round(lineWidth * 3 + 2);
 
-        if (conn.dash) {
-            ctx.setLineDash([6, 4]);
-        } else {
-            ctx.setLineDash([]);
-        }
-
-        var midX, midY, angle;
-
-        if (conn.style === 'curved') {
-            // Curved: quadratic bezier with perpendicular offset
-            var mx = (startPt.x + endPt.x) / 2;
-            var my = (startPt.y + endPt.y) / 2;
-            var dx = endPt.x - startPt.x;
-            var dy = endPt.y - startPt.y;
-            var len = Math.sqrt(dx * dx + dy * dy);
-            var offset = Math.min(40, len * 0.2);
-            // Perpendicular
-            var nx = len > 0 ? -dy / len : 0;
-            var ny = len > 0 ? dx / len : 0;
-            var cpx = mx + nx * offset;
-            var cpy = my + ny * offset;
-
-            ctx.beginPath();
-            ctx.moveTo(startPt.x, startPt.y);
-            ctx.quadraticCurveTo(cpx, cpy, endPt.x, endPt.y);
-            ctx.stroke();
-
-            midX = 0.25 * startPt.x + 0.5 * cpx + 0.25 * endPt.x;
-            midY = 0.25 * startPt.y + 0.5 * cpy + 0.25 * endPt.y;
-            // Angle at endpoint
-            angle = Math.atan2(endPt.y - cpy, endPt.x - cpx);
-        } else {
-            // Straight
-            ctx.beginPath();
-            ctx.moveTo(startPt.x, startPt.y);
-            ctx.lineTo(endPt.x, endPt.y);
-            ctx.stroke();
-
-            midX = (startPt.x + endPt.x) / 2;
-            midY = (startPt.y + endPt.y) / 2;
-            angle = Math.atan2(endPt.y - startPt.y, endPt.x - startPt.x);
-        }
-
-        ctx.setLineDash([]);
-        ctx.lineWidth = 1;
-
-        // Endpoints — new system with independent start/end types
-        // Migrate old 'arrow' field if startEndpoint/endEndpoint not set
+        // Migrate old 'arrow' field
         var startEp = conn.startEndpoint;
         var endEp = conn.endEndpoint;
         if (startEp === undefined && endEp === undefined && conn.arrow) {
@@ -927,11 +896,124 @@ define([
         if (startEp === undefined) startEp = 'none';
         if (endEp === undefined) endEp = 'filledArrow';
 
+        // Build point array: start + waypoints + end
+        var waypoints = conn.waypoints || [];
+        var points = [startPt];
+        for (var wpi = 0; wpi < waypoints.length; wpi++) {
+            points.push({ x: waypoints[wpi].x, y: waypoints[wpi].y });
+        }
+        points.push(endPt);
+
+        // Shorten line at endpoints to avoid overlap with endpoint markers
+        var p0 = points[0];
+        var p1 = points[1];
+        var pLast = points[points.length - 1];
+        var pPrev = points[points.length - 2];
+
+        // Shorten start
+        if (startEp !== 'none' && points.length >= 2) {
+            var sdx = p1.x - p0.x;
+            var sdy = p1.y - p0.y;
+            var slen = Math.sqrt(sdx * sdx + sdy * sdy);
+            if (slen > epSize) {
+                var sShorten = epSize * 0.6;
+                points[0] = { x: p0.x + sdx / slen * sShorten, y: p0.y + sdy / slen * sShorten };
+            }
+        }
+        // Shorten end
+        if (endEp !== 'none' && points.length >= 2) {
+            var edx = pPrev.x - pLast.x;
+            var edy = pPrev.y - pLast.y;
+            var elen = Math.sqrt(edx * edx + edy * edy);
+            if (elen > epSize) {
+                var eShorten = epSize * 0.6;
+                points[points.length - 1] = { x: pLast.x + edx / elen * eShorten, y: pLast.y + edy / elen * eShorten };
+            }
+        }
+
+        // Draw the path
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = isSelected ? lineWidth + 1.5 : lineWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        if (conn.dash) { ctx.setLineDash([6, 4]); } else { ctx.setLineDash([]); }
+
+        var midX, midY, endAngle, startAngle;
+
+        if (conn.style === 'curved' && points.length === 2) {
+            // Simple curve (no waypoints): quadratic bezier
+            var mx = (startPt.x + endPt.x) / 2;
+            var my2 = (startPt.y + endPt.y) / 2;
+            var dx2 = endPt.x - startPt.x;
+            var dy2 = endPt.y - startPt.y;
+            var len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+            var offset2 = Math.min(40, len2 * 0.2);
+            var nx2 = len2 > 0 ? -dy2 / len2 : 0;
+            var ny2 = len2 > 0 ? dx2 / len2 : 0;
+            var cpx = mx + nx2 * offset2;
+            var cpy = my2 + ny2 * offset2;
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            ctx.quadraticCurveTo(cpx, cpy, points[1].x, points[1].y);
+            ctx.stroke();
+            midX = 0.25 * points[0].x + 0.5 * cpx + 0.25 * points[1].x;
+            midY = 0.25 * points[0].y + 0.5 * cpy + 0.25 * points[1].y;
+            endAngle = Math.atan2(endPt.y - cpy, endPt.x - cpx);
+            startAngle = Math.atan2(startPt.y - cpx, startPt.x - cpy) + Math.PI;
+        } else if (conn.style === 'curved' && points.length > 2) {
+            // Multi-point smooth curve using quadratic bezier through waypoints
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (var cpi = 1; cpi < points.length - 1; cpi++) {
+                var xc = (points[cpi].x + points[cpi + 1].x) / 2;
+                var yc = (points[cpi].y + points[cpi + 1].y) / 2;
+                ctx.quadraticCurveTo(points[cpi].x, points[cpi].y, xc, yc);
+            }
+            ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+            ctx.stroke();
+            var midIdx = Math.floor(points.length / 2);
+            midX = points[midIdx].x;
+            midY = points[midIdx].y;
+            endAngle = Math.atan2(endPt.y - pPrev.y, endPt.x - pPrev.x);
+            startAngle = Math.atan2(startPt.y - p1.y, startPt.x - p1.x);
+        } else {
+            // Straight polyline through all points
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (var lpi = 1; lpi < points.length; lpi++) {
+                ctx.lineTo(points[lpi].x, points[lpi].y);
+            }
+            ctx.stroke();
+            var midIdx2 = Math.floor(points.length / 2);
+            midX = (points[midIdx2 - 1].x + points[midIdx2].x) / 2;
+            midY = (points[midIdx2 - 1].y + points[midIdx2].y) / 2;
+            endAngle = Math.atan2(endPt.y - pPrev.y, endPt.x - pPrev.x);
+            startAngle = Math.atan2(startPt.y - p1.y, startPt.x - p1.x);
+        }
+
+        ctx.setLineDash([]);
+        ctx.lineWidth = 1;
+
+        // Draw endpoints at original positions (not shortened)
         if (endEp !== 'none') {
-            drawEndpoint(ctx, endPt.x, endPt.y, angle, endEp, 8, lineColor);
+            drawEndpoint(ctx, endPt.x, endPt.y, endAngle, endEp, epSize, lineColor);
         }
         if (startEp !== 'none') {
-            drawEndpoint(ctx, startPt.x, startPt.y, angle + Math.PI, startEp, 8, lineColor);
+            drawEndpoint(ctx, startPt.x, startPt.y, startAngle + Math.PI, startEp, epSize, lineColor);
+        }
+
+        // Draw waypoint handles in edit mode (small circles)
+        if (isSelected && waypoints.length > 0) {
+            for (var wph = 0; wph < waypoints.length; wph++) {
+                ctx.beginPath();
+                ctx.arc(waypoints[wph].x, waypoints[wph].y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#3b82f6';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+            ctx.lineWidth = 1;
         }
 
         // Label
@@ -1294,7 +1376,7 @@ define([
         var rowH = 20;
         var pad = 10;
         var labelColW = 52;
-        var numRows = 9; // Style, Width, Dash, Start Ep, End Ep, Src Anchor, Tgt Anchor, Color, Label
+        var numRows = 12; // Style, Width, Dash, StartEp, EndEp, SrcAnchor, TgtAnchor, EpSize, SrcOff, TgtOff, Color, Label
         var popH = pad * 2 + numRows * rowH + 4;
         var px = mouseX + 10;
         var py = mouseY + 10;
@@ -1428,7 +1510,37 @@ define([
         drawCToggleRow(anchorOpts, conn.targetAnchor || 'auto', 'targetAnchor');
         rowY += rowH;
 
-        // Row 8: Color
+        // Row 8: Endpoint Size
+        drawCLabel('Ep Size');
+        var epSizeVal = conn.endpointSize || '';
+        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillStyle = theme.text;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(epSizeVal || 'Auto (' + (Math.round((conn.width || 2) * 3 + 2)) + ')', contentX, rowY + rowH / 2);
+        hits.push({ type: 'endpointSize', x: contentX, y: rowY, w: contentW, h: rowH });
+        rowY += rowH;
+
+        // Row 9: Source Anchor Offset
+        drawCLabel('Src Off');
+        var srcOffVal = conn.sourceAnchorOffset || '';
+        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillStyle = theme.text;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(srcOffVal ? srcOffVal + 'px' : '0px', contentX, rowY + rowH / 2);
+        hits.push({ type: 'sourceAnchorOffset', x: contentX, y: rowY, w: contentW, h: rowH });
+        rowY += rowH;
+
+        // Row 10: Target Anchor Offset
+        drawCLabel('Tgt Off');
+        var tgtOffVal = conn.targetAnchorOffset || '';
+        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillStyle = theme.text;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(tgtOffVal ? tgtOffVal + 'px' : '0px', contentX, rowY + rowH / 2);
+        hits.push({ type: 'targetAnchorOffset', x: contentX, y: rowY, w: contentW, h: rowH });
+        rowY += rowH;
+
+        // Row 11: Color
         drawCLabel('Color');
         var swatchX = contentX;
         var swatchS = Math.min(18, Math.floor((contentW - 4) / palette.length) - 2);
@@ -1560,6 +1672,9 @@ define([
             this._selectedNodeId = null;
             this._editMode = false;
             this._lockMode = false;
+            this._isDraggingWaypoint = false;
+            this._dragWpConnIdx = null;
+            this._dragWpIdx = null;
             this._hitNodes = [];
             this._hitConnections = [];
             this._hoverItem = null;
@@ -2056,6 +2171,40 @@ define([
                                         edConns[cIdx].sourceAnchor = cHit.value;
                                     } else if (cHit.type === 'targetAnchor' && edConns[cIdx]) {
                                         edConns[cIdx].targetAnchor = cHit.value;
+                                    } else if ((cHit.type === 'endpointSize' || cHit.type === 'sourceAnchorOffset' || cHit.type === 'targetAnchorOffset') && edConns[cIdx]) {
+                                        // Input field for numeric value
+                                        var numField = cHit.type;
+                                        var numVal = edConns[cIdx][numField] || '';
+                                        var numInp = document.createElement('input');
+                                        numInp.type = 'text';
+                                        numInp.value = numVal;
+                                        numInp.placeholder = numField === 'endpointSize' ? 'e.g. 8, 12, 16' : 'e.g. -20, 0, 30';
+                                        numInp.style.cssText = 'position:absolute;z-index:9999;font-size:11px;border:1px solid #3b82f6;padding:0 4px;height:18px;background:#1e293b;color:#f1f5f9;border-radius:3px;width:' + cHit.w + 'px;';
+                                        var numRect = self.canvas.getBoundingClientRect();
+                                        numInp.style.left = (numRect.left + cHit.x) + 'px';
+                                        numInp.style.top = (numRect.top + cHit.y) + 'px';
+                                        document.body.appendChild(numInp);
+                                        numInp.focus();
+                                        numInp.select();
+                                        var numDone = false;
+                                        var numCIdx = cIdx;
+                                        function finishNumEdit() {
+                                            if (numDone) return;
+                                            numDone = true;
+                                            var v = numInp.value.trim();
+                                            if (v && !isNaN(parseInt(v, 10))) {
+                                                self._editorState.connections[numCIdx][numField] = parseInt(v, 10);
+                                            } else {
+                                                delete self._editorState.connections[numCIdx][numField];
+                                            }
+                                            if (numInp.parentNode) numInp.parentNode.removeChild(numInp);
+                                            self.invalidateUpdateView();
+                                        }
+                                        numInp.addEventListener('blur', finishNumEdit);
+                                        numInp.addEventListener('keydown', function(nke) {
+                                            if (nke.key === 'Enter') finishNumEdit();
+                                        });
+                                        return;
                                     } else if (cHit.type === 'connColor' && edConns[cIdx]) {
                                         edConns[cIdx].color = cHit.value;
                                     } else if (cHit.type === 'connLabel' && edConns[cIdx]) {
@@ -2137,6 +2286,22 @@ define([
                             }
                         }
                         return;
+                    }
+
+                    // Check waypoint handles for dragging
+                    var edConnsWp = self._editorState.connections || [];
+                    for (var wci = 0; wci < edConnsWp.length; wci++) {
+                        var wps = edConnsWp[wci].waypoints;
+                        if (!wps) continue;
+                        for (var wpj = 0; wpj < wps.length; wpj++) {
+                            if (pointInCircle(mx, my, wps[wpj].x, wps[wpj].y, 8)) {
+                                self._isDraggingWaypoint = true;
+                                self._dragWpConnIdx = wci;
+                                self._dragWpIdx = wpj;
+                                self.canvas.style.cursor = 'move';
+                                return;
+                            }
+                        }
                     }
 
                     // Check resize handles on selected/hovered node
@@ -2288,6 +2453,17 @@ define([
                 var my = e.clientY - rect.top;
                 self._mouseX = mx;
                 self._mouseY = my;
+
+                // Handle waypoint dragging
+                if (self._isDraggingWaypoint && self._dragWpConnIdx !== null) {
+                    var wpConns = self._editorState.connections;
+                    if (wpConns[self._dragWpConnIdx] && wpConns[self._dragWpConnIdx].waypoints) {
+                        wpConns[self._dragWpConnIdx].waypoints[self._dragWpIdx] = { x: mx, y: my };
+                    }
+                    self.invalidateUpdateView();
+                    self.canvas.style.cursor = 'move';
+                    return;
+                }
 
                 // Handle resizing
                 if (self._isResizing && self._resizeNodeId) {
@@ -2495,6 +2671,16 @@ define([
                     return;
                 }
 
+                // Handle waypoint drag end
+                if (self._isDraggingWaypoint) {
+                    self._isDraggingWaypoint = false;
+                    self._dragWpConnIdx = null;
+                    self._dragWpIdx = null;
+                    self.canvas.style.cursor = 'default';
+                    self.invalidateUpdateView();
+                    return;
+                }
+
                 // Handle resize end
                 if (self._isResizing && self._resizeNodeId) {
                     for (var rui = 0; rui < self._computedNodes.length; rui++) {
@@ -2615,6 +2801,7 @@ define([
                 var mx = e.clientX - rect.left;
                 var my = e.clientY - rect.top;
 
+                // Double-click on node → open popup
                 for (var dni = 0; dni < self._computedNodes.length; dni++) {
                     var dnd = self._computedNodes[dni];
                     if (hitTestNode(mx, my, dnd)) {
@@ -2623,6 +2810,62 @@ define([
                         self._showConnPopup = false;
                         self.invalidateUpdateView();
                         return;
+                    }
+                }
+
+                // Double-click on connection → add waypoint
+                var conns = self._computedConnections;
+                var nodes = self._computedNodes;
+                var nodeMap2 = {};
+                for (var nmi = 0; nmi < nodes.length; nmi++) {
+                    nodeMap2[nodes[nmi].id] = nodes[nmi];
+                }
+                for (var dci = 0; dci < conns.length; dci++) {
+                    var dc = conns[dci];
+                    var dcFrom = nodeMap2[dc.from];
+                    var dcTo = nodeMap2[dc.to];
+                    if (!dcFrom || !dcTo) continue;
+                    var dcFcx = dcFrom.x + dcFrom.w / 2;
+                    var dcFcy = dcFrom.y + dcFrom.h / 2;
+                    var dcTcx = dcTo.x + dcTo.w / 2;
+                    var dcTcy = dcTo.y + dcTo.h / 2;
+                    // Check all segments of the polyline (including waypoints)
+                    var dcWps = dc.waypoints || [];
+                    var dcPts = [{ x: dcFcx, y: dcFcy }];
+                    for (var dwi = 0; dwi < dcWps.length; dwi++) {
+                        dcPts.push(dcWps[dwi]);
+                    }
+                    dcPts.push({ x: dcTcx, y: dcTcy });
+                    for (var dsi = 0; dsi < dcPts.length - 1; dsi++) {
+                        if (pointNearLine(mx, my, dcPts[dsi].x, dcPts[dsi].y, dcPts[dsi + 1].x, dcPts[dsi + 1].y, 10)) {
+                            // Find matching editorState connection
+                            var edConns3 = self._editorState.connections || [];
+                            for (var eci2 = 0; eci2 < edConns3.length; eci2++) {
+                                if (edConns3[eci2].from === dc.from && edConns3[eci2].to === dc.to) {
+                                    if (!edConns3[eci2].waypoints) edConns3[eci2].waypoints = [];
+                                    // Insert waypoint at click position, in correct segment position
+                                    edConns3[eci2].waypoints.splice(dsi, 0, { x: mx, y: my });
+                                    self.invalidateUpdateView();
+                                    return;
+                                }
+                            }
+                            // If not in editorState yet, promote it
+                            if (!self._editorState.connections) self._editorState.connections = [];
+                            self._editorState.connections.push({
+                                from: dc.from, to: dc.to,
+                                style: dc.style || 'straight',
+                                color: dc.color || '',
+                                width: dc.width || 2,
+                                dash: dc.dash || false,
+                                startEndpoint: dc.startEndpoint || 'none',
+                                endEndpoint: dc.endEndpoint || 'filledArrow',
+                                label: dc.label || '',
+                                manual: dc.manual || false,
+                                waypoints: [{ x: mx, y: my }]
+                            });
+                            self.invalidateUpdateView();
+                            return;
+                        }
                     }
                 }
             };
