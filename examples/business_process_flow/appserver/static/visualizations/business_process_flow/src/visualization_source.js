@@ -249,41 +249,42 @@ define([
             var colorOverride = (edState && edState.color) ? edState.color : null;
             var hideValue = (edState && edState.hideValue) ? true : false;
             var labelOverride = (edState && edState.label) ? edState.label : null;
+            // Per-node overrides
+            var perNode = {
+                sparklineType: edState ? edState.sparklineType : undefined,
+                fontSize: edState ? edState.fontSize : undefined,
+                chartHeight: edState ? edState.chartHeight : undefined,
+                opacity: edState ? edState.opacity : undefined,
+                borderWidth: edState ? edState.borderWidth : undefined
+            };
+
+            var baseObj = {
+                id: nd.id,
+                label: labelOverride || nd.label,
+                value: nd.value,
+                subtitle: nd.subtitle || '',
+                w: nw,
+                h: nh,
+                shape: shape,
+                color: colorOverride || nd.color || '#3b82f6',
+                series: nd.series || [],
+                connectsTo: nd.connectsTo || [],
+                step: nd.step,
+                rowIndex: nd.rowIndex,
+                hideValue: hideValue,
+                sparklineType: perNode.sparklineType,
+                fontSize: perNode.fontSize,
+                chartHeight: perNode.chartHeight,
+                opacity: perNode.opacity,
+                borderWidth: perNode.borderWidth
+            };
 
             if (edState && edState.x !== undefined && edState.y !== undefined) {
-                result.push({
-                    id: nd.id,
-                    label: labelOverride || nd.label,
-                    value: nd.value,
-                    subtitle: nd.subtitle || '',
-                    x: edState.x,
-                    y: edState.y,
-                    w: nw,
-                    h: nh,
-                    shape: shape,
-                    color: colorOverride || nd.color || '#3b82f6',
-                    series: nd.series || [],
-                    connectsTo: nd.connectsTo || [],
-                    step: nd.step,
-                    rowIndex: nd.rowIndex,
-                    hideValue: hideValue
-                });
+                baseObj.x = edState.x;
+                baseObj.y = edState.y;
+                result.push(baseObj);
             } else {
-                autoNodes.push({
-                    id: nd.id,
-                    label: labelOverride || nd.label,
-                    value: nd.value,
-                    subtitle: nd.subtitle || '',
-                    w: nw,
-                    h: nh,
-                    shape: shape,
-                    color: colorOverride || nd.color || '#3b82f6',
-                    series: nd.series || [],
-                    connectsTo: nd.connectsTo || [],
-                    step: nd.step,
-                    rowIndex: nd.rowIndex,
-                    hideValue: hideValue
-                });
+                autoNodes.push(baseObj);
             }
         }
 
@@ -578,6 +579,51 @@ define([
         var shape = node.shape || 'rect';
         var radius = parseInt(nodeRadius, 10) || 8;
 
+        // Per-node overrides from editorState
+        var nodeSparkType = node.sparklineType || sparklineType;
+        if (nodeSparkType === 'default') nodeSparkType = sparklineType;
+        var nodeFontSize = node.fontSize || 'default';
+        var nodeChartH = node.chartHeight || 'default';
+        var nodeOpacity = node.opacity || 'default';
+        var nodeBorderW = node.borderWidth || 'default';
+
+        // Responsive base sizes — scale with node dimensions
+        var baseScale = Math.min(w / 180, h / 120); // 180x120 is default node size
+        var clampedScale = Math.max(0.5, Math.min(2.5, baseScale));
+
+        // Compute font size (responsive to node size)
+        var valueFontSize = Math.round(22 * clampedScale);
+        var labelFontSize = Math.round(11 * clampedScale);
+        if (nodeFontSize === 'small') { valueFontSize = Math.round(14 * clampedScale); labelFontSize = Math.round(9 * clampedScale); }
+        else if (nodeFontSize === 'medium') { valueFontSize = Math.round(18 * clampedScale); labelFontSize = Math.round(10 * clampedScale); }
+        else if (nodeFontSize === 'large') { valueFontSize = Math.round(28 * clampedScale); labelFontSize = Math.round(12 * clampedScale); }
+        else if (nodeFontSize === 'xlarge') { valueFontSize = Math.round(36 * clampedScale); labelFontSize = Math.round(14 * clampedScale); }
+        // Clamp to reasonable bounds
+        valueFontSize = Math.max(10, Math.min(60, valueFontSize));
+        labelFontSize = Math.max(8, Math.min(24, labelFontSize));
+
+        // Compute chart height (responsive — proportion of node height)
+        var sparkH = Math.round(h * 0.25);
+        if (nodeChartH === 'small') sparkH = Math.round(h * 0.15);
+        else if (nodeChartH === 'medium') sparkH = Math.round(h * 0.35);
+        else if (nodeChartH === 'large') sparkH = Math.round(h * 0.50);
+        sparkH = Math.max(12, Math.min(h * 0.6, sparkH));
+
+        // Compute opacity
+        var nodeAlpha = 1;
+        if (nodeOpacity !== 'default') nodeAlpha = parseFloat(nodeOpacity) || 1;
+
+        // Compute border
+        var borderWidth = 1;
+        if (nodeBorderW === '0') borderWidth = 0;
+        else if (nodeBorderW === '1') borderWidth = 1;
+        else if (nodeBorderW === '2') borderWidth = 2;
+        else if (nodeBorderW === '3') borderWidth = 3;
+        if (isSelected) borderWidth = Math.max(borderWidth, 2.5);
+
+        // Apply opacity
+        if (nodeAlpha < 1) ctx.globalAlpha = nodeAlpha;
+
         // Shadow for hover
         if (isHovered) {
             ctx.shadowColor = hexToRgba(node.color, 0.3);
@@ -586,41 +632,34 @@ define([
             ctx.shadowOffsetY = 4;
         }
 
-        // Draw shape
-        if (shape === 'circle') {
-            var r = Math.min(w, h) / 2;
-            var cx = x + w / 2;
-            var cy = y + h / 2;
-            ctx.beginPath();
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.fillStyle = theme.nodeBg;
-            ctx.fill();
+        // Helper: create shape path for clipping
+        function shapePath() {
+            if (shape === 'circle') {
+                var cr = Math.min(w, h) / 2;
+                ctx.beginPath();
+                ctx.arc(x + w / 2, y + h / 2, cr, 0, Math.PI * 2);
+            } else if (shape === 'diamond') {
+                ctx.beginPath();
+                ctx.moveTo(x + w / 2, y);
+                ctx.lineTo(x + w, y + h / 2);
+                ctx.lineTo(x + w / 2, y + h);
+                ctx.lineTo(x, y + h / 2);
+                ctx.closePath();
+            } else {
+                roundRect(ctx, x, y, w, h, radius);
+            }
+        }
+
+        // Draw shape fill
+        shapePath();
+        ctx.fillStyle = theme.nodeBg;
+        ctx.fill();
+
+        // Draw border
+        if (borderWidth > 0) {
+            shapePath();
             ctx.strokeStyle = isSelected ? node.color : theme.nodeBorder;
-            ctx.lineWidth = isSelected ? 2.5 : 1;
-            ctx.stroke();
-        } else if (shape === 'diamond') {
-            var dcx = x + w / 2;
-            var dcy = y + h / 2;
-            var dhw = w / 2;
-            var dhh = h / 2;
-            ctx.beginPath();
-            ctx.moveTo(dcx, dcy - dhh);
-            ctx.lineTo(dcx + dhw, dcy);
-            ctx.lineTo(dcx, dcy + dhh);
-            ctx.lineTo(dcx - dhw, dcy);
-            ctx.closePath();
-            ctx.fillStyle = theme.nodeBg;
-            ctx.fill();
-            ctx.strokeStyle = isSelected ? node.color : theme.nodeBorder;
-            ctx.lineWidth = isSelected ? 2.5 : 1;
-            ctx.stroke();
-        } else {
-            // rect
-            roundRect(ctx, x, y, w, h, radius);
-            ctx.fillStyle = theme.nodeBg;
-            ctx.fill();
-            ctx.strokeStyle = isSelected ? node.color : theme.nodeBorder;
-            ctx.lineWidth = isSelected ? 2.5 : 1;
+            ctx.lineWidth = borderWidth;
             ctx.stroke();
         }
 
@@ -630,7 +669,7 @@ define([
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
 
-        // Accent line at top
+        // Accent line at top (rect only)
         if (accentLine === 'true' && shape === 'rect') {
             ctx.save();
             roundRect(ctx, x, y, w, Math.min(3, h), radius);
@@ -640,29 +679,32 @@ define([
             ctx.restore();
         }
 
-        // Layout zones within node
-        var textPadX = 10;
+        // Clip ALL text and sparkline to shape
+        ctx.save();
+        shapePath();
+        ctx.clip();
+
+        // Layout
         var textPadY = shape === 'rect' && accentLine === 'true' ? 10 : 8;
-        var sparkH = 28;
-        var hasSpark = node.series && node.series.length > 1 && sparklineType !== 'none';
+        var hasSpark = node.series && node.series.length > 1 && nodeSparkType !== 'none';
 
         // Label
-        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.font = labelFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
         ctx.fillStyle = theme.textMuted;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         var labelY = y + textPadY;
         if (shape === 'circle' || shape === 'diamond') {
-            labelY = y + h * 0.15;
+            labelY = y + h * 0.18;
         }
         ctx.fillText(truncateText(node.label, 18), x + w / 2, labelY);
 
-        // Value (skip if hideValue is set on this node)
+        // Value
         var showValue = !node.hideValue;
-        var valueY = y + h * 0.45;
+        var valueY = y + h * 0.48;
         if (showValue) {
             var valueText = formatCount(node.value);
-            ctx.font = 'bold 22px "SF Mono", "Fira Code", "Consolas", monospace';
+            ctx.font = 'bold ' + valueFontSize + 'px "SF Mono", "Fira Code", "Consolas", monospace';
             ctx.fillStyle = theme.text;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -673,36 +715,44 @@ define([
                 valueY = y + h * 0.35;
             }
             ctx.fillText(valueText, x + w / 2, valueY);
-        } else {
-            // No value — center label vertically instead
-            valueY = y + h * 0.45;
         }
 
         // Subtitle
         if (node.subtitle) {
-            ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.font = Math.max(9, labelFontSize - 1) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
             ctx.fillStyle = theme.textMuted;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            ctx.fillText(truncateText(node.subtitle, 22), x + w / 2, valueY + 14);
+            ctx.fillText(truncateText(node.subtitle, 22), x + w / 2, valueY + valueFontSize * 0.6 + 4);
         }
 
-        // Sparkline
+        // Sparkline (clipped to shape since we're inside ctx.save/clip)
         if (hasSpark) {
-            var sparkY = y + h - sparkH - 6;
-            var sparkX = x + 6;
-            var sparkW = w - 12;
-            // Clip to node shape for clean edges
-            ctx.save();
-            if (shape === 'rect') {
-                roundRect(ctx, x, y, w, h, radius);
-                ctx.clip();
+            var sparkY = y + h - sparkH - 4;
+            var sparkX = x + 4;
+            var sparkW = w - 8;
+            // For circle/diamond, narrow the sparkline to stay inside shape
+            if (shape === 'circle') {
+                var cr2 = Math.min(w, h) / 2;
+                var sparkYOff = sparkY + sparkH / 2 - (y + h / 2);
+                var sparkHalfW = Math.sqrt(Math.max(0, cr2 * cr2 - sparkYOff * sparkYOff));
+                sparkX = x + w / 2 - sparkHalfW + 4;
+                sparkW = sparkHalfW * 2 - 8;
+            } else if (shape === 'diamond') {
+                var relY = (sparkY + sparkH / 2 - y) / h;
+                var dHalfW = w / 2 * (relY > 0.5 ? 2 * (1 - relY) : 2 * relY);
+                sparkX = x + w / 2 - dHalfW + 8;
+                sparkW = dHalfW * 2 - 16;
             }
-            drawSparkline(ctx, node.series, sparkX, sparkY, sparkW, sparkH, sparklineType, node.color);
-            ctx.restore();
+            if (sparkW > 20) {
+                drawSparkline(ctx, node.series, sparkX, sparkY, sparkW, sparkH, nodeSparkType, node.color);
+            }
         }
+
+        ctx.restore(); // end shape clip
 
         // Reset
+        ctx.globalAlpha = 1;
         ctx.lineWidth = 1;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
@@ -921,23 +971,31 @@ define([
     // ── Node Property Popup ──────────────────────────────────────
 
     function drawNodePopup(ctx, node, editorNode, palette, theme, w, h) {
-        var popW = 210;
-        var popH = 155;
+        var popW = 240;
+        var rowH = 20;
+        var pad = 12;
+        var labelColW = 52;
+        var contentX;
+        var hits = [];
+
+        // Count rows to calculate height
+        // Label, Shape, Value, Chart, Font Size, Chart Height, Opacity, Color (2 rows)
+        var numRows = 9;
+        var popH = pad * 2 + numRows * rowH + 22; // extra for color 2nd row
+
         var px = node.x + node.w + 10;
         var py = node.y;
         if (px + popW > w) px = node.x - popW - 10;
         if (py + popH > h) py = h - popH - 10;
-        if (px < 0) px = 10;
-        if (py < 0) py = 10;
-
-        var hits = [];
+        if (px < 4) px = 4;
+        if (py < 4) py = 4;
 
         // Background
         ctx.save();
-        ctx.shadowColor = 'rgba(0,0,0,0.2)';
-        ctx.shadowBlur = 8;
-        ctx.shadowOffsetY = 2;
-        roundRect(ctx, px, py, popW, popH, 6);
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 4;
+        roundRect(ctx, px, py, popW, popH, 8);
         ctx.fillStyle = theme.toolbarBg;
         ctx.fill();
         ctx.shadowColor = 'transparent';
@@ -947,106 +1005,157 @@ define([
         ctx.stroke();
         ctx.restore();
 
-        var rowY = py + 10;
-        var leftX = px + 10;
+        var rowY = py + pad;
+        var leftX = px + pad;
+        contentX = leftX + labelColW;
+        var contentW = popW - pad * 2 - labelColW;
 
-        // Label row
-        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = theme.textMuted;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText('Label:', leftX, rowY);
+        // Helper: draw a row label
+        function drawLabel(text) {
+            ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.fillStyle = theme.textMuted;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, leftX, rowY + rowH / 2);
+        }
+
+        // Helper: draw toggle buttons
+        function drawToggleRow(options, currentVal, hitType) {
+            var tX = contentX;
+            var tW = Math.floor(contentW / options.length) - 3;
+            for (var ti = 0; ti < options.length; ti++) {
+                var isAct = currentVal === options[ti].value;
+                roundRect(ctx, tX, rowY + 2, tW, rowH - 4, 3);
+                ctx.fillStyle = isAct ? (options[ti].activeColor || node.color) : theme.nodeBg;
+                ctx.fill();
+                ctx.strokeStyle = isAct ? 'transparent' : theme.nodeBorder;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.fillStyle = isAct ? '#fff' : theme.text;
+                ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(options[ti].label, tX + tW / 2, rowY + rowH / 2);
+                hits.push({ type: hitType, value: options[ti].value, x: tX, y: rowY + 2, w: tW, h: rowH - 4 });
+                tX += tW + 3;
+            }
+            ctx.textAlign = 'left';
+        }
+
+        // ── 1. Label ──
+        drawLabel('Label');
         var labelText = (editorNode && editorNode.label) ? editorNode.label : (node.label || '');
         var isManual = editorNode && editorNode.manual;
-        ctx.fillStyle = theme.text;
         ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        var labelDispX = leftX + 42;
-        var labelDispW = popW - 62;
-        ctx.fillText(truncateText(labelText, 16) + (isManual ? ' \u270E' : ''), labelDispX, rowY);
-        if (isManual) {
-            hits.push({ type: 'label', x: labelDispX, y: rowY - 2, w: labelDispW, h: 16 });
-        }
-        rowY += 22;
+        ctx.fillStyle = theme.text;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(truncateText(labelText, 20) + (isManual ? '  \u270E' : ''), contentX, rowY + rowH / 2);
+        hits.push({ type: 'label', x: contentX, y: rowY, w: contentW, h: rowH });
+        rowY += rowH;
 
-        // Shape row
-        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = theme.textMuted;
-        ctx.fillText('Shape:', leftX, rowY);
-
-        var shapes = ['rect', 'circle', 'diamond'];
-        var shapeLabels = ['\u25AD', '\u25CB', '\u25C7'];
+        // ── 2. Shape ──
+        drawLabel('Shape');
         var currentShape = (editorNode && editorNode.shape) ? editorNode.shape : (node.shape || 'rect');
-        var shapeX = leftX + 42;
-        for (var si = 0; si < shapes.length; si++) {
-            var isActive = currentShape === shapes[si];
-            roundRect(ctx, shapeX, rowY - 2, 24, 16, 3);
-            ctx.fillStyle = isActive ? node.color : theme.nodeBg;
-            ctx.fill();
-            ctx.strokeStyle = theme.nodeBorder;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            ctx.fillStyle = isActive ? '#fff' : theme.text;
-            ctx.font = '12px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(shapeLabels[si], shapeX + 12, rowY + 6);
-            ctx.textAlign = 'left';
-            hits.push({ type: 'shape', value: shapes[si], x: shapeX, y: rowY - 2, w: 24, h: 16 });
-            shapeX += 30;
-        }
-        rowY += 22;
+        drawToggleRow([
+            { value: 'rect', label: '\u25AD Rect', activeColor: node.color },
+            { value: 'circle', label: '\u25CB Circle', activeColor: node.color },
+            { value: 'diamond', label: '\u25C7 Diamond', activeColor: node.color }
+        ], currentShape, 'shape');
+        rowY += rowH;
 
-        // Value toggle row
-        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = theme.textMuted;
-        ctx.textBaseline = 'top';
-        ctx.fillText('Value:', leftX, rowY);
-
-        var valOpts = ['show', 'hide'];
-        var valLabels = ['Show', 'Hide'];
+        // ── 3. Value ──
+        drawLabel('Value');
         var isHidden = (editorNode && editorNode.hideValue) ? true : false;
-        var valX = leftX + 42;
-        for (var vi = 0; vi < valOpts.length; vi++) {
-            var valActive = (vi === 0 && !isHidden) || (vi === 1 && isHidden);
-            roundRect(ctx, valX, rowY - 2, 38, 16, 3);
-            ctx.fillStyle = valActive ? (vi === 0 ? '#10b981' : '#ef4444') : theme.nodeBg;
-            ctx.fill();
-            ctx.strokeStyle = theme.nodeBorder;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            ctx.fillStyle = valActive ? '#fff' : theme.text;
-            ctx.font = '10px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(valLabels[vi], valX + 19, rowY + 6);
-            ctx.textAlign = 'left';
-            hits.push({ type: 'hideValue', value: vi === 1, x: valX, y: rowY - 2, w: 38, h: 16 });
-            valX += 44;
-        }
-        rowY += 22;
+        drawToggleRow([
+            { value: false, label: 'Show', activeColor: '#10b981' },
+            { value: true, label: 'Hide', activeColor: '#ef4444' }
+        ], isHidden, 'hideValue');
+        rowY += rowH;
 
-        // Color row
-        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = theme.textMuted;
-        ctx.textBaseline = 'top';
-        ctx.fillText('Color:', leftX, rowY);
+        // ── 4. Chart Type ──
+        drawLabel('Chart');
+        var nodeChart = (editorNode && editorNode.sparklineType) ? editorNode.sparklineType : 'default';
+        drawToggleRow([
+            { value: 'default', label: 'Default', activeColor: '#6366f1' },
+            { value: 'line', label: 'Line', activeColor: '#6366f1' },
+            { value: 'area', label: 'Area', activeColor: '#6366f1' },
+            { value: 'bar', label: 'Bar', activeColor: '#6366f1' },
+            { value: 'none', label: 'Off', activeColor: '#64748b' }
+        ], nodeChart, 'sparklineType');
+        rowY += rowH;
 
-        var swatchX = leftX + 42;
-        var swatchS = 16;
+        // ── 5. Font Size ──
+        drawLabel('Font');
+        var fontSize = (editorNode && editorNode.fontSize) ? editorNode.fontSize : 'default';
+        drawToggleRow([
+            { value: 'default', label: 'Auto', activeColor: '#8b5cf6' },
+            { value: 'small', label: 'S', activeColor: '#8b5cf6' },
+            { value: 'medium', label: 'M', activeColor: '#8b5cf6' },
+            { value: 'large', label: 'L', activeColor: '#8b5cf6' },
+            { value: 'xlarge', label: 'XL', activeColor: '#8b5cf6' }
+        ], fontSize, 'fontSize');
+        rowY += rowH;
+
+        // ── 6. Chart Height ──
+        drawLabel('Graph H');
+        var chartH = (editorNode && editorNode.chartHeight) ? editorNode.chartHeight : 'default';
+        drawToggleRow([
+            { value: 'default', label: 'Auto', activeColor: '#0ea5e9' },
+            { value: 'small', label: 'S', activeColor: '#0ea5e9' },
+            { value: 'medium', label: 'M', activeColor: '#0ea5e9' },
+            { value: 'large', label: 'L', activeColor: '#0ea5e9' }
+        ], chartH, 'chartHeight');
+        rowY += rowH;
+
+        // ── 7. Opacity ──
+        drawLabel('Opacity');
+        var opacity = (editorNode && editorNode.opacity) ? editorNode.opacity : 'default';
+        drawToggleRow([
+            { value: 'default', label: '100%', activeColor: '#14b8a6' },
+            { value: '0.8', label: '80%', activeColor: '#14b8a6' },
+            { value: '0.6', label: '60%', activeColor: '#14b8a6' },
+            { value: '0.4', label: '40%', activeColor: '#14b8a6' }
+        ], opacity, 'opacity');
+        rowY += rowH;
+
+        // ── 8. Border ──
+        drawLabel('Border');
+        var border = (editorNode && editorNode.borderWidth) ? editorNode.borderWidth : 'default';
+        drawToggleRow([
+            { value: 'default', label: 'Auto', activeColor: '#f59e0b' },
+            { value: '0', label: 'None', activeColor: '#f59e0b' },
+            { value: '1', label: 'Thin', activeColor: '#f59e0b' },
+            { value: '2', label: 'Med', activeColor: '#f59e0b' },
+            { value: '3', label: 'Thick', activeColor: '#f59e0b' }
+        ], border, 'borderWidth');
+        rowY += rowH;
+
+        // ── 9. Color ──
+        drawLabel('Color');
+        var swatchX = contentX;
+        var swatchS = 18;
+        var swatchGap = 3;
         var currentColor = (editorNode && editorNode.color) ? editorNode.color : '';
+        var swatchPerRow = Math.floor((contentW + swatchGap) / (swatchS + swatchGap));
         for (var ci = 0; ci < palette.length; ci++) {
+            if (ci > 0 && ci % swatchPerRow === 0) {
+                swatchX = contentX;
+                rowY += swatchS + swatchGap;
+            }
+            roundRect(ctx, swatchX, rowY + 1, swatchS, swatchS, 3);
             ctx.fillStyle = palette[ci];
-            ctx.fillRect(swatchX, rowY - 1, swatchS, swatchS);
+            ctx.fill();
             if (currentColor === palette[ci]) {
-                ctx.strokeStyle = theme.text;
+                ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 2;
-                ctx.strokeRect(swatchX - 1, rowY - 2, swatchS + 2, swatchS + 2);
+                ctx.stroke();
+            } else {
+                ctx.strokeStyle = theme.nodeBorder;
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
             }
-            hits.push({ type: 'color', value: palette[ci], x: swatchX, y: rowY - 1, w: swatchS, h: swatchS });
-            swatchX += swatchS + 4;
-            if (ci === 3) {
-                // Wrap to next row
-                swatchX = leftX + 42;
-                rowY += swatchS + 4;
-            }
+            hits.push({ type: 'color', value: palette[ci], x: swatchX, y: rowY + 1, w: swatchS, h: swatchS });
+            swatchX += swatchS + swatchGap;
         }
 
         ctx.textBaseline = 'alphabetic';
@@ -1648,6 +1757,15 @@ define([
                                             self._editorState.nodes[popNodeId].hideValue = true;
                                         } else {
                                             delete self._editorState.nodes[popNodeId].hideValue;
+                                        }
+                                        self.invalidateUpdateView();
+                                    } else if (nHit.type === 'sparklineType' || nHit.type === 'fontSize' ||
+                                               nHit.type === 'chartHeight' || nHit.type === 'opacity' ||
+                                               nHit.type === 'borderWidth') {
+                                        if (nHit.value === 'default') {
+                                            delete self._editorState.nodes[popNodeId][nHit.type];
+                                        } else {
+                                            self._editorState.nodes[popNodeId][nHit.type] = nHit.value;
                                         }
                                         self.invalidateUpdateView();
                                     } else if (nHit.type === 'label') {
