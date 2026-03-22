@@ -1,5 +1,14 @@
 # Business Process Flow — Changelog
 
+## v4.5.0 — 2026-03-22 17:35
+- **Removed Edit Mode from formatter** — No more confusing Open/Closed toggle in Dashboard Studio
+- **DOM Edit button** — "✎ Edit" button in bottom-right of panel, always visible in view mode, opens edit mode on click. Works in both Search view and Dashboard Studio view mode.
+- **Native OS color picker** — Clicking hex row opens system color picker with full RGB/HSL controls, live preview
+- **Simplified architecture** — Edit mode is purely session-based, controlled only by the Edit button and Close toolbar button
+
+## v4.4.3 — 2026-03-22 17:25
+- **Native OS color picker** — Clicking hex row opens the system color picker (macOS/Windows/Linux) with full RGB/HSL controls, live preview updates node color in real-time as you drag
+
 ## v4.4.2 — 2026-03-22 17:10
 - **Fix: individual connection selection** — Multiple connections between same nodes can now be selected independently (uses computed index instead of from/to matching)
 - **Fix: connection delete** — Deletes only the selected connection, not all connections between same node pair

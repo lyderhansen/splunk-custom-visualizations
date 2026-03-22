@@ -1736,7 +1736,21 @@ define([
             this.canvas.style.webkitUserSelect = 'none';
             this.el.appendChild(this.canvas);
 
-            // (No modal editor — editing happens directly on canvas in view mode)
+            // Edit button — DOM element, always visible when not in edit mode
+            this._editBtn = document.createElement('button');
+            this._editBtn.textContent = '\u270E Edit';
+            this._editBtn.style.cssText = 'position:absolute;bottom:8px;right:8px;z-index:5;height:28px;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(30,41,59,0.85);color:rgba(255,255,255,0.7);font:bold 11px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;display:flex;align-items:center;gap:4px;transition:opacity 0.2s;opacity:0.6;';
+            var selfBtn = this;
+            this._editBtn.addEventListener('mouseenter', function() { selfBtn._editBtn.style.opacity = '1'; });
+            this._editBtn.addEventListener('mouseleave', function() { selfBtn._editBtn.style.opacity = '0.6'; });
+            this._editBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                selfBtn._editMode = true;
+                selfBtn.invalidateUpdateView();
+            });
+            this._editBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+            this.el.appendChild(this._editBtn);
 
             // State
             this._lastGoodData = null;
@@ -2161,39 +2175,37 @@ define([
                                         }
                                         self.invalidateUpdateView();
                                     } else if (nHit.type === 'colorHex') {
-                                        // Open hex color input
-                                        var hexVal = (self._editorState.nodes[popNodeId] && self._editorState.nodes[popNodeId].color) || '';
-                                        var hexInp = document.createElement('input');
-                                        hexInp.type = 'text';
-                                        hexInp.value = hexVal;
-                                        hexInp.placeholder = '#ff6b00 or rgb(...)';
-                                        hexInp.style.cssText = 'position:absolute;z-index:9999;font-size:11px;font-family:monospace;border:1px solid #3b82f6;padding:0 4px;height:18px;background:#1e293b;color:#f1f5f9;border-radius:3px;';
-                                        var hexRect = self.canvas.getBoundingClientRect();
-                                        hexInp.style.left = (hexRect.left + nHit.x) + 'px';
-                                        hexInp.style.top = (hexRect.top + nHit.y) + 'px';
-                                        hexInp.style.width = nHit.w + 'px';
-                                        document.body.appendChild(hexInp);
-                                        hexInp.focus();
-                                        hexInp.select();
-                                        var hexDone = false;
-                                        var hexNodeId = popNodeId;
-                                        function finishHexEdit() {
-                                            if (hexDone) return;
-                                            hexDone = true;
-                                            var hv = hexInp.value.trim();
-                                            if (!self._editorState.nodes[hexNodeId]) self._editorState.nodes[hexNodeId] = {};
-                                            if (hv) {
-                                                self._editorState.nodes[hexNodeId].color = hv;
-                                            } else {
-                                                delete self._editorState.nodes[hexNodeId].color;
-                                            }
-                                            if (hexInp.parentNode) hexInp.parentNode.removeChild(hexInp);
+                                        // Open native OS color picker
+                                        var hexVal = (self._editorState.nodes[popNodeId] && self._editorState.nodes[popNodeId].color) || '#3b82f6';
+                                        // Ensure valid hex for input[type=color] (must be #rrggbb)
+                                        if (hexVal.length === 4) hexVal = '#' + hexVal[1] + hexVal[1] + hexVal[2] + hexVal[2] + hexVal[3] + hexVal[3];
+                                        if (!/^#[0-9a-fA-F]{6}$/.test(hexVal)) hexVal = '#3b82f6';
+                                        var cpInp = document.createElement('input');
+                                        cpInp.type = 'color';
+                                        cpInp.value = hexVal;
+                                        cpInp.style.cssText = 'position:absolute;z-index:9999;opacity:0;width:1px;height:1px;';
+                                        var cpRect = self.canvas.getBoundingClientRect();
+                                        cpInp.style.left = (cpRect.left + nHit.x) + 'px';
+                                        cpInp.style.top = (cpRect.top + nHit.y) + 'px';
+                                        document.body.appendChild(cpInp);
+                                        var cpNodeId = popNodeId;
+                                        cpInp.addEventListener('input', function() {
+                                            if (!self._editorState.nodes[cpNodeId]) self._editorState.nodes[cpNodeId] = {};
+                                            self._editorState.nodes[cpNodeId].color = cpInp.value;
                                             self.invalidateUpdateView();
-                                        }
-                                        hexInp.addEventListener('blur', finishHexEdit);
-                                        hexInp.addEventListener('keydown', function(hke) {
-                                            if (hke.key === 'Enter') finishHexEdit();
                                         });
+                                        cpInp.addEventListener('change', function() {
+                                            if (!self._editorState.nodes[cpNodeId]) self._editorState.nodes[cpNodeId] = {};
+                                            self._editorState.nodes[cpNodeId].color = cpInp.value;
+                                            if (cpInp.parentNode) cpInp.parentNode.removeChild(cpInp);
+                                            self.invalidateUpdateView();
+                                        });
+                                        cpInp.addEventListener('blur', function() {
+                                            setTimeout(function() {
+                                                if (cpInp.parentNode) cpInp.parentNode.removeChild(cpInp);
+                                            }, 200);
+                                        });
+                                        cpInp.click();
                                     } else if (nHit.type === 'prefix' || nHit.type === 'suffix') {
                                         // Create temporary input for prefix/suffix editing
                                         var psField = nHit.type;
@@ -3343,23 +3355,11 @@ define([
             var accentLine    = config[ns + 'accentLine']    || 'false';
             var sparklineType = config[ns + 'sparklineType'] || 'area';
             var nodeRadius    = config[ns + 'nodeRadius']    || '8';
-            var editMode      = config[ns + 'editMode']      || 'false';
             var lock          = config[ns + 'lock']          || 'false';
             var editorStateStr = config[ns + 'editorState']  || '';
             var drilldownField = config[ns + 'drilldownField'] || 'sourcetype';
 
-            // Edit mode is session-only — NEVER persists across page loads.
-            // We detect when the formatter CHANGES from false→true (not just reads "true").
-            if (this._lastEditModeConfig === undefined) {
-                // First call — initialize. Ignore whatever is in config.
-                this._lastEditModeConfig = 'false';
-                this._editMode = false;
-            }
-            // Detect formatter toggle: config changed from 'false' to 'true'
-            if (editMode === 'true' && this._lastEditModeConfig !== 'true') {
-                this._editMode = true;
-            }
-            this._lastEditModeConfig = editMode;
+            // Edit mode is session-only — controlled by DOM Edit button, not config
             this._lockMode = lock === 'true';
             this._drilldownField = drilldownField;
 
@@ -3651,6 +3651,11 @@ define([
                     var ttConn = connections[this._hoverItem.index];
                     if (ttConn && ttConn.label) drawTooltip(ctx, ttConn.label, this._mouseX, this._mouseY, w, h, isDark);
                 }
+            }
+
+            // Show/hide edit button
+            if (this._editBtn) {
+                this._editBtn.style.display = this._editMode ? 'none' : 'flex';
             }
 
             this._hitNodes = positioned;
