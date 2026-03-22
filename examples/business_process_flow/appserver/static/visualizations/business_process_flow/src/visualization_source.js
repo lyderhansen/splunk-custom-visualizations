@@ -3480,6 +3480,7 @@ define([
                             self._dragNodeStartY = nd.y;
                             self._selectedConnection = null;
                             self._showConnPopup = false;
+                            self._updatePanel();
                             self.invalidateUpdateView();
                             return;
                         }
@@ -3579,6 +3580,7 @@ define([
                                 self._showConnPopup = true;
                                 self._connPopupIdx = edConnIdx;
                                 self._connPopupPos = { x: mx, y: my };
+                                self._updatePanel();
                                 self.invalidateUpdateView();
                                 return;
                             }
@@ -3595,6 +3597,7 @@ define([
                     self._selectedConnection = null;
                     self._showNodePopup = false;
                     self._showConnPopup = false;
+                    self._updatePanel();
                     self.invalidateUpdateView();
                 } else if (!self._lockMode) {
                     // View mode, lock off — allow temporary drag
@@ -3970,6 +3973,7 @@ define([
                     }
                     self._rubberBandStart = null;
                     self._rubberBandEnd = null;
+                    self._updatePanel();
                     self.invalidateUpdateView();
                     return;
                 }
@@ -4152,9 +4156,10 @@ define([
                 for (var dni = 0; dni < self._computedNodes.length; dni++) {
                     var dnd = self._computedNodes[dni];
                     if (hitTestNode(mx, my, dnd)) {
-                        self._showNodePopup = true;
-                        self._nodePopupId = dnd.id;
+                        self._selectedNodeIds = [dnd.id];
+                        self._selectedConnection = null;
                         self._showConnPopup = false;
+                        self._updatePanel();
                         self.invalidateUpdateView();
                         return;
                     }
@@ -4253,7 +4258,10 @@ define([
                         self._selectedConnection = null;
                         changed = true;
                     }
-                    if (changed) self.invalidateUpdateView();
+                    if (changed) {
+                        self._updatePanel();
+                        self.invalidateUpdateView();
+                    }
                 }
                 // Delete/Backspace
                 if ((e.key === 'Delete' || e.key === 'Backspace') && self._editMode) {
@@ -4283,6 +4291,309 @@ define([
             this.canvas.addEventListener('contextmenu', this._onContextMenu);
             // (overlay removed — modal editor handles edit mode events)
             document.addEventListener('keydown', this._onKeyDown);
+        },
+
+        _updatePanel: function() {
+            if (!this._panelBody || !this._editMode) return;
+            var body = this._panelBody;
+            body.innerHTML = '';
+            var es = this._editorState;
+            var colors = PALETTES[this._currentPalette || 'corporate'] || PALETTES.corporate;
+            var self = this;
+
+            if (this._selectedNodeIds.length === 1) {
+                var nodeId = this._selectedNodeIds[0];
+                var ns = es.nodes[nodeId] || {};
+                this._panelTitle.textContent = ns.label || nodeId;
+                this._buildNodePanel(body, nodeId, ns, colors);
+            } else if (this._selectedNodeIds.length > 1) {
+                this._panelTitle.textContent = this._selectedNodeIds.length + ' nodes';
+                // Multi-select panel — placeholder for Task 6
+            } else if (this._selectedConnection !== null && this._selectedConnection !== undefined) {
+                this._panelTitle.textContent = 'Connection';
+                // Connection panel — placeholder for Task 5
+            } else {
+                this._panelTitle.textContent = 'Canvas Tools';
+                // Canvas tools — placeholder for Task 6
+            }
+        },
+
+        _buildNodePanel: function(body, nodeId, ns, colors) {
+            var es = this._editorState;
+            var self = this;
+
+            // Helper to create a standard onChange callback
+            function makeOnChange(prop) {
+                return function(val) {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId][prop] = val;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                    self._updatePanel();
+                };
+            }
+
+            // ── Appearance Section ──
+            var appearSec = createPanelSection('Appearance', '', true);
+            var appearBody = appearSec._body;
+
+            // Shape
+            var currentShape = ns.shape || 'rect';
+            appearBody.appendChild(createToggleRow('Shape', [
+                {value: 'rect', label: 'Rect'}, {value: 'circle', label: 'Circle'},
+                {value: 'diamond', label: 'Diamond'}, {value: 'hexagon', label: 'Hexagon'},
+                {value: 'triangle', label: 'Triangle'}, {value: 'cylinder', label: 'Cylinder'},
+                {value: 'cloud', label: 'Cloud'}, {value: 'pill', label: 'Pill'}
+            ], currentShape, makeOnChange('shape')));
+
+            // Color
+            appearBody.appendChild(createColorRow('Color', colors, ns.color || '', makeOnChange('color')));
+
+            // Border Radius (only for rect)
+            if (currentShape === 'rect') {
+                appearBody.appendChild(createToggleRow('Border Radius', [
+                    {value: '0', label: '0'}, {value: '4', label: '4'},
+                    {value: '8', label: '8'}, {value: '12', label: '12'},
+                    {value: '20', label: '20'}, {value: '50', label: '50'}
+                ], ns.borderRadius || '0', makeOnChange('borderRadius')));
+            }
+
+            // Opacity
+            appearBody.appendChild(createToggleRow('Opacity', [
+                {value: 'default', label: '100%'}, {value: '0.8', label: '80%'},
+                {value: '0.6', label: '60%'}, {value: '0.4', label: '40%'}
+            ], ns.opacity || 'default', makeOnChange('opacity')));
+
+            // Stroke Pattern
+            appearBody.appendChild(createToggleRow('Stroke Pattern', [
+                {value: 'solid', label: 'Solid'}, {value: 'dashed', label: 'Dashed'},
+                {value: 'dotted', label: 'Dotted'}, {value: 'dash-dot', label: 'Dash-Dot'},
+                {value: 'long-dash', label: 'Long'}
+            ], ns.strokePattern || 'solid', makeOnChange('strokePattern')));
+
+            // Border Width
+            appearBody.appendChild(createToggleRow('Border Width', [
+                {value: 'default', label: 'Auto'}, {value: '0', label: 'None'},
+                {value: '1', label: 'Thin'}, {value: '2', label: 'Med'},
+                {value: '3', label: 'Thick'}
+            ], ns.borderWidth || 'default', makeOnChange('borderWidth')));
+
+            body.appendChild(appearSec);
+
+            // ── Text & Value Section ──
+            var textSec = createPanelSection('Text & Value', '', true);
+            var textBody = textSec._body;
+
+            // Label
+            textBody.appendChild(createTextRow('Label', ns.label || '', makeOnChange('label')));
+
+            // Value show/hide
+            var isHidden = ns.hideValue ? true : false;
+            textBody.appendChild(createToggleRow('Value', [
+                {value: false, label: 'Show'}, {value: true, label: 'Hide'}
+            ], isHidden, makeOnChange('hideValue')));
+
+            // Raw Value
+            textBody.appendChild(createToggleRow('Raw Value', [
+                {value: 'truncated', label: 'Truncated'}, {value: 'full', label: 'Full'}
+            ], ns.rawValue || 'truncated', makeOnChange('rawValue')));
+
+            // Prefix
+            textBody.appendChild(createTextRow('Prefix', ns.prefix || '', makeOnChange('prefix')));
+
+            // Suffix
+            textBody.appendChild(createTextRow('Suffix', ns.suffix || '', makeOnChange('suffix')));
+
+            // Font Size
+            textBody.appendChild(createToggleRow('Font Size', [
+                {value: 'default', label: 'Auto'}, {value: 'small', label: 'S'},
+                {value: 'medium', label: 'M'}, {value: 'large', label: 'L'},
+                {value: 'xlarge', label: 'XL'}
+            ], ns.fontSize || 'default', makeOnChange('fontSize')));
+
+            // Text Align
+            textBody.appendChild(createToggleRow('Text Align', [
+                {value: 'left', label: 'Left'}, {value: 'center', label: 'Center'},
+                {value: 'right', label: 'Right'}
+            ], ns.textAlign || 'center', makeOnChange('textAlign')));
+
+            // Label Color (hex + picker only, no swatches)
+            textBody.appendChild(createColorRow('Label Color', [], ns.labelColor || '', makeOnChange('labelColor')));
+
+            // Value Color (hex + picker only, no swatches)
+            textBody.appendChild(createColorRow('Value Color', [], ns.valueColor || '', makeOnChange('valueColor')));
+
+            // Padding
+            textBody.appendChild(createToggleRow('Padding', [
+                {value: 'compact', label: 'Compact'}, {value: 'normal', label: 'Normal'},
+                {value: 'spacious', label: 'Spacious'}
+            ], ns.padding || 'normal', makeOnChange('padding')));
+
+            body.appendChild(textSec);
+
+            // ── Sparkline Section ──
+            var sparkType = ns.sparklineType || '';
+            var sparkPos = ns.sparkPosition || 'default';
+            var sparkSummary = (sparkType || 'Auto') + ' / ' + (sparkPos === 'default' ? 'Below' : sparkPos);
+            var sparkSec = createPanelSection('Sparkline', sparkSummary, false);
+            var sparkBody = sparkSec._body;
+
+            sparkBody.appendChild(createToggleRow('Chart Type', [
+                {value: '', label: 'Auto'}, {value: 'line', label: 'Line'},
+                {value: 'area', label: 'Area'}, {value: 'bar', label: 'Bar'},
+                {value: 'none', label: 'Off'}
+            ], sparkType, makeOnChange('sparklineType')));
+
+            sparkBody.appendChild(createToggleRow('Position', [
+                {value: 'default', label: 'Below'}, {value: 'above', label: 'Above'},
+                {value: 'behind', label: 'Behind'}, {value: 'left', label: 'Left'}
+            ], sparkPos, makeOnChange('sparkPosition')));
+
+            sparkBody.appendChild(createToggleRow('Chart Height', [
+                {value: 'default', label: 'Auto'}, {value: 'small', label: 'S'},
+                {value: 'medium', label: 'M'}, {value: 'large', label: 'L'}
+            ], ns.chartHeight || 'default', makeOnChange('chartHeight')));
+
+            body.appendChild(sparkSec);
+
+            // ── Effects Section ──
+            var shadowOn = ns.shadowEnable === 'on';
+            var glowOn = ns.glowEnable === 'on';
+            var effectsSummary = (shadowOn && glowOn) ? 'Shadow + Glow' : shadowOn ? 'Shadow' : glowOn ? 'Glow' : 'None';
+            var effectsSec = createPanelSection('Effects', effectsSummary, false);
+            var effectsBody = effectsSec._body;
+
+            effectsBody.appendChild(createToggleRow('Shadow', [
+                {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
+            ], ns.shadowEnable || 'off', makeOnChange('shadowEnable')));
+
+            if (shadowOn) {
+                effectsBody.appendChild(createTextRow('Shadow Blur', ns.shadowBlur || '8', makeOnChange('shadowBlur')));
+                effectsBody.appendChild(createTextRow('Shadow Offset X', ns.shadowOffsetX || '2', makeOnChange('shadowOffsetX')));
+                effectsBody.appendChild(createTextRow('Shadow Offset Y', ns.shadowOffsetY || '4', makeOnChange('shadowOffsetY')));
+                effectsBody.appendChild(createColorRow('Shadow Color', [], ns.shadowColor || '#000000', makeOnChange('shadowColor')));
+            }
+
+            effectsBody.appendChild(createToggleRow('Glow', [
+                {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
+            ], ns.glowEnable || 'off', makeOnChange('glowEnable')));
+
+            if (glowOn) {
+                effectsBody.appendChild(createTextRow('Glow Blur', ns.glowBlur || '12', makeOnChange('glowBlur')));
+                effectsBody.appendChild(createColorRow('Glow Color', [], ns.glowColor || '#3b82f6', makeOnChange('glowColor')));
+            }
+
+            body.appendChild(effectsSec);
+
+            // ── Conditions Section ──
+            var conds = ns.conditions || [];
+            var condSummary = conds.length > 0 ? conds.length + ' rule' + (conds.length > 1 ? 's' : '') : 'None';
+            var condSec = createPanelSection('Conditions', condSummary, false);
+            var condBody = condSec._body;
+
+            for (var ci = 0; ci < conds.length; ci++) {
+                (function(ruleIdx) {
+                    var rule = conds[ruleIdx];
+                    var ruleRow = document.createElement('div');
+                    ruleRow.style.cssText = 'display:flex;gap:4px;align-items:center;margin-bottom:6px;';
+
+                    // Operator dropdown
+                    var opSelect = document.createElement('select');
+                    opSelect.style.cssText = 'background:#0f172a;border:1px solid #334155;border-radius:4px;color:#cbd5e1;font-size:10px;padding:2px 4px;outline:none;width:52px;';
+                    var ops = ['<', '<=', '>', '>=', '=', '!=', 'contains'];
+                    for (var oi = 0; oi < ops.length; oi++) {
+                        var opt = document.createElement('option');
+                        opt.value = ops[oi];
+                        opt.textContent = ops[oi];
+                        if (rule.op === ops[oi]) opt.selected = true;
+                        opSelect.appendChild(opt);
+                    }
+                    opSelect.addEventListener('change', function() {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        if (!es.nodes[nodeId].conditions) es.nodes[nodeId].conditions = [];
+                        if (es.nodes[nodeId].conditions[ruleIdx]) {
+                            es.nodes[nodeId].conditions[ruleIdx].op = opSelect.value;
+                        }
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                    });
+                    opSelect.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                    ruleRow.appendChild(opSelect);
+
+                    // Value input
+                    var valInput = document.createElement('input');
+                    valInput.type = 'text';
+                    valInput.value = rule.val || '';
+                    valInput.style.cssText = 'flex:1;min-width:0;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#cbd5e1;font-size:10px;padding:2px 5px;outline:none;';
+                    valInput.addEventListener('blur', function() {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        if (!es.nodes[nodeId].conditions) es.nodes[nodeId].conditions = [];
+                        if (es.nodes[nodeId].conditions[ruleIdx]) {
+                            es.nodes[nodeId].conditions[ruleIdx].val = valInput.value;
+                        }
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                    });
+                    valInput.addEventListener('keydown', function(e) {
+                        e.stopPropagation();
+                        if (e.key === 'Enter' || e.keyCode === 13) valInput.blur();
+                    });
+                    valInput.addEventListener('keyup', function(e) { e.stopPropagation(); });
+                    valInput.addEventListener('keypress', function(e) { e.stopPropagation(); });
+                    ruleRow.appendChild(valInput);
+
+                    // Color picker (small swatch + native picker)
+                    var ruleColor = document.createElement('input');
+                    ruleColor.type = 'color';
+                    ruleColor.value = (rule.color && /^#[0-9a-fA-F]{6}$/.test(rule.color)) ? rule.color : '#ef4444';
+                    ruleColor.style.cssText = 'width:22px;height:22px;border:none;background:none;cursor:pointer;padding:0;border-radius:3px;flex-shrink:0;';
+                    ruleColor.addEventListener('input', function() {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        if (!es.nodes[nodeId].conditions) es.nodes[nodeId].conditions = [];
+                        if (es.nodes[nodeId].conditions[ruleIdx]) {
+                            es.nodes[nodeId].conditions[ruleIdx].color = ruleColor.value;
+                        }
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                    });
+                    ruleColor.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                    ruleRow.appendChild(ruleColor);
+
+                    // Delete button
+                    var delBtn = document.createElement('button');
+                    delBtn.textContent = '\u00D7';
+                    delBtn.style.cssText = 'background:none;border:none;color:#ef4444;font-size:14px;cursor:pointer;padding:0 3px;flex-shrink:0;';
+                    delBtn.addEventListener('click', function() {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        if (!es.nodes[nodeId].conditions) es.nodes[nodeId].conditions = [];
+                        es.nodes[nodeId].conditions.splice(ruleIdx, 1);
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                        self._updatePanel();
+                    });
+                    delBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                    ruleRow.appendChild(delBtn);
+
+                    condBody.appendChild(ruleRow);
+                })(ci);
+            }
+
+            // Add Rule button
+            var addRuleBtn = document.createElement('button');
+            addRuleBtn.textContent = '+ Rule';
+            addRuleBtn.style.cssText = 'padding:4px 12px;border-radius:4px;font-size:10px;font-weight:bold;cursor:pointer;border:1px solid #3b82f6;background:rgba(59,130,246,0.2);color:#93c5fd;margin-top:4px;';
+            addRuleBtn.addEventListener('click', function() {
+                if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                if (!es.nodes[nodeId].conditions) es.nodes[nodeId].conditions = [];
+                es.nodes[nodeId].conditions.push({op: '>', val: '0', color: '#ef4444'});
+                self._pushUndo();
+                self.invalidateUpdateView();
+                self._updatePanel();
+            });
+            addRuleBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+            condBody.appendChild(addRuleBtn);
+
+            body.appendChild(condSec);
         },
 
         getInitialDataParams: function() {
@@ -4387,6 +4698,7 @@ define([
             // Edit mode is session-only — controlled by DOM Edit button, not config
             this._lockMode = lock === 'true';
             this._drilldownField = drilldownField;
+            this._currentPalette = palette;
 
             // Start periodic auto-sync: localStorage → formatter textarea.
             // Formatter textarea only exists when Dashboard Studio edit mode is open
@@ -4667,11 +4979,7 @@ define([
                     ctx.setLineDash([]);
                     ctx.restore();
                 }
-                if (this._showNodePopup && this._nodePopupId && nodeMap[this._nodePopupId]) {
-                    var popResult = drawNodePopup(ctx, nodeMap[this._nodePopupId], this._editorState.nodes[this._nodePopupId] || {}, colors, theme, w, h);
-                    this._nodePopupRect = { x: popResult.x, y: popResult.y, w: popResult.w, h: popResult.h };
-                    this._nodePopupHits = popResult.hits;
-                }
+                // Node popup replaced by DOM panel (_updatePanel / _buildNodePanel)
                 if (this._showConnPopup && this._connPopupIdx !== null) {
                     var edConns2 = this._editorState.connections || [];
                     if (edConns2[this._connPopupIdx]) {
