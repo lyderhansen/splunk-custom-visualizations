@@ -2045,6 +2045,255 @@ define([
         return pointInRect(px, py, node.x, node.y, node.w, node.h);
     }
 
+    // ── Panel Section Builder Helpers ────────────────────────────
+
+    /**
+     * createPanelSection(title, summaryText, expanded)
+     * Returns a collapsible section div with a clickable header.
+     * Attaches ._body and ._summary to the returned element.
+     */
+    function createPanelSection(title, summaryText, expanded) {
+        var isExpanded = (expanded !== false);
+
+        var section = document.createElement('div');
+        section.style.cssText = 'border-bottom:1px solid #1e293b;';
+
+        var header = document.createElement('div');
+        header.style.cssText = 'display:flex;align-items:center;padding:6px 10px;background:#1e293b;cursor:pointer;user-select:none;-webkit-user-select:none;';
+
+        var arrow = document.createElement('span');
+        arrow.style.cssText = 'font-size:9px;color:#64748b;margin-right:5px;transition:transform 0.15s;display:inline-block;';
+        arrow.textContent = isExpanded ? '\u25BC' : '\u25B6';
+
+        var titleEl = document.createElement('span');
+        titleEl.style.cssText = 'font-size:11px;font-weight:bold;color:#94a3b8;flex:1;';
+        titleEl.textContent = title;
+
+        var summaryEl = document.createElement('span');
+        summaryEl.style.cssText = 'font-size:9px;color:#64748b;margin-left:4px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        summaryEl.textContent = summaryText || '';
+        summaryEl.style.display = isExpanded ? 'none' : 'inline';
+
+        header.appendChild(arrow);
+        header.appendChild(titleEl);
+        header.appendChild(summaryEl);
+
+        var body = document.createElement('div');
+        body.style.cssText = 'padding:8px 10px;display:' + (isExpanded ? 'block' : 'none') + ';';
+
+        header.addEventListener('click', function() {
+            isExpanded = !isExpanded;
+            arrow.textContent = isExpanded ? '\u25BC' : '\u25B6';
+            body.style.display = isExpanded ? 'block' : 'none';
+            summaryEl.style.display = isExpanded ? 'none' : 'inline';
+        });
+
+        section.appendChild(header);
+        section.appendChild(body);
+
+        section._body = body;
+        section._summary = summaryEl;
+
+        return section;
+    }
+
+    /**
+     * createToggleRow(label, options, activeValue, onChange)
+     * Returns a label + row of pill-style buttons.
+     * options: [{value: 'rect', label: 'Rect'}, ...]
+     * onChange called with value when a button is clicked.
+     */
+    function createToggleRow(label, options, activeValue, onChange) {
+        var row = document.createElement('div');
+        row.style.cssText = 'margin-bottom:8px;';
+
+        var labelEl = document.createElement('div');
+        labelEl.style.cssText = 'color:#64748b;font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;';
+        labelEl.textContent = label;
+        row.appendChild(labelEl);
+
+        var btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;';
+
+        var buttons = [];
+
+        for (var i = 0; i < options.length; i++) {
+            (function(opt) {
+                var btn = document.createElement('button');
+                var isActive = (opt.value === activeValue);
+                btn.textContent = opt.label !== undefined ? opt.label : opt.value;
+                btn.style.cssText = 'padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;border:1px solid ' +
+                    (isActive ? '#3b82f6' : '#334155') + ';background:' +
+                    (isActive ? 'rgba(59,130,246,0.2)' : 'transparent') +
+                    ';color:' + (isActive ? '#93c5fd' : '#94a3b8') + ';transition:all 0.1s;';
+                btn._optValue = opt.value;
+                btn._active = isActive;
+                buttons.push(btn);
+
+                btn.addEventListener('click', function() {
+                    for (var j = 0; j < buttons.length; j++) {
+                        var b = buttons[j];
+                        var a = (b._optValue === opt.value);
+                        b._active = a;
+                        b.style.borderColor = a ? '#3b82f6' : '#334155';
+                        b.style.background = a ? 'rgba(59,130,246,0.2)' : 'transparent';
+                        b.style.color = a ? '#93c5fd' : '#94a3b8';
+                    }
+                    if (onChange) onChange(opt.value);
+                });
+
+                btnRow.appendChild(btn);
+            })(options[i]);
+        }
+
+        row.appendChild(btnRow);
+        return row;
+    }
+
+    /**
+     * createTextRow(label, value, onChange)
+     * Returns a label + text input row.
+     * onChange called on blur and Enter key.
+     * Stops key propagation to prevent canvas handler capture.
+     */
+    function createTextRow(label, value, onChange) {
+        var row = document.createElement('div');
+        row.style.cssText = 'margin-bottom:8px;';
+
+        var labelEl = document.createElement('div');
+        labelEl.style.cssText = 'color:#64748b;font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;';
+        labelEl.textContent = label;
+        row.appendChild(labelEl);
+
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.value = (value !== null && value !== undefined) ? String(value) : '';
+        input.style.cssText = 'width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#cbd5e1;font-size:11px;padding:4px 7px;outline:none;';
+
+        input.addEventListener('focus', function() {
+            input.style.borderColor = '#3b82f6';
+            input.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.25)';
+        });
+        input.addEventListener('blur', function() {
+            input.style.borderColor = '#334155';
+            input.style.boxShadow = 'none';
+            if (onChange) onChange(input.value);
+        });
+        input.addEventListener('keydown', function(e) {
+            e.stopPropagation();
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                input.blur();
+            }
+        });
+        input.addEventListener('keyup', function(e) { e.stopPropagation(); });
+        input.addEventListener('keypress', function(e) { e.stopPropagation(); });
+
+        row.appendChild(input);
+        return row;
+    }
+
+    /**
+     * createColorRow(label, colors, activeColor, onSelect)
+     * Returns a label + color swatches + hex input + native color picker row.
+     * onSelect called with hex string when swatch clicked, hex input blurred, or picker used.
+     */
+    function createColorRow(label, colors, activeColor, onSelect) {
+        var row = document.createElement('div');
+        row.style.cssText = 'margin-bottom:8px;';
+
+        var labelEl = document.createElement('div');
+        labelEl.style.cssText = 'color:#64748b;font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;';
+        labelEl.textContent = label;
+        row.appendChild(labelEl);
+
+        var swatchRow = document.createElement('div');
+        swatchRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-bottom:5px;';
+
+        var swatches = [];
+
+        function updateSwatches(selectedColor) {
+            for (var si = 0; si < swatches.length; si++) {
+                var sw = swatches[si];
+                var isSelected = (sw._color.toLowerCase() === (selectedColor || '').toLowerCase());
+                sw.style.outline = isSelected ? '2px solid #f1f5f9' : '2px solid transparent';
+                sw.style.outlineOffset = '1px';
+            }
+        }
+
+        for (var ci = 0; ci < colors.length; ci++) {
+            (function(color) {
+                var swatch = document.createElement('div');
+                swatch.style.cssText = 'width:16px;height:16px;border-radius:3px;cursor:pointer;flex-shrink:0;background:' + color + ';';
+                swatch._color = color;
+                swatch.addEventListener('click', function() {
+                    hexInput.value = color;
+                    updateSwatches(color);
+                    if (onSelect) onSelect(color);
+                });
+                swatchRow.appendChild(swatch);
+                swatches.push(swatch);
+            })(colors[ci]);
+        }
+
+        row.appendChild(swatchRow);
+
+        var inputRow = document.createElement('div');
+        inputRow.style.cssText = 'display:flex;gap:5px;align-items:center;';
+
+        var hexInput = document.createElement('input');
+        hexInput.type = 'text';
+        hexInput.value = activeColor || '';
+        hexInput.style.cssText = 'flex:1;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#cbd5e1;font-size:11px;padding:3px 6px;outline:none;min-width:0;';
+        hexInput.placeholder = '#rrggbb';
+
+        hexInput.addEventListener('focus', function() {
+            hexInput.style.borderColor = '#3b82f6';
+            hexInput.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.25)';
+        });
+        hexInput.addEventListener('blur', function() {
+            hexInput.style.borderColor = '#334155';
+            hexInput.style.boxShadow = 'none';
+            var val = hexInput.value.trim();
+            if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+                updateSwatches(val);
+                colorPicker.value = val;
+                if (onSelect) onSelect(val);
+            }
+        });
+        hexInput.addEventListener('keydown', function(e) { e.stopPropagation(); });
+        hexInput.addEventListener('keyup', function(e) { e.stopPropagation(); });
+        hexInput.addEventListener('keypress', function(e) {
+            e.stopPropagation();
+            if (e.key === 'Enter' || e.keyCode === 13) { hexInput.blur(); }
+        });
+
+        var colorPicker = document.createElement('input');
+        colorPicker.type = 'color';
+        colorPicker.value = (activeColor && /^#[0-9a-fA-F]{6}$/.test(activeColor)) ? activeColor : '#3b82f6';
+        colorPicker.style.cssText = 'width:24px;height:24px;border:none;background:none;cursor:pointer;padding:0;border-radius:3px;flex-shrink:0;';
+
+        colorPicker.addEventListener('input', function() {
+            var val = colorPicker.value;
+            hexInput.value = val;
+            updateSwatches(val);
+            if (onSelect) onSelect(val);
+        });
+        colorPicker.addEventListener('change', function() {
+            var val = colorPicker.value;
+            hexInput.value = val;
+            updateSwatches(val);
+            if (onSelect) onSelect(val);
+        });
+
+        inputRow.appendChild(hexInput);
+        inputRow.appendChild(colorPicker);
+        row.appendChild(inputRow);
+
+        updateSwatches(activeColor);
+
+        return row;
+    }
+
     // ══════════════════════════════════════════════════════════════
     // ██ Visualization Object
     // ══════════════════════════════════════════════════════════════
