@@ -1,5 +1,18 @@
 # Business Process Flow — Changelog
 
+## v4.6.0 — 2026-03-22 19:00
+- **Undo/Redo system** — Full undo/redo with 50-step history
+  - Toolbar buttons: ↩ (undo) and ↪ (redo)
+  - Keyboard: Cmd+Z / Ctrl+Z (undo), Cmd+Shift+Z / Ctrl+Y (redo)
+  - Tracks all changes: drag, resize, popup edits, connection changes, waypoints
+- **Dedicated delete button** — ✖ button in toolbar deletes selected element
+  - Deletes: waypoints (under cursor), connections, manual nodes
+  - Shows status message: "Waypoint deleted", "Connection deleted", "Node deleted"
+  - Shows "Cannot delete data-driven node" for search-driven nodes
+  - Shows "Nothing selected" when nothing to delete
+- **Status messages** — Blue text in toolbar showing undo/redo/delete feedback
+- **Easier curved line waypoint adding** — Doubled hit threshold for double-click on curved lines
+
 ## v4.5.4 — 2026-03-22 18:40
 - **Fix: start endpoint direction** — Start arrows now correctly point TOWARD the source node (←), giving proper `<---->` bidirectional arrows. Previously both ends pointed in the same direction (→→).
 

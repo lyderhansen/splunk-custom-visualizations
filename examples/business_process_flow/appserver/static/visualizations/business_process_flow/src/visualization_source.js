@@ -1044,7 +1044,7 @@ define([
 
     // ── Toolbar Drawing ───────────────────────────────────────────
 
-    function drawToolbar(ctx, w, theme, toolbarH, buttons, hoverItem, lockMode, saveFlash, saveError, saveMessage) {
+    function drawToolbar(ctx, w, theme, toolbarH, buttons, hoverItem, lockMode, saveFlash, saveError, saveMessage, statusMessage) {
         // Background
         ctx.fillStyle = theme.toolbarBg;
         ctx.fillRect(0, 0, w, toolbarH);
@@ -1071,6 +1071,9 @@ define([
             { label: '\u2192', icon: '', action: 'addConnection',  w: 36 },
             { label: '\u2715', icon: '', action: 'delete',         w: 36, tint: 'red' },
             { label: '\u229E', icon: '', action: 'fit',            w: 36 },
+            { label: '\u21A9', icon: '', action: 'undo',            w: 28 },
+            { label: '\u21AA', icon: '', action: 'redo',            w: 28 },
+            { label: '\u2716', icon: '', action: 'deleteSelected',  w: 28, tint: 'red' },
             { label: '{ }',   icon: '', action: 'code',            w: 40 },
             { label: 'Close', icon: '', action: 'close',           w: 50, tint: 'gray' }
         ];
@@ -1125,6 +1128,9 @@ define([
         } else if (saveError) {
             ctx.fillStyle = '#ef4444';
             ctx.fillText('SAVE FAILED', w - 12, toolbarH / 2);
+        } else if (statusMessage) {
+            ctx.fillStyle = '#60a5fa';
+            ctx.fillText(statusMessage, w - 12, toolbarH / 2);
         } else {
             ctx.fillStyle = theme.textMuted;
             ctx.fillText('EDIT MODE', w - 12, toolbarH / 2);
@@ -1816,6 +1822,10 @@ define([
             this._selectedNodeId = null;
             this._editMode = false;
             this._lockMode = false;
+            this._undoStack = [];
+            this._redoStack = [];
+            this._statusMessage = '';
+            this._statusTimeout = null;
             this._isDraggingWaypoint = false;
             this._dragWpConnIdx = null;
             this._dragWpIdx = null;
@@ -1919,6 +1929,110 @@ define([
                 }, 3000);
             };
 
+            // ── Undo/Redo system ──
+            this._pushUndo = function() {
+                self._undoStack.push(JSON.stringify(self._editorState));
+                if (self._undoStack.length > 50) self._undoStack.shift();
+                self._redoStack = []; // clear redo on new action
+            };
+
+            this._undo = function() {
+                if (self._undoStack.length === 0) {
+                    self._showStatus('Nothing to undo');
+                    return;
+                }
+                self._redoStack.push(JSON.stringify(self._editorState));
+                var prev = self._undoStack.pop();
+                try {
+                    self._editorState = JSON.parse(prev);
+                } catch(e) { /* ignore */ }
+                self.invalidateUpdateView();
+                self._showStatus('Undo');
+            };
+
+            this._redo = function() {
+                if (self._redoStack.length === 0) {
+                    self._showStatus('Nothing to redo');
+                    return;
+                }
+                self._undoStack.push(JSON.stringify(self._editorState));
+                var next = self._redoStack.pop();
+                try {
+                    self._editorState = JSON.parse(next);
+                } catch(e) { /* ignore */ }
+                self.invalidateUpdateView();
+                self._showStatus('Redo');
+            };
+
+            this._showStatus = function(msg) {
+                self._statusMessage = msg;
+                self.invalidateUpdateView();
+                if (self._statusTimeout) clearTimeout(self._statusTimeout);
+                self._statusTimeout = setTimeout(function() {
+                    self._statusMessage = '';
+                    self.invalidateUpdateView();
+                }, 1500);
+            };
+
+            // ── Delete selected element ──
+            this._deleteSelected = function() {
+                // 1. Check waypoint under cursor
+                var edcWp = self._editorState.connections || [];
+                for (var dwci = 0; dwci < edcWp.length; dwci++) {
+                    var dwps = edcWp[dwci].waypoints;
+                    if (!dwps) continue;
+                    for (var dwpi = 0; dwpi < dwps.length; dwpi++) {
+                        if (pointInCircle(self._mouseX, self._mouseY, dwps[dwpi].x, dwps[dwpi].y, 16)) {
+                            self._pushUndo();
+                            dwps.splice(dwpi, 1);
+                            if (dwps.length === 0) delete edcWp[dwci].waypoints;
+                            self.invalidateUpdateView();
+                            self._showStatus('Waypoint deleted');
+                            return;
+                        }
+                    }
+                }
+                // 2. Delete selected connection
+                if (self._selectedConnection !== null && self._connPopupIdx !== null) {
+                    self._pushUndo();
+                    var delConns = self._editorState.connections || [];
+                    if (self._connPopupIdx >= 0 && self._connPopupIdx < delConns.length) {
+                        delConns.splice(self._connPopupIdx, 1);
+                    }
+                    self._selectedConnection = null;
+                    self._showConnPopup = false;
+                    self._connPopupIdx = null;
+                    self.invalidateUpdateView();
+                    self._showStatus('Connection deleted');
+                    return;
+                }
+                // 3. Delete selected manual node
+                if (self._selectedNodeId) {
+                    var selN = self._editorState.nodes[self._selectedNodeId];
+                    if (selN && selN.manual) {
+                        self._pushUndo();
+                        delete self._editorState.nodes[self._selectedNodeId];
+                        var kc = [];
+                        var ac = self._editorState.connections || [];
+                        for (var kci = 0; kci < ac.length; kci++) {
+                            if (ac[kci].from !== self._selectedNodeId && ac[kci].to !== self._selectedNodeId) {
+                                kc.push(ac[kci]);
+                            }
+                        }
+                        self._editorState.connections = kc;
+                        self._selectedNodeId = null;
+                        self._showNodePopup = false;
+                        self.invalidateUpdateView();
+                        self._showStatus('Node deleted');
+                        return;
+                    } else {
+                        self._showStatus('Cannot delete data-driven node');
+                        return;
+                    }
+                }
+                self._showStatus('Nothing selected');
+            };
+
             // ── Execute toolbar action ──
             this._executeToolbarAction = function(action) {
                 if (action === 'save') {
@@ -2011,6 +2125,12 @@ define([
                         self._editorState.nodes[fn2.id].y = newFy;
                     }
                     self.invalidateUpdateView();
+                } else if (action === 'undo') {
+                    self._undo();
+                } else if (action === 'redo') {
+                    self._redo();
+                } else if (action === 'deleteSelected') {
+                    self._deleteSelected();
                 } else if (action === 'code') {
                     self._showCodeEditor = !self._showCodeEditor;
                     self._updateCodeEditor();
@@ -2189,6 +2309,7 @@ define([
                                     if (!self._editorState.nodes[popNodeId]) {
                                         self._editorState.nodes[popNodeId] = {};
                                     }
+                                    self._pushUndo();
                                     if (nHit.type === 'shape') {
                                         self._editorState.nodes[popNodeId].shape = nHit.value;
                                         self.invalidateUpdateView();
@@ -2336,6 +2457,7 @@ define([
                             for (var cph = 0; cph < self._connPopupHits.length; cph++) {
                                 var cHit = self._connPopupHits[cph];
                                 if (pointInRect(mx, my, cHit.x, cHit.y, cHit.w, cHit.h)) {
+                                    self._pushUndo();
                                     if (cHit.type === 'style' && edConns[cIdx]) {
                                         edConns[cIdx].style = cHit.value;
                                     } else if (cHit.type === 'width' && edConns[cIdx]) {
@@ -2606,6 +2728,7 @@ define([
                     for (var ni = 0; ni < self._computedNodes.length; ni++) {
                         var nd = self._computedNodes[ni];
                         if (hitTestNode(mx, my, nd)) {
+                            self._pushUndo();
                             // Pin ALL node positions to editorState so auto-layout
                             // doesn't shift other nodes during drag
                             for (var pinI = 0; pinI < self._computedNodes.length; pinI++) {
@@ -3221,7 +3344,7 @@ define([
                     }
                     dcPts.push({ x: dcTcx, y: dcTcy });
                     for (var dsi = 0; dsi < dcPts.length - 1; dsi++) {
-                        if (pointNearLine(mx, my, dcPts[dsi].x, dcPts[dsi].y, dcPts[dsi + 1].x, dcPts[dsi + 1].y, 10)) {
+                        if (pointNearLine(mx, my, dcPts[dsi].x, dcPts[dsi].y, dcPts[dsi + 1].x, dcPts[dsi + 1].y, 20)) {
                             // Find matching editorState connection
                             var edConns3 = self._editorState.connections || [];
                             for (var eci2 = 0; eci2 < edConns3.length; eci2++) {
@@ -3292,55 +3415,22 @@ define([
                     }
                     if (changed) self.invalidateUpdateView();
                 }
-                // Delete/Backspace — remove waypoint under cursor, or selected connection/node
+                // Delete/Backspace
                 if ((e.key === 'Delete' || e.key === 'Backspace') && self._editMode) {
-                    // First: check if cursor is over a waypoint (16px radius)
-                    var edcWp = self._editorState.connections || [];
-                    for (var dwci = 0; dwci < edcWp.length; dwci++) {
-                        var dwps = edcWp[dwci].waypoints;
-                        if (!dwps) continue;
-                        for (var dwpi = 0; dwpi < dwps.length; dwpi++) {
-                            if (pointInCircle(self._mouseX, self._mouseY, dwps[dwpi].x, dwps[dwpi].y, 16)) {
-                                dwps.splice(dwpi, 1);
-                                if (dwps.length === 0) delete edcWp[dwci].waypoints;
-                                self.invalidateUpdateView();
-                                e.preventDefault();
-                                return;
-                            }
-                        }
-                    }
-                    // Second: delete selected connection
-                    if (self._selectedConnection !== null && self._connPopupIdx !== null) {
-                        var delConns = self._editorState.connections || [];
-                        if (self._connPopupIdx >= 0 && self._connPopupIdx < delConns.length) {
-                            delConns.splice(self._connPopupIdx, 1);
-                        }
-                        self._selectedConnection = null;
-                        self._showConnPopup = false;
-                        self._connPopupIdx = null;
-                        self.invalidateUpdateView();
+                    e.preventDefault();
+                    self._deleteSelected();
+                }
+                // Undo: Cmd+Z / Ctrl+Z
+                if (e.key === 'z' && (e.metaKey || e.ctrlKey) && !e.shiftKey && self._editMode) {
+                    e.preventDefault();
+                    self._undo();
+                }
+                // Redo: Cmd+Shift+Z / Ctrl+Y
+                if ((e.key === 'z' && (e.metaKey || e.ctrlKey) && e.shiftKey) ||
+                    (e.key === 'y' && e.ctrlKey)) {
+                    if (self._editMode) {
                         e.preventDefault();
-                        return;
-                    }
-                    // Third: delete selected manual node
-                    if (self._selectedNodeId) {
-                        var selN = self._editorState.nodes[self._selectedNodeId];
-                        if (selN && selN.manual) {
-                            delete self._editorState.nodes[self._selectedNodeId];
-                            var kc = [];
-                            var ac = self._editorState.connections || [];
-                            for (var kci = 0; kci < ac.length; kci++) {
-                                if (ac[kci].from !== self._selectedNodeId && ac[kci].to !== self._selectedNodeId) {
-                                    kc.push(ac[kci]);
-                                }
-                            }
-                            self._editorState.connections = kc;
-                            self._selectedNodeId = null;
-                            self._showNodePopup = false;
-                            self.invalidateUpdateView();
-                            e.preventDefault();
-                            return;
-                        }
+                        self._redo();
                     }
                 }
             };
@@ -3665,7 +3755,7 @@ define([
 
             // Draw toolbar if edit mode
             if (this._editMode) {
-                drawToolbar(ctx, w, theme, toolbarH, this._toolbarButtons, this._hoverItem, this._lockMode, this._saveFlash, this._saveError, this._saveMessage);
+                drawToolbar(ctx, w, theme, toolbarH, this._toolbarButtons, this._hoverItem, this._lockMode, this._saveFlash, this._saveError, this._saveMessage, this._statusMessage);
             }
 
             // Draw connections
