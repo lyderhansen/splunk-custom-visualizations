@@ -2466,6 +2466,10 @@ define([
             this._gridEnabled = false;
             this._gridSize = 20;
             this._snapEnabled = false;
+            this._panX = 0;
+            this._panY = 0;
+            this._isPanning = false;
+            this._spaceHeld = false;
 
             var self = this;
 
@@ -2585,7 +2589,7 @@ define([
                     var dwps = edcWp[dwci].waypoints;
                     if (!dwps) continue;
                     for (var dwpi = 0; dwpi < dwps.length; dwpi++) {
-                        if (pointInCircle(self._mouseX, self._mouseY, dwps[dwpi].x, dwps[dwpi].y, 16)) {
+                        if (pointInCircle(self._mouseX - self._panX, self._mouseY - self._panY, dwps[dwpi].x, dwps[dwpi].y, 16)) {
                             self._pushUndo();
                             dwps.splice(dwpi, 1);
                             if (dwps.length === 0) delete edcWp[dwci].waypoints;
@@ -2653,11 +2657,11 @@ define([
                     self._saveEditorState();
                     return;
                 } else if (action === 'addNode') {
-                    // Create a new manual node at center of canvas
+                    // Create a new manual node at center of visible canvas
                     var newId = 'manual_' + Date.now();
                     var rect = self.canvas.getBoundingClientRect();
-                    var cx = rect.width / 2 - 90;
-                    var cy = rect.height / 2 - 60;
+                    var cx = (rect.width / 2 - 90) - self._panX;
+                    var cy = (rect.height / 2 - 60) - self._panY;
                     self._editorState.nodes[newId] = {
                         x: cx,
                         y: cy,
@@ -2709,6 +2713,9 @@ define([
                         self.invalidateUpdateView();
                     }
                 } else if (action === 'fit') {
+                    // Reset pan offset
+                    self._panX = 0;
+                    self._panY = 0;
                     // Fit all nodes within canvas
                     var fitNodes = self._computedNodes;
                     if (fitNodes.length === 0) return;
@@ -2893,12 +2900,25 @@ define([
             // ── Mouse Down ──
             this._onMouseDown = function(e) {
                 var rect = self.canvas.getBoundingClientRect();
-                var mx = e.clientX - rect.left;
-                var my = e.clientY - rect.top;
-                self._mouseX = mx;
-                self._mouseY = my;
+                var rawMx = e.clientX - rect.left;
+                var rawMy = e.clientY - rect.top;
+                var mx = rawMx - self._panX;
+                var my = rawMy - self._panY;
+                self._mouseX = rawMx;
+                self._mouseY = rawMy;
                 self._didDrag = false;
                 self._pendingToolbarAction = null;
+
+                // Space+drag panning
+                if (self._spaceHeld && !self._isDragging && !self._isResizing && !self._isDraggingWaypoint && !self._isDraggingAnchor && !self._isDraggingLabel) {
+                    self._isPanning = true;
+                    self._panStartX = e.clientX;
+                    self._panStartY = e.clientY;
+                    self.canvas.style.cursor = 'grabbing';
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
 
                 // In modal edit mode, prevent event leaking
                 if (self._editMode) {
@@ -2907,10 +2927,10 @@ define([
                 }
 
                 if (self._editMode) {
-                    // Check toolbar buttons
+                    // Check toolbar buttons (use raw coordinates — toolbar is not panned)
                     for (var bi = 0; bi < self._toolbarButtons.length; bi++) {
                         var btn = self._toolbarButtons[bi];
-                        if (pointInRect(mx, my, btn.x, btn.y, btn.w, btn.h)) {
+                        if (pointInRect(rawMx, rawMy, btn.x, btn.y, btn.w, btn.h)) {
                             self._pendingToolbarAction = btn.action;
                             return;
                         }
@@ -3517,15 +3537,30 @@ define([
             // ── Mouse Move ──
             this._onMouseMove = function(e) {
                 // Stop event propagation during modal interactions
-                if (self._isDragging || self._isResizing || self._isConnecting || self._editMode) {
+                if (self._isDragging || self._isResizing || self._isConnecting || self._editMode || self._isPanning) {
                     e.preventDefault();
                     e.stopPropagation();
                 }
+
+                // Handle panning
+                if (self._isPanning) {
+                    var pdx = e.clientX - self._panStartX;
+                    var pdy = e.clientY - self._panStartY;
+                    self._panX += pdx;
+                    self._panY += pdy;
+                    self._panStartX = e.clientX;
+                    self._panStartY = e.clientY;
+                    self.invalidateUpdateView();
+                    return;
+                }
+
                 var rect = self.canvas.getBoundingClientRect();
-                var mx = e.clientX - rect.left;
-                var my = e.clientY - rect.top;
-                self._mouseX = mx;
-                self._mouseY = my;
+                var rawMx = e.clientX - rect.left;
+                var rawMy = e.clientY - rect.top;
+                var mx = rawMx - self._panX;
+                var my = rawMy - self._panY;
+                self._mouseX = rawMx;
+                self._mouseY = rawMy;
 
                 // Handle anchor dragging — snap to nearest node edge
                 if (self._isDraggingAnchor && self._dragAnchorNode) {
@@ -3692,11 +3727,11 @@ define([
                 var oldHover = self._hoverItem;
                 self._hoverItem = null;
 
-                // Check toolbar buttons
+                // Check toolbar buttons (use raw coordinates — toolbar is not panned)
                 if (self._editMode && self._toolbarButtons) {
                     for (var bi = 0; bi < self._toolbarButtons.length; bi++) {
                         var btn = self._toolbarButtons[bi];
-                        if (pointInRect(mx, my, btn.x, btn.y, btn.w, btn.h)) {
+                        if (pointInRect(rawMx, rawMy, btn.x, btn.y, btn.w, btn.h)) {
                             self._hoverItem = { type: 'button', index: bi };
                             break;
                         }
@@ -3832,6 +3867,13 @@ define([
 
             // ── Mouse Up ──
             this._onMouseUp = function(e) {
+                // Handle pan end
+                if (self._isPanning) {
+                    self._isPanning = false;
+                    self.canvas.style.cursor = self._spaceHeld ? 'grab' : 'default';
+                    return;
+                }
+
                 if (self._editMode || self._isDragging || self._isResizing || self._isRubberBanding) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -4014,8 +4056,8 @@ define([
                     }
                 } else if (!self._editMode) {
                     // View mode click on node (lock mode — no drag started)
-                    var vmx = self._mouseX;
-                    var vmy = self._mouseY;
+                    var vmx = self._mouseX - self._panX;
+                    var vmy = self._mouseY - self._panY;
                     for (var vhi = 0; vhi < self._computedNodes.length; vhi++) {
                         var vhNode = self._computedNodes[vhi];
                         if (hitTestNode(vmx, vmy, vhNode)) {
@@ -4041,8 +4083,8 @@ define([
             this._onDblClick = function(e) {
                 if (!self._editMode) return;
                 var rect = self.canvas.getBoundingClientRect();
-                var mx = e.clientX - rect.left;
-                var my = e.clientY - rect.top;
+                var mx = (e.clientX - rect.left) - self._panX;
+                var my = (e.clientY - rect.top) - self._panY;
 
                 // Double-click on node → open popup
                 for (var dni = 0; dni < self._computedNodes.length; dni++) {
@@ -4127,6 +4169,15 @@ define([
 
             // ── Keydown ──
             this._onKeyDown = function(e) {
+                // Space — begin pan mode
+                if (e.key === ' ' || e.keyCode === 32) {
+                    var tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+                    if (tag === 'input' || tag === 'textarea' || tag === 'select' || tag === 'button') return;
+                    e.preventDefault();
+                    self._spaceHeld = true;
+                    self.canvas.style.cursor = 'grab';
+                    return;
+                }
                 if (e.key === 'Escape') {
                     var changed = false;
                     if (self._isConnecting) {
@@ -4183,6 +4234,17 @@ define([
             this.canvas.addEventListener('contextmenu', this._onContextMenu);
             // (overlay removed — modal editor handles edit mode events)
             document.addEventListener('keydown', this._onKeyDown);
+
+            this._onKeyUp = function(e) {
+                if (e.key === ' ' || e.keyCode === 32) {
+                    self._spaceHeld = false;
+                    if (!self._isPanning) {
+                        self.canvas.style.cursor = 'default';
+                    }
+                    return;
+                }
+            };
+            document.addEventListener('keyup', this._onKeyUp);
         },
 
         _updatePanel: function() {
@@ -5158,10 +5220,14 @@ define([
             // ── Render canvas ──
             ctx.clearRect(0, 0, w, h);
 
-            // Draw toolbar if edit mode
+            // Draw toolbar if edit mode (toolbar is NOT panned)
             if (this._editMode) {
                 drawToolbar(ctx, w, theme, toolbarH, this._toolbarButtons, this._hoverItem, this._lockMode, this._saveFlash, this._saveError, this._saveMessage, this._statusMessage);
             }
+
+            // Apply pan offset for world-space drawing
+            ctx.save();
+            ctx.translate(this._panX, this._panY);
 
             // Draw connections
             for (var ci = 0; ci < connections.length; ci++) {
@@ -5172,8 +5238,8 @@ define([
                     var connSelected = this._editMode && this._selectedConnection !== null &&
                         this._selectedConnection.index === ci;
                     var connHovered = this._hoverItem && this._hoverItem.type === 'connection' && this._hoverItem.index === ci;
-                    conn._mouseX = this._mouseX;
-                    conn._mouseY = this._mouseY;
+                    conn._mouseX = this._mouseX - this._panX;
+                    conn._mouseY = this._mouseY - this._panY;
                     drawConnection(ctx, fromNd, toNd, conn, theme, connSelected, this._editMode, connHovered);
                 }
             }
@@ -5210,7 +5276,7 @@ define([
                         ctx.lineWidth = 2;
                         ctx.beginPath();
                         ctx.moveTo(fromConnNode.x + fromConnNode.w / 2, fromConnNode.y + fromConnNode.h / 2);
-                        ctx.lineTo(this._mouseX, this._mouseY);
+                        ctx.lineTo(this._mouseX - this._panX, this._mouseY - this._panY);
                         ctx.stroke();
                         ctx.setLineDash([]);
                         ctx.restore();
@@ -5235,6 +5301,9 @@ define([
                 // Node popup replaced by DOM panel (_updatePanel / _buildNodePanel)
                 // Connection popup replaced by DOM panel (_updatePanel / _buildConnectionPanel)
             }
+
+            // Restore from pan translate — everything below is in screen space
+            ctx.restore();
 
             // Hover tooltips in view mode
             if (!this._editMode && this._hoverItem) {
