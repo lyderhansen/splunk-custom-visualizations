@@ -1399,6 +1399,7 @@ define([
      */
     function drawConnectionOverlays(ctx, connections, theme) {
         for (var oi = 0; oi < connections.length; oi++) {
+            connections[oi]._wpDeleteHits = null; // reset each frame
             var dd = connections[oi]._deferredDraw;
             if (!dd) continue;
             // Endpoints
@@ -1409,24 +1410,41 @@ define([
                 // Start endpoint points TOWARD the start node (arrow tip at node edge)
                 drawEndpoint(ctx, dd.startPtX, dd.startPtY, dd.startAngle, dd.startEp, dd.epSize, dd.lineColor);
             }
-            // Waypoint handles — with hover hint for deletion
+            // Waypoint handles — with clickable delete button on hover
             if (dd.editMode && dd.waypoints && dd.waypoints.length > 0) {
                 for (var wph = 0; wph < dd.waypoints.length; wph++) {
                     var wpRadius = dd.isSelected ? 7 : 5;
-                    // Check if mouse is near this waypoint (for delete hint)
                     var wpHovered = dd.mouseX !== undefined &&
                         pointInCircle(dd.mouseX, dd.mouseY, dd.waypoints[wph].x, dd.waypoints[wph].y, 16);
                     ctx.beginPath();
                     ctx.arc(dd.waypoints[wph].x, dd.waypoints[wph].y, wpRadius, 0, Math.PI * 2);
-                    if (wpHovered) {
-                        ctx.fillStyle = '#ef4444'; // red = deleteable
-                    } else {
-                        ctx.fillStyle = dd.isSelected ? '#3b82f6' : 'rgba(59,130,246,0.5)';
-                    }
+                    ctx.fillStyle = wpHovered ? '#ef4444' : (dd.isSelected ? '#3b82f6' : 'rgba(59,130,246,0.5)');
                     ctx.fill();
                     ctx.strokeStyle = '#fff';
                     ctx.lineWidth = 2;
                     ctx.stroke();
+                    // Draw small × delete button above hovered waypoint
+                    if (wpHovered) {
+                        var delX = dd.waypoints[wph].x + 8;
+                        var delY = dd.waypoints[wph].y - 12;
+                        ctx.beginPath();
+                        ctx.arc(delX, delY, 8, 0, Math.PI * 2);
+                        ctx.fillStyle = '#ef4444';
+                        ctx.fill();
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold 10px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('\u00D7', delX, delY);
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'alphabetic';
+                        // Store delete button hit for click handling
+                        if (!connections[oi]._wpDeleteHits) connections[oi]._wpDeleteHits = [];
+                        connections[oi]._wpDeleteHits.push({ x: delX, y: delY, r: 8, wpIdx: wph });
+                    }
                 }
                 ctx.lineWidth = 1;
             }
@@ -2488,6 +2506,30 @@ define([
                                     self.canvas.style.cursor = 'crosshair';
                                     return;
                                 }
+                            }
+                        }
+                    }
+
+                    // Check waypoint delete buttons (× icons)
+                    for (var wdci = 0; wdci < self._computedConnections.length; wdci++) {
+                        var wdHits = self._computedConnections[wdci]._wpDeleteHits;
+                        if (!wdHits) continue;
+                        for (var wdhi = 0; wdhi < wdHits.length; wdhi++) {
+                            if (pointInCircle(mx, my, wdHits[wdhi].x, wdHits[wdhi].y, wdHits[wdhi].r + 2)) {
+                                // Find editorState connection
+                                var wdConn = self._computedConnections[wdci];
+                                var edcDel = self._editorState.connections || [];
+                                for (var wdei = 0; wdei < edcDel.length; wdei++) {
+                                    if (edcDel[wdei].from === wdConn.from && edcDel[wdei].to === wdConn.to) {
+                                        if (edcDel[wdei].waypoints && edcDel[wdei].waypoints.length > wdHits[wdhi].wpIdx) {
+                                            edcDel[wdei].waypoints.splice(wdHits[wdhi].wpIdx, 1);
+                                            if (edcDel[wdei].waypoints.length === 0) delete edcDel[wdei].waypoints;
+                                        }
+                                        break;
+                                    }
+                                }
+                                self.invalidateUpdateView();
+                                return;
                             }
                         }
                     }

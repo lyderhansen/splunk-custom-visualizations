@@ -1,5 +1,9 @@
 # Business Process Flow — Changelog
 
+## v4.5.3 — 2026-03-22 18:25
+- **Clickable waypoint delete buttons** — Red × icon appears above hovered waypoints; click to delete (no keyboard needed, works in Splunk)
+- **Removed keyboard dependency** — Backspace doesn't work in Splunk's context, so all delete actions now have click-based alternatives
+
 ## v4.5.2 — 2026-03-22 18:10
 - **Better waypoint deletion** — Increased hit radius to 16px, waypoints turn red when hoverable for deletion
 - **Delete key support** — Delete/Backspace now also removes selected connections and manual nodes
