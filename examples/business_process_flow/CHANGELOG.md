@@ -1,5 +1,15 @@
 # Business Process Flow — Changelog
 
+## v4.9.0 — 2026-03-22 20:30
+- **Conditional formatting** — Per-node color rules based on value
+  - Operators: `<`, `<=`, `>`, `>=`, `=`, `!=`, `contains`
+  - Works with numeric values (0-10 green, 10-30 yellow, 30+ red)
+  - Works with text matching ("error" = red, "info" = green)
+  - Rules evaluated top-to-bottom, first match wins
+  - Matching rule sets: subtle background tint (15% opacity), colored border
+  - Node popup shows rules list with inline editor (operator dropdown + value input + color picker)
+  - Add/delete rules with + Rule button and × icons
+
 ## v4.8.1 — 2026-03-22 20:05
 - **Fix: flipped endpoint positioning** — When an endpoint direction is flipped, the arrow/icon is now shifted outward along the line by 80% of its size, preventing it from overlapping or hiding inside the node shape
 

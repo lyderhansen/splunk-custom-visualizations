@@ -40,6 +40,46 @@ define([
     }
 
     /**
+     * Evaluate conditional formatting rules against a value.
+     * Returns the color of the first matching rule, or null if no match.
+     * Rules: [{ op: '<=', val: '10', color: '#22c55e' }, ...]
+     * Operators: <, <=, >, >=, =, !=, contains
+     */
+    function evalConditions(conditions, rawValue) {
+        if (!conditions || conditions.length === 0) return null;
+        var numVal = parseFloat(rawValue);
+        var strVal = String(rawValue !== null && rawValue !== undefined ? rawValue : '').toLowerCase();
+
+        for (var ci = 0; ci < conditions.length; ci++) {
+            var rule = conditions[ci];
+            if (!rule.op || !rule.color) continue;
+            var ruleVal = String(rule.val || '');
+            var ruleNum = parseFloat(ruleVal);
+            var ruleStr = ruleVal.toLowerCase();
+            var match = false;
+
+            if (rule.op === '<' && !isNaN(numVal) && !isNaN(ruleNum)) {
+                match = numVal < ruleNum;
+            } else if (rule.op === '<=' && !isNaN(numVal) && !isNaN(ruleNum)) {
+                match = numVal <= ruleNum;
+            } else if (rule.op === '>' && !isNaN(numVal) && !isNaN(ruleNum)) {
+                match = numVal > ruleNum;
+            } else if (rule.op === '>=' && !isNaN(numVal) && !isNaN(ruleNum)) {
+                match = numVal >= ruleNum;
+            } else if (rule.op === '=') {
+                match = (!isNaN(numVal) && !isNaN(ruleNum)) ? numVal === ruleNum : strVal === ruleStr;
+            } else if (rule.op === '!=') {
+                match = (!isNaN(numVal) && !isNaN(ruleNum)) ? numVal !== ruleNum : strVal !== ruleStr;
+            } else if (rule.op === 'contains') {
+                match = strVal.indexOf(ruleStr) !== -1;
+            }
+
+            if (match) return rule.color;
+        }
+        return null;
+    }
+
+    /**
      * Linear interpolation between two hex colors.
      */
     function lerpColor(a, b, t) {
@@ -342,7 +382,8 @@ define([
                 borderWidth: perNode.borderWidth,
                 prefix: edState ? edState.prefix : undefined,
                 suffix: edState ? edState.suffix : undefined,
-                sparkPosition: edState ? edState.sparkPosition : undefined
+                sparkPosition: edState ? edState.sparkPosition : undefined,
+                conditions: edState ? edState.conditions : undefined
             };
 
             if (edState && edState.x !== undefined && edState.y !== undefined) {
@@ -727,16 +768,19 @@ define([
             }
         }
 
-        // Draw shape fill
+        // Conditional formatting — evaluate rules to get override color
+        var condColor = evalConditions(node.conditions, node.value);
+
+        // Draw shape fill — conditional color tints the background subtly
         shapePath();
-        ctx.fillStyle = theme.nodeBg;
+        ctx.fillStyle = condColor ? hexToRgba(condColor, 0.15) : theme.nodeBg;
         ctx.fill();
 
-        // Draw border
+        // Draw border — conditional color replaces border color
         if (borderWidth > 0) {
             shapePath();
-            ctx.strokeStyle = isSelected ? node.color : theme.nodeBorder;
-            ctx.lineWidth = borderWidth;
+            ctx.strokeStyle = isSelected ? node.color : (condColor || theme.nodeBorder);
+            ctx.lineWidth = condColor ? Math.max(borderWidth, 2) : borderWidth;
             ctx.stroke();
         }
 
@@ -1459,9 +1503,59 @@ define([
 
         ctx.textBaseline = 'alphabetic';
         ctx.lineWidth = 1;
+        rowY += swatchS + 6;
+
+        // ── 11. Conditional Formatting ──
+        drawLabel('Rules');
+        var conds = (editorNode && editorNode.conditions) ? editorNode.conditions : [];
+        if (conds.length === 0) {
+            ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.fillStyle = theme.textMuted;
+            ctx.textBaseline = 'middle';
+            ctx.fillText('(none — click + to add)', contentX, rowY + rowH / 2);
+        } else {
+            for (var ri = 0; ri < conds.length; ri++) {
+                var rule = conds[ri];
+                // Color swatch
+                roundRect(ctx, contentX, rowY + 3, 14, 14, 2);
+                ctx.fillStyle = rule.color || '#888';
+                ctx.fill();
+                // Rule text
+                ctx.font = '10px monospace';
+                ctx.fillStyle = theme.text;
+                ctx.textBaseline = 'middle';
+                ctx.fillText((rule.op || '?') + ' ' + (rule.val || ''), contentX + 18, rowY + rowH / 2);
+                // Edit hit
+                hits.push({ type: 'editCondition', value: ri, x: contentX, y: rowY + 1, w: contentW - 22, h: rowH - 2 });
+                // Delete × button
+                var delCX = contentX + contentW - 16;
+                ctx.font = 'bold 10px sans-serif';
+                ctx.fillStyle = '#ef4444';
+                ctx.textAlign = 'center';
+                ctx.fillText('\u00D7', delCX + 6, rowY + rowH / 2);
+                ctx.textAlign = 'left';
+                hits.push({ type: 'deleteCondition', value: ri, x: delCX, y: rowY + 1, w: 14, h: rowH - 2 });
+                rowY += rowH;
+            }
+        }
+        // Add rule button
+        rowY += 2;
+        var addRuleX = contentX;
+        roundRect(ctx, addRuleX, rowY, 60, rowH - 2, 3);
+        ctx.fillStyle = '#3b82f6';
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('+ Rule', addRuleX + 30, rowY + (rowH - 2) / 2);
+        ctx.textAlign = 'left';
+        hits.push({ type: 'addCondition', value: true, x: addRuleX, y: rowY, w: 60, h: rowH - 2 });
+
+        ctx.textBaseline = 'alphabetic';
 
         // Compute actual popup height from final rowY
-        var actualH = rowY + swatchS + pad + 4 - py;
+        var actualH = rowY + rowH + pad - py;
         return { x: px, y: py, w: popW, h: actualH, hits: hits };
     }
 
@@ -2491,6 +2585,91 @@ define([
                                             self._editorState.nodes[popNodeId][nHit.type] = nHit.value;
                                         }
                                         self.invalidateUpdateView();
+                                    } else if (nHit.type === 'addCondition') {
+                                        if (!self._editorState.nodes[popNodeId].conditions) {
+                                            self._editorState.nodes[popNodeId].conditions = [];
+                                        }
+                                        self._editorState.nodes[popNodeId].conditions.push({
+                                            op: '>=', val: '0', color: '#22c55e'
+                                        });
+                                        self.invalidateUpdateView();
+                                    } else if (nHit.type === 'deleteCondition') {
+                                        var condArr = self._editorState.nodes[popNodeId].conditions;
+                                        if (condArr && nHit.value >= 0 && nHit.value < condArr.length) {
+                                            condArr.splice(nHit.value, 1);
+                                            if (condArr.length === 0) delete self._editorState.nodes[popNodeId].conditions;
+                                        }
+                                        self.invalidateUpdateView();
+                                    } else if (nHit.type === 'editCondition') {
+                                        // Open a prompt-style input for editing the condition
+                                        var condArr2 = self._editorState.nodes[popNodeId].conditions;
+                                        if (condArr2 && condArr2[nHit.value]) {
+                                            var cond = condArr2[nHit.value];
+                                            // Create inline editor: op | val | color
+                                            var condWrap = document.createElement('div');
+                                            condWrap.style.cssText = 'position:absolute;z-index:9999;display:flex;gap:4px;align-items:center;';
+                                            var condRect = self.canvas.getBoundingClientRect();
+                                            condWrap.style.left = (condRect.left + nHit.x) + 'px';
+                                            condWrap.style.top = (condRect.top + nHit.y) + 'px';
+
+                                            var opSel = document.createElement('select');
+                                            opSel.style.cssText = 'font-size:11px;background:#1e293b;color:#f1f5f9;border:1px solid #3b82f6;border-radius:3px;padding:1px;height:20px;';
+                                            var ops = ['<', '<=', '>', '>=', '=', '!=', 'contains'];
+                                            for (var opi = 0; opi < ops.length; opi++) {
+                                                var opt = document.createElement('option');
+                                                opt.value = ops[opi];
+                                                opt.textContent = ops[opi];
+                                                if (ops[opi] === cond.op) opt.selected = true;
+                                                opSel.appendChild(opt);
+                                            }
+
+                                            var valInp = document.createElement('input');
+                                            valInp.type = 'text';
+                                            valInp.value = cond.val || '';
+                                            valInp.placeholder = 'value';
+                                            valInp.style.cssText = 'width:60px;font-size:11px;background:#1e293b;color:#f1f5f9;border:1px solid #3b82f6;border-radius:3px;padding:0 4px;height:20px;';
+
+                                            var colInp = document.createElement('input');
+                                            colInp.type = 'color';
+                                            colInp.value = cond.color || '#22c55e';
+                                            colInp.style.cssText = 'width:24px;height:20px;border:none;padding:0;cursor:pointer;';
+
+                                            var okBtn = document.createElement('button');
+                                            okBtn.textContent = '\u2713';
+                                            okBtn.style.cssText = 'font-size:12px;background:#10b981;color:#fff;border:none;border-radius:3px;width:22px;height:20px;cursor:pointer;';
+
+                                            condWrap.appendChild(opSel);
+                                            condWrap.appendChild(valInp);
+                                            condWrap.appendChild(colInp);
+                                            condWrap.appendChild(okBtn);
+                                            document.body.appendChild(condWrap);
+                                            valInp.focus();
+
+                                            var condNodeId = popNodeId;
+                                            var condIdx = nHit.value;
+                                            var condDone = false;
+                                            function finishCondEdit() {
+                                                if (condDone) return;
+                                                condDone = true;
+                                                var ca = self._editorState.nodes[condNodeId].conditions;
+                                                if (ca && ca[condIdx]) {
+                                                    ca[condIdx].op = opSel.value;
+                                                    ca[condIdx].val = valInp.value;
+                                                    ca[condIdx].color = colInp.value;
+                                                }
+                                                if (condWrap.parentNode) condWrap.parentNode.removeChild(condWrap);
+                                                self.invalidateUpdateView();
+                                            }
+                                            okBtn.addEventListener('click', function(ce) {
+                                                ce.stopPropagation();
+                                                finishCondEdit();
+                                            });
+                                            valInp.addEventListener('keydown', function(cke) {
+                                                if (cke.key === 'Enter') finishCondEdit();
+                                            });
+                                            // Stop events from reaching canvas
+                                            condWrap.addEventListener('mousedown', function(ce) { ce.stopPropagation(); });
+                                        }
                                     } else if (nHit.type === 'colorHex') {
                                         // Open native OS color picker
                                         var hexVal = (self._editorState.nodes[popNodeId] && self._editorState.nodes[popNodeId].color) || '#3b82f6';
