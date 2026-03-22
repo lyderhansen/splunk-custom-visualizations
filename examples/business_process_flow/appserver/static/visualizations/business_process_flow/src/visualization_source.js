@@ -994,28 +994,14 @@ define([
         ctx.setLineDash([]);
         ctx.lineWidth = 1;
 
-        // Draw endpoints at original positions (not shortened)
-        if (endEp !== 'none') {
-            drawEndpoint(ctx, endPt.x, endPt.y, endAngle, endEp, epSize, lineColor);
-        }
-        if (startEp !== 'none') {
-            drawEndpoint(ctx, startPt.x, startPt.y, startAngle + Math.PI, startEp, epSize, lineColor);
-        }
-
-        // Draw waypoint handles — visible in edit mode, highlighted when selected
-        if (editMode && waypoints.length > 0) {
-            for (var wph = 0; wph < waypoints.length; wph++) {
-                var wpRadius = isSelected ? 6 : 4;
-                ctx.beginPath();
-                ctx.arc(waypoints[wph].x, waypoints[wph].y, wpRadius, 0, Math.PI * 2);
-                ctx.fillStyle = isSelected ? '#3b82f6' : 'rgba(59,130,246,0.5)';
-                ctx.fill();
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = isSelected ? 2 : 1;
-                ctx.stroke();
-            }
-            ctx.lineWidth = 1;
-        }
+        // DEFER endpoints and waypoints to be drawn AFTER nodes
+        // Store them on the conn object for the deferred pass
+        conn._deferredDraw = {
+            endEp: endEp, endPtX: endPt.x, endPtY: endPt.y, endAngle: endAngle,
+            startEp: startEp, startPtX: startPt.x, startPtY: startPt.y, startAngle: startAngle,
+            epSize: epSize, lineColor: lineColor,
+            waypoints: waypoints, isSelected: isSelected, editMode: editMode
+        };
 
         // Label
         if (conn.label) {
@@ -1418,6 +1404,38 @@ define([
         ctx.lineWidth = 1;
 
         return { x: px, y: py, w: popW, h: popH, hits: hits };
+    }
+
+    /**
+     * Draw deferred connection overlays (endpoints, waypoints, labels).
+     * Called AFTER nodes are drawn so they appear on top.
+     */
+    function drawConnectionOverlays(ctx, connections) {
+        for (var oi = 0; oi < connections.length; oi++) {
+            var dd = connections[oi]._deferredDraw;
+            if (!dd) continue;
+            // Endpoints
+            if (dd.endEp !== 'none') {
+                drawEndpoint(ctx, dd.endPtX, dd.endPtY, dd.endAngle, dd.endEp, dd.epSize, dd.lineColor);
+            }
+            if (dd.startEp !== 'none') {
+                drawEndpoint(ctx, dd.startPtX, dd.startPtY, dd.startAngle + Math.PI, dd.startEp, dd.epSize, dd.lineColor);
+            }
+            // Waypoint handles
+            if (dd.editMode && dd.waypoints && dd.waypoints.length > 0) {
+                for (var wph = 0; wph < dd.waypoints.length; wph++) {
+                    var wpRadius = dd.isSelected ? 6 : 4;
+                    ctx.beginPath();
+                    ctx.arc(dd.waypoints[wph].x, dd.waypoints[wph].y, wpRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = dd.isSelected ? '#3b82f6' : 'rgba(59,130,246,0.5)';
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = dd.isSelected ? 2 : 1;
+                    ctx.stroke();
+                }
+                ctx.lineWidth = 1;
+            }
+        }
     }
 
     // ── Connection Formatting Popup ──────────────────────────────
@@ -3375,6 +3393,9 @@ define([
                     this._hoverItem.id === pn.id;
                 drawNode(ctx, pn, theme, accentLine, sparklineType, nodeRadius, isNodeSelected, isNodeHovered);
             }
+
+            // Draw connection overlays (endpoints, waypoints) ON TOP of nodes
+            drawConnectionOverlays(ctx, connections);
 
             // Edit mode UI extras
             if (this._editMode) {
