@@ -1649,7 +1649,8 @@ define([
                                     self._editorState = parsed;
                                     if (!self._editorState.nodes) self._editorState.nodes = {};
                                     if (!self._editorState.connections) self._editorState.connections = [];
-                                    self._editorStateLoaded = false;
+                                    // Do NOT reset _editorStateLoaded — that would
+                                    // cause updateView to reload old state from config
                                     self.invalidateUpdateView();
                                     hdrLabel.textContent = 'Layout JSON \u2714 Applied';
                                     hdrLabel.style.color = '#10b981';
