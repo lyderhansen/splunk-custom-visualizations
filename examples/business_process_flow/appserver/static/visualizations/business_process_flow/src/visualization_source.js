@@ -106,6 +106,27 @@ define([
     }
 
     /**
+     * Check if array contains a value (ES5-safe).
+     */
+    function arrContains(arr, val) {
+        for (var i = 0; i < arr.length; i++) {
+            if (arr[i] === val) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Return new array with val removed (ES5-safe).
+     */
+    function arrRemove(arr, val) {
+        var out = [];
+        for (var i = 0; i < arr.length; i++) {
+            if (arr[i] !== val) out.push(arr[i]);
+        }
+        return out;
+    }
+
+    /**
      * Rounded rectangle path (does not fill or stroke).
      */
     function roundRect(ctx, x, y, w, h, r) {
@@ -2084,7 +2105,11 @@ define([
             this._resizeNodeId = null;
             this._resizeHandle = null;
             this._selectedConnection = null;
-            this._selectedNodeId = null;
+            this._selectedNodeIds = [];
+            this._isRubberBanding = false;
+            this._rubberBandStart = null;
+            this._rubberBandEnd = null;
+            this._dragNodeStarts = {};
             this._editMode = false;
             this._lockMode = false;
             this._undoStack = [];
@@ -2271,29 +2296,40 @@ define([
                     self._showStatus('Connection deleted');
                     return;
                 }
-                // 3. Delete selected manual node
-                if (self._selectedNodeId) {
-                    var selN = self._editorState.nodes[self._selectedNodeId];
-                    if (selN && selN.manual) {
-                        self._pushUndo();
-                        delete self._editorState.nodes[self._selectedNodeId];
-                        var kc = [];
-                        var ac = self._editorState.connections || [];
-                        for (var kci = 0; kci < ac.length; kci++) {
-                            if (ac[kci].from !== self._selectedNodeId && ac[kci].to !== self._selectedNodeId) {
-                                kc.push(ac[kci]);
+                // 3. Delete selected manual node(s)
+                if (self._selectedNodeIds.length > 0) {
+                    var anyDeleted = false;
+                    var anyBlocked = false;
+                    self._pushUndo();
+                    for (var sdi = 0; sdi < self._selectedNodeIds.length; sdi++) {
+                        var delId = self._selectedNodeIds[sdi];
+                        var selN = self._editorState.nodes[delId];
+                        if (selN && selN.manual) {
+                            delete self._editorState.nodes[delId];
+                            var kc = [];
+                            var ac = self._editorState.connections || [];
+                            for (var kci = 0; kci < ac.length; kci++) {
+                                if (ac[kci].from !== delId && ac[kci].to !== delId) {
+                                    kc.push(ac[kci]);
+                                }
                             }
+                            self._editorState.connections = kc;
+                            anyDeleted = true;
+                        } else {
+                            anyBlocked = true;
                         }
-                        self._editorState.connections = kc;
-                        self._selectedNodeId = null;
-                        self._showNodePopup = false;
-                        self.invalidateUpdateView();
-                        self._showStatus('Node deleted');
-                        return;
+                    }
+                    self._selectedNodeIds = [];
+                    self._showNodePopup = false;
+                    self.invalidateUpdateView();
+                    if (anyDeleted && anyBlocked) {
+                        self._showStatus('Manual nodes deleted; data-driven nodes skipped');
+                    } else if (anyDeleted) {
+                        self._showStatus('Node(s) deleted');
                     } else {
                         self._showStatus('Cannot delete data-driven node');
-                        return;
                     }
+                    return;
                 }
                 self._showStatus('Nothing selected');
             };
@@ -2336,24 +2372,28 @@ define([
                         self._connPopupIdx = null;
                         self._showConnPopup = false;
                         self.invalidateUpdateView();
-                    } else if (self._selectedNodeId) {
-                        var delNode = self._editorState.nodes[self._selectedNodeId];
-                        // Only delete manual nodes
-                        if (delNode && delNode.manual === true) {
-                            delete self._editorState.nodes[self._selectedNodeId];
-                            // Remove connections involving this node
-                            var filteredConns = [];
-                            var conns = self._editorState.connections || [];
-                            for (var dci = 0; dci < conns.length; dci++) {
-                                if (conns[dci].from !== self._selectedNodeId && conns[dci].to !== self._selectedNodeId) {
-                                    filteredConns.push(conns[dci]);
+                    } else if (self._selectedNodeIds.length > 0) {
+                        self._pushUndo();
+                        for (var tdi = 0; tdi < self._selectedNodeIds.length; tdi++) {
+                            var tdId = self._selectedNodeIds[tdi];
+                            var delNode = self._editorState.nodes[tdId];
+                            // Only delete manual nodes
+                            if (delNode && delNode.manual === true) {
+                                delete self._editorState.nodes[tdId];
+                                // Remove connections involving this node
+                                var filteredConns = [];
+                                var conns = self._editorState.connections || [];
+                                for (var dci = 0; dci < conns.length; dci++) {
+                                    if (conns[dci].from !== tdId && conns[dci].to !== tdId) {
+                                        filteredConns.push(conns[dci]);
+                                    }
                                 }
+                                self._editorState.connections = filteredConns;
                             }
-                            self._editorState.connections = filteredConns;
-                            self._selectedNodeId = null;
-                            self._showNodePopup = false;
-                            self.invalidateUpdateView();
                         }
+                        self._selectedNodeIds = [];
+                        self._showNodePopup = false;
+                        self.invalidateUpdateView();
                     }
                 } else if (action === 'fit') {
                     // Fit all nodes within canvas
@@ -2404,7 +2444,7 @@ define([
                     self._editMode = false;
                     self._showCodeEditor = false;
                     if (self._codeEditorEl) self._codeEditorEl.style.display = 'none';
-                    self._selectedNodeId = null;
+                    self._selectedNodeIds = [];
                     self._selectedConnection = null;
                     self._showNodePopup = false;
                     self._showConnPopup = false;
@@ -3051,10 +3091,10 @@ define([
                         }
                     }
 
-                    // Check resize handles on selected/hovered node
-                    if (self._selectedNodeId) {
+                    // Check resize handles on selected node (single selection only)
+                    if (self._selectedNodeIds.length === 1) {
                         for (var rni = 0; rni < self._computedNodes.length; rni++) {
-                            if (self._computedNodes[rni].id === self._selectedNodeId) {
+                            if (self._computedNodes[rni].id === self._selectedNodeIds[0]) {
                                 var rsNode = self._computedNodes[rni];
                                 var handles = getResizeHandles(rsNode);
                                 for (var rhi = 0; rhi < handles.length; rhi++) {
@@ -3095,13 +3135,39 @@ define([
                                     self._editorState.nodes[pinN.id].y = pinN.y;
                                 }
                             }
+                            // Multi-select: shift+click toggles node in selection
+                            if (e.shiftKey) {
+                                if (arrContains(self._selectedNodeIds, nd.id)) {
+                                    self._selectedNodeIds = arrRemove(self._selectedNodeIds, nd.id);
+                                } else {
+                                    self._selectedNodeIds.push(nd.id);
+                                }
+                            } else {
+                                // If clicking an already-selected node in a group, keep group for drag
+                                if (!arrContains(self._selectedNodeIds, nd.id)) {
+                                    self._selectedNodeIds = [nd.id];
+                                }
+                            }
+                            // Store per-node drag start positions for multi-drag
+                            self._dragNodeStarts = {};
+                            for (var dnsi = 0; dnsi < self._selectedNodeIds.length; dnsi++) {
+                                var dnsId = self._selectedNodeIds[dnsi];
+                                for (var dnsj = 0; dnsj < self._computedNodes.length; dnsj++) {
+                                    if (self._computedNodes[dnsj].id === dnsId) {
+                                        self._dragNodeStarts[dnsId] = {
+                                            x: self._computedNodes[dnsj].x,
+                                            y: self._computedNodes[dnsj].y
+                                        };
+                                        break;
+                                    }
+                                }
+                            }
                             self._isDragging = true;
                             self._dragNodeId = nd.id;
                             self._dragStartX = mx;
                             self._dragStartY = my;
                             self._dragNodeStartX = nd.x;
                             self._dragNodeStartY = nd.y;
-                            self._selectedNodeId = nd.id;
                             self._selectedConnection = null;
                             self._showConnPopup = false;
                             self.invalidateUpdateView();
@@ -3163,7 +3229,7 @@ define([
                             if (ccHit) {
                                 // Use computed connection index (cci) for unique identification
                                 self._selectedConnection = { index: cci };
-                                self._selectedNodeId = null;
+                                self._selectedNodeIds = [];
                                 self._showNodePopup = false;
                                 // Find matching editorState connection by from+to+index
                                 // Count how many connections with same from/to appear before this one
@@ -3209,8 +3275,13 @@ define([
                         }
                     }
 
-                    // Clicked empty space — deselect
-                    self._selectedNodeId = null;
+                    // Clicked empty space — start rubber-band selection
+                    self._isRubberBanding = true;
+                    self._rubberBandStart = { x: mx, y: my };
+                    self._rubberBandEnd = { x: mx, y: my };
+                    if (!e.shiftKey) {
+                        self._selectedNodeIds = [];
+                    }
                     self._selectedConnection = null;
                     self._showNodePopup = false;
                     self._showConnPopup = false;
@@ -3368,21 +3439,43 @@ define([
                     self.invalidateUpdateView();
                 }
 
-                // Handle dragging
+                // Handle rubber-band selection drag
+                if (self._isRubberBanding) {
+                    self._rubberBandEnd = { x: mx, y: my };
+                    self.invalidateUpdateView();
+                    return;
+                }
+
+                // Handle dragging — move all selected nodes together
                 if (self._isDragging && self._dragNodeId) {
                     self._didDrag = true;
                     var deltaX = mx - self._dragStartX;
                     var deltaY = my - self._dragStartY;
-                    var newX = self._dragNodeStartX + deltaX;
-                    var newY = self._dragNodeStartY + deltaY;
 
-                    // Update editorState in real-time so computeNodePositions
-                    // picks up the new position on redraw
-                    if (!self._editorState.nodes[self._dragNodeId]) {
-                        self._editorState.nodes[self._dragNodeId] = {};
+                    // Move all selected nodes by the same delta
+                    if (self._editMode && self._selectedNodeIds.length > 1 && self._dragNodeStarts) {
+                        for (var mdi = 0; mdi < self._selectedNodeIds.length; mdi++) {
+                            var mdId = self._selectedNodeIds[mdi];
+                            var mdStart = self._dragNodeStarts[mdId];
+                            if (mdStart) {
+                                if (!self._editorState.nodes[mdId]) {
+                                    self._editorState.nodes[mdId] = {};
+                                }
+                                self._editorState.nodes[mdId].x = mdStart.x + deltaX;
+                                self._editorState.nodes[mdId].y = mdStart.y + deltaY;
+                            }
+                        }
+                    } else {
+                        var newX = self._dragNodeStartX + deltaX;
+                        var newY = self._dragNodeStartY + deltaY;
+                        // Update editorState in real-time so computeNodePositions
+                        // picks up the new position on redraw
+                        if (!self._editorState.nodes[self._dragNodeId]) {
+                            self._editorState.nodes[self._dragNodeId] = {};
+                        }
+                        self._editorState.nodes[self._dragNodeId].x = newX;
+                        self._editorState.nodes[self._dragNodeId].y = newY;
                     }
-                    self._editorState.nodes[self._dragNodeId].x = newX;
-                    self._editorState.nodes[self._dragNodeId].y = newY;
 
                     self.invalidateUpdateView();
                     // Update cursor
@@ -3483,9 +3576,9 @@ define([
                     } else if (self._hoverItem.type === 'node') {
                         // Check resize handles first
                         var onHandle = false;
-                        if (self._editMode && self._selectedNodeId && self._hoverItem.id === self._selectedNodeId) {
+                        if (self._editMode && self._selectedNodeIds.length === 1 && self._hoverItem.id === self._selectedNodeIds[0]) {
                             for (var rhi2 = 0; rhi2 < self._computedNodes.length; rhi2++) {
-                                if (self._computedNodes[rhi2].id === self._selectedNodeId) {
+                                if (self._computedNodes[rhi2].id === self._selectedNodeIds[0]) {
                                     var hHandles = getResizeHandles(self._computedNodes[rhi2]);
                                     for (var hhi = 0; hhi < hHandles.length; hhi++) {
                                         if (pointInRect(mx, my, hHandles[hhi].x - 2, hHandles[hhi].y - 2, hHandles[hhi].w + 4, hHandles[hhi].h + 4)) {
@@ -3541,6 +3634,35 @@ define([
                 var rect = self.canvas.getBoundingClientRect();
                 self._mouseX = e.clientX - rect.left;
                 self._mouseY = e.clientY - rect.top;
+
+                // Handle rubber-band selection end
+                if (self._isRubberBanding) {
+                    self._isRubberBanding = false;
+                    var rbx1 = Math.min(self._rubberBandStart.x, self._rubberBandEnd.x);
+                    var rby1 = Math.min(self._rubberBandStart.y, self._rubberBandEnd.y);
+                    var rbx2 = Math.max(self._rubberBandStart.x, self._rubberBandEnd.x);
+                    var rby2 = Math.max(self._rubberBandStart.y, self._rubberBandEnd.y);
+                    var rbW = rbx2 - rbx1;
+                    var rbH = rby2 - rby1;
+                    // Only select if rectangle is large enough (avoid accidental clicks)
+                    if (rbW > 5 || rbH > 5) {
+                        for (var rbi = 0; rbi < self._computedNodes.length; rbi++) {
+                            var rbn = self._computedNodes[rbi];
+                            // Node is inside if its center is within the rectangle
+                            var rnCx = rbn.x + rbn.w / 2;
+                            var rnCy = rbn.y + rbn.h / 2;
+                            if (rnCx >= rbx1 && rnCx <= rbx2 && rnCy >= rby1 && rnCy <= rby2) {
+                                if (!arrContains(self._selectedNodeIds, rbn.id)) {
+                                    self._selectedNodeIds.push(rbn.id);
+                                }
+                            }
+                        }
+                    }
+                    self._rubberBandStart = null;
+                    self._rubberBandEnd = null;
+                    self.invalidateUpdateView();
+                    return;
+                }
 
                 // Handle pending toolbar action
                 if (self._pendingToolbarAction) {
@@ -3620,17 +3742,21 @@ define([
                     var draggedId = self._dragNodeId;
 
                     if (self._editMode) {
-                        // Modal edit mode: persist position to editorState
+                        // Modal edit mode: persist positions for all dragged nodes
                         if (wasDrag) {
-                            for (var ni = 0; ni < self._computedNodes.length; ni++) {
-                                if (self._computedNodes[ni].id === draggedId) {
-                                    var movedNode = self._computedNodes[ni];
-                                    if (!self._editorState.nodes[draggedId]) {
-                                        self._editorState.nodes[draggedId] = {};
+                            var dragIds = self._selectedNodeIds.length > 1 ? self._selectedNodeIds : [draggedId];
+                            for (var mdi2 = 0; mdi2 < dragIds.length; mdi2++) {
+                                var mdId2 = dragIds[mdi2];
+                                for (var ni = 0; ni < self._computedNodes.length; ni++) {
+                                    if (self._computedNodes[ni].id === mdId2) {
+                                        var movedNode = self._computedNodes[ni];
+                                        if (!self._editorState.nodes[mdId2]) {
+                                            self._editorState.nodes[mdId2] = {};
+                                        }
+                                        self._editorState.nodes[mdId2].x = movedNode.x;
+                                        self._editorState.nodes[mdId2].y = movedNode.y;
+                                        break;
                                     }
-                                    self._editorState.nodes[draggedId].x = movedNode.x;
-                                    self._editorState.nodes[draggedId].y = movedNode.y;
-                                    break;
                                 }
                             }
                         }
@@ -3811,8 +3937,8 @@ define([
                         self._connPopupIdx = null;
                         changed = true;
                     }
-                    if (self._selectedNodeId || self._selectedConnection) {
-                        self._selectedNodeId = null;
+                    if (self._selectedNodeIds.length > 0 || self._selectedConnection) {
+                        self._selectedNodeIds = [];
                         self._selectedConnection = null;
                         changed = true;
                     }
@@ -4179,7 +4305,7 @@ define([
             // Draw nodes
             for (var di = 0; di < positioned.length; di++) {
                 var pn = positioned[di];
-                var isNodeSelected = this._editMode && this._selectedNodeId === pn.id;
+                var isNodeSelected = this._editMode && arrContains(this._selectedNodeIds, pn.id);
                 var isNodeHovered = this._hoverItem &&
                     this._hoverItem.type === 'node' &&
                     this._hoverItem.id === pn.id;
@@ -4191,9 +4317,9 @@ define([
 
             // Edit mode UI extras
             if (this._editMode) {
-                if (this._selectedNodeId) {
+                if (this._selectedNodeIds.length === 1) {
                     for (var rhi3 = 0; rhi3 < positioned.length; rhi3++) {
-                        if (positioned[rhi3].id === this._selectedNodeId) {
+                        if (positioned[rhi3].id === this._selectedNodeIds[0]) {
                             drawResizeHandles(ctx, positioned[rhi3], theme);
                             break;
                         }
@@ -4213,6 +4339,22 @@ define([
                         ctx.setLineDash([]);
                         ctx.restore();
                     }
+                }
+                // Draw rubber-band selection rectangle
+                if (this._isRubberBanding && this._rubberBandStart && this._rubberBandEnd) {
+                    var rbsx = Math.min(this._rubberBandStart.x, this._rubberBandEnd.x);
+                    var rbsy = Math.min(this._rubberBandStart.y, this._rubberBandEnd.y);
+                    var rbsw = Math.abs(this._rubberBandEnd.x - this._rubberBandStart.x);
+                    var rbsh = Math.abs(this._rubberBandEnd.y - this._rubberBandStart.y);
+                    ctx.save();
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([4, 4]);
+                    ctx.fillStyle = 'rgba(59,130,246,0.08)';
+                    ctx.fillRect(rbsx, rbsy, rbsw, rbsh);
+                    ctx.strokeRect(rbsx, rbsy, rbsw, rbsh);
+                    ctx.setLineDash([]);
+                    ctx.restore();
                 }
                 if (this._showNodePopup && this._nodePopupId && nodeMap[this._nodePopupId]) {
                     var popResult = drawNodePopup(ctx, nodeMap[this._nodePopupId], this._editorState.nodes[this._nodePopupId] || {}, colors, theme, w, h);
