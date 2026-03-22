@@ -1025,7 +1025,8 @@ define([
             waypoints: waypoints, isSelected: isSelected, editMode: editMode,
             // Original anchor points (before shortening) for anchor handles
             origStartX: startPt.x, origStartY: startPt.y,
-            origEndX: endPt.x, origEndY: endPt.y
+            origEndX: endPt.x, origEndY: endPt.y,
+            mouseX: conn._mouseX, mouseY: conn._mouseY
         };
 
         // Label — deferred to overlay pass, include position for dragging
@@ -1408,16 +1409,23 @@ define([
                 // Start endpoint points TOWARD the start node (arrow tip at node edge)
                 drawEndpoint(ctx, dd.startPtX, dd.startPtY, dd.startAngle, dd.startEp, dd.epSize, dd.lineColor);
             }
-            // Waypoint handles
+            // Waypoint handles — with hover hint for deletion
             if (dd.editMode && dd.waypoints && dd.waypoints.length > 0) {
                 for (var wph = 0; wph < dd.waypoints.length; wph++) {
-                    var wpRadius = dd.isSelected ? 6 : 4;
+                    var wpRadius = dd.isSelected ? 7 : 5;
+                    // Check if mouse is near this waypoint (for delete hint)
+                    var wpHovered = dd.mouseX !== undefined &&
+                        pointInCircle(dd.mouseX, dd.mouseY, dd.waypoints[wph].x, dd.waypoints[wph].y, 16);
                     ctx.beginPath();
                     ctx.arc(dd.waypoints[wph].x, dd.waypoints[wph].y, wpRadius, 0, Math.PI * 2);
-                    ctx.fillStyle = dd.isSelected ? '#3b82f6' : 'rgba(59,130,246,0.5)';
+                    if (wpHovered) {
+                        ctx.fillStyle = '#ef4444'; // red = deleteable
+                    } else {
+                        ctx.fillStyle = dd.isSelected ? '#3b82f6' : 'rgba(59,130,246,0.5)';
+                    }
                     ctx.fill();
                     ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = dd.isSelected ? 2 : 1;
+                    ctx.lineWidth = 2;
                     ctx.stroke();
                 }
                 ctx.lineWidth = 1;
@@ -3241,20 +3249,54 @@ define([
                     }
                     if (changed) self.invalidateUpdateView();
                 }
-                // Delete/Backspace — remove waypoint under cursor or selected item
+                // Delete/Backspace — remove waypoint under cursor, or selected connection/node
                 if ((e.key === 'Delete' || e.key === 'Backspace') && self._editMode) {
-                    // Check if cursor is over a waypoint
+                    // First: check if cursor is over a waypoint (16px radius)
                     var edcWp = self._editorState.connections || [];
                     for (var dwci = 0; dwci < edcWp.length; dwci++) {
                         var dwps = edcWp[dwci].waypoints;
                         if (!dwps) continue;
                         for (var dwpi = 0; dwpi < dwps.length; dwpi++) {
-                            if (pointInCircle(self._mouseX, self._mouseY, dwps[dwpi].x, dwps[dwpi].y, 10)) {
+                            if (pointInCircle(self._mouseX, self._mouseY, dwps[dwpi].x, dwps[dwpi].y, 16)) {
                                 dwps.splice(dwpi, 1);
+                                if (dwps.length === 0) delete edcWp[dwci].waypoints;
                                 self.invalidateUpdateView();
                                 e.preventDefault();
                                 return;
                             }
+                        }
+                    }
+                    // Second: delete selected connection
+                    if (self._selectedConnection !== null && self._connPopupIdx !== null) {
+                        var delConns = self._editorState.connections || [];
+                        if (self._connPopupIdx >= 0 && self._connPopupIdx < delConns.length) {
+                            delConns.splice(self._connPopupIdx, 1);
+                        }
+                        self._selectedConnection = null;
+                        self._showConnPopup = false;
+                        self._connPopupIdx = null;
+                        self.invalidateUpdateView();
+                        e.preventDefault();
+                        return;
+                    }
+                    // Third: delete selected manual node
+                    if (self._selectedNodeId) {
+                        var selN = self._editorState.nodes[self._selectedNodeId];
+                        if (selN && selN.manual) {
+                            delete self._editorState.nodes[self._selectedNodeId];
+                            var kc = [];
+                            var ac = self._editorState.connections || [];
+                            for (var kci = 0; kci < ac.length; kci++) {
+                                if (ac[kci].from !== self._selectedNodeId && ac[kci].to !== self._selectedNodeId) {
+                                    kc.push(ac[kci]);
+                                }
+                            }
+                            self._editorState.connections = kc;
+                            self._selectedNodeId = null;
+                            self._showNodePopup = false;
+                            self.invalidateUpdateView();
+                            e.preventDefault();
+                            return;
                         }
                     }
                 }
@@ -3592,6 +3634,8 @@ define([
                     var connSelected = this._editMode && this._selectedConnection !== null &&
                         this._selectedConnection.index === ci;
                     var connHovered = this._hoverItem && this._hoverItem.type === 'connection' && this._hoverItem.index === ci;
+                    conn._mouseX = this._mouseX;
+                    conn._mouseY = this._mouseY;
                     drawConnection(ctx, fromNd, toNd, conn, theme, connSelected, this._editMode, connHovered);
                 }
             }

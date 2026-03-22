@@ -1,5 +1,11 @@
 # Business Process Flow — Changelog
 
+## v4.5.2 — 2026-03-22 18:10
+- **Better waypoint deletion** — Increased hit radius to 16px, waypoints turn red when hoverable for deletion
+- **Delete key support** — Delete/Backspace now also removes selected connections and manual nodes
+- **Waypoint visual feedback** — Waypoints glow red when cursor is near (indicating deleteable)
+- **Bigger waypoint handles** — 7px selected, 5px unselected (up from 6/4)
+
 ## v4.5.1 — 2026-03-22 17:50
 - **Fix: circle/diamond anchor points** — Anchors now snap to actual shape boundary (circle radius, diamond edges) instead of bounding rectangle
 - **Better line hit testing** — Threshold increased to 16px, hover glow stronger (shadowBlur 16 + line thickens by 2px)
