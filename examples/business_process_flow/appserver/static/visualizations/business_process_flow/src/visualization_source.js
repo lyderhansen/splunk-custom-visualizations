@@ -1074,11 +1074,10 @@ define([
             { label: 'Copy Layout', icon: '', action: 'save',       w: 90 },
             { label: '+',     icon: '+',     action: 'addNode',        w: 36 },
             { label: '\u2192', icon: '', action: 'addConnection',  w: 36 },
-            { label: '\u2715', icon: '', action: 'delete',         w: 36, tint: 'red' },
+            { label: '\u2715', icon: '', action: 'deleteSelected',  w: 36, tint: 'red' },
             { label: '\u229E', icon: '', action: 'fit',            w: 36 },
             { label: '\u21A9', icon: '', action: 'undo',            w: 28 },
             { label: '\u21AA', icon: '', action: 'redo',            w: 28 },
-            { label: '\u2716', icon: '', action: 'deleteSelected',  w: 28, tint: 'red' },
             { label: '{ }',   icon: '', action: 'code',            w: 40 },
             { label: 'Close', icon: '', action: 'close',           w: 50, tint: 'gray' }
         ];
