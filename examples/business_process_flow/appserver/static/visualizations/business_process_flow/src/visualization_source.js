@@ -475,7 +475,9 @@ define([
                     endpointSize: mc.endpointSize,
                     waypoints: mc.waypoints || [],
                     labelOffsetX: mc.labelOffsetX || 0,
-                    labelOffsetY: mc.labelOffsetY || 0
+                    labelOffsetY: mc.labelOffsetY || 0,
+                    startFlipped: mc.startFlipped || false,
+                    endFlipped: mc.endFlipped || false
                 });
             }
         }
@@ -1019,9 +1021,12 @@ define([
 
         // DEFER endpoints and waypoints to be drawn AFTER nodes
         // Store them on the conn object for the deferred pass
+        var startFlipped = conn.startFlipped ? true : false;
+        var endFlipped = conn.endFlipped ? true : false;
+
         conn._deferredDraw = {
-            endEp: endEp, endPtX: endPt.x, endPtY: endPt.y, endAngle: endAngle,
-            startEp: startEp, startPtX: startPt.x, startPtY: startPt.y, startAngle: startAngle,
+            endEp: endEp, endPtX: endPt.x, endPtY: endPt.y, endAngle: endAngle, endFlipped: endFlipped,
+            startEp: startEp, startPtX: startPt.x, startPtY: startPt.y, startAngle: startAngle, startFlipped: startFlipped,
             epSize: epSize, lineColor: lineColor,
             waypoints: waypoints, isSelected: isSelected, editMode: editMode,
             // Original anchor points (before shortening) for anchor handles
@@ -1409,13 +1414,15 @@ define([
             connections[oi]._wpDeleteHits = null; // reset each frame
             var dd = connections[oi]._deferredDraw;
             if (!dd) continue;
-            // Endpoints
+            // End endpoint: default points toward target (▶), flipped = points away (◀)
             if (dd.endEp !== 'none') {
-                drawEndpoint(ctx, dd.endPtX, dd.endPtY, dd.endAngle, dd.endEp, dd.epSize, dd.lineColor);
+                var endA = dd.endFlipped ? dd.endAngle + Math.PI : dd.endAngle;
+                drawEndpoint(ctx, dd.endPtX, dd.endPtY, endA, dd.endEp, dd.epSize, dd.lineColor);
             }
+            // Start endpoint: default points toward source (◀), flipped = points away (▶)
             if (dd.startEp !== 'none') {
-                // Start endpoint: flip 180° so arrow tip points TOWARD the source node
-                drawEndpoint(ctx, dd.startPtX, dd.startPtY, dd.startAngle + Math.PI, dd.startEp, dd.epSize, dd.lineColor);
+                var startA = dd.startFlipped ? dd.startAngle : dd.startAngle + Math.PI;
+                drawEndpoint(ctx, dd.startPtX, dd.startPtY, startA, dd.startEp, dd.epSize, dd.lineColor);
             }
             // Waypoint handles — with clickable delete button on hover
             if (dd.editMode && dd.waypoints && dd.waypoints.length > 0) {
@@ -1638,14 +1645,82 @@ define([
         ], !!conn.dash, 'dash');
         rowY += rowH;
 
-        // Row 4: Start Endpoint (icons point LEFT ◀ = toward source)
+        // Row 4: Start Endpoint + direction
         drawCLabel('Start');
-        drawCToggleRow(startEpOpts, startEp, 'startEndpoint');
+        var startFlip = conn.startFlipped ? true : false;
+        // Show type options (fewer to make room for flip button)
+        var startTypeW = contentW - 32;
+        var stX = contentX;
+        var stBtnW = Math.floor(startTypeW / startEpOpts.length) - 2;
+        for (var sti = 0; sti < startEpOpts.length; sti++) {
+            var stAct = startEp === startEpOpts[sti].value;
+            roundRect(ctx, stX, rowY + 2, stBtnW, rowH - 4, 3);
+            ctx.fillStyle = stAct ? '#3b82f6' : theme.nodeBg;
+            ctx.fill();
+            ctx.strokeStyle = stAct ? 'transparent' : theme.nodeBorder;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.fillStyle = stAct ? '#fff' : theme.text;
+            ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(startFlip ? endEpOpts[sti].label : startEpOpts[sti].label, stX + stBtnW / 2, rowY + rowH / 2);
+            hits.push({ type: 'startEndpoint', value: startEpOpts[sti].value, x: stX, y: rowY + 2, w: stBtnW, h: rowH - 4 });
+            stX += stBtnW + 2;
+        }
+        // Flip direction button
+        var flipBtnX = contentX + startTypeW + 4;
+        roundRect(ctx, flipBtnX, rowY + 2, 26, rowH - 4, 3);
+        ctx.fillStyle = startFlip ? '#f59e0b' : theme.nodeBg;
+        ctx.fill();
+        ctx.strokeStyle = theme.nodeBorder;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = startFlip ? '#fff' : theme.text;
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(startFlip ? '\u27F2' : '\u27F3', flipBtnX + 13, rowY + rowH / 2);
+        hits.push({ type: 'startFlipped', value: !startFlip, x: flipBtnX, y: rowY + 2, w: 26, h: rowH - 4 });
+        ctx.textAlign = 'left';
         rowY += rowH;
 
-        // Row 5: End Endpoint (icons point RIGHT ▶ = toward target)
+        // Row 5: End Endpoint + direction
         drawCLabel('End');
-        drawCToggleRow(endEpOpts, endEp, 'endEndpoint');
+        var endFlip = conn.endFlipped ? true : false;
+        var etX = contentX;
+        var etBtnW = Math.floor(startTypeW / endEpOpts.length) - 2;
+        for (var eti = 0; eti < endEpOpts.length; eti++) {
+            var etAct = endEp === endEpOpts[eti].value;
+            roundRect(ctx, etX, rowY + 2, etBtnW, rowH - 4, 3);
+            ctx.fillStyle = etAct ? '#3b82f6' : theme.nodeBg;
+            ctx.fill();
+            ctx.strokeStyle = etAct ? 'transparent' : theme.nodeBorder;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.fillStyle = etAct ? '#fff' : theme.text;
+            ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(endFlip ? startEpOpts[eti].label : endEpOpts[eti].label, etX + etBtnW / 2, rowY + rowH / 2);
+            hits.push({ type: 'endEndpoint', value: endEpOpts[eti].value, x: etX, y: rowY + 2, w: etBtnW, h: rowH - 4 });
+            etX += etBtnW + 2;
+        }
+        // Flip direction button
+        var flipBtnX2 = contentX + startTypeW + 4;
+        roundRect(ctx, flipBtnX2, rowY + 2, 26, rowH - 4, 3);
+        ctx.fillStyle = endFlip ? '#f59e0b' : theme.nodeBg;
+        ctx.fill();
+        ctx.strokeStyle = theme.nodeBorder;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = endFlip ? '#fff' : theme.text;
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(endFlip ? '\u27F2' : '\u27F3', flipBtnX2 + 13, rowY + rowH / 2);
+        hits.push({ type: 'endFlipped', value: !endFlip, x: flipBtnX2, y: rowY + 2, w: 26, h: rowH - 4 });
+        ctx.textAlign = 'left';
         rowY += rowH;
 
         // Row 6: Source Anchor
@@ -2482,6 +2557,10 @@ define([
                                     } else if (cHit.type === 'endEndpoint' && edConns[cIdx]) {
                                         edConns[cIdx].endEndpoint = cHit.value;
                                         delete edConns[cIdx].arrow;
+                                    } else if (cHit.type === 'startFlipped' && edConns[cIdx]) {
+                                        edConns[cIdx].startFlipped = cHit.value;
+                                    } else if (cHit.type === 'endFlipped' && edConns[cIdx]) {
+                                        edConns[cIdx].endFlipped = cHit.value;
                                     } else if (cHit.type === 'sourceAnchor' && edConns[cIdx]) {
                                         edConns[cIdx].sourceAnchor = cHit.value;
                                     } else if (cHit.type === 'targetAnchor' && edConns[cIdx]) {

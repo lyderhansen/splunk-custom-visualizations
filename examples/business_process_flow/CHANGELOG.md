@@ -1,5 +1,13 @@
 # Business Process Flow — Changelog
 
+## v4.7.0 — 2026-03-22 19:30
+- **Flip direction per endpoint** — Each Start/End row has a flip button (🔄) that reverses the arrow direction
+  - Default Start: ◀ (points toward source) → Flipped: ▶ (points away from source)
+  - Default End: ▶ (points toward target) → Flipped: ◀ (points away from target)
+  - All 4 combinations: `◀───▶` `◀───◀` `▶───▶` `▶───◀`
+- **Visual flip indicator** — Flip button turns amber when active, icons swap direction in real-time
+- **Stored as** `startFlipped`/`endFlipped` boolean in editorState
+
 ## v4.6.1 — 2026-03-22 19:15
 - **Fix: Start/End endpoint icons show direction** — Start row uses left-pointing icons (◀◁) and End row uses right-pointing icons (▶▷), making it clear which way each arrow will point
 - **Visual clarity** — `◀────▶` is now obvious from the popup: Start=◀ means arrow points toward source, End=▶ means arrow points toward target
