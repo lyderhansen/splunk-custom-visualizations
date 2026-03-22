@@ -1,0 +1,41 @@
+{
+  "label": "Business Process Flow",
+  "defaultSize": { "width": 900, "height": 600 },
+  "noDataMessage": "Awaiting data — Business Process Flow",
+  "dependencies": [],
+  "fields": [
+    { "name": "_numRows", "label": "Number of Rows", "type": "slider", "min": 3, "max": 12, "step": 1, "default": 6 }
+  ],
+  "formatter": [
+    { "name": "labelField", "label": "Label Field", "type": "text", "default": "sourcetype" },
+    { "name": "valueField", "label": "Value Field", "type": "text", "default": "count" },
+    { "name": "subtitleField", "label": "Subtitle Field", "type": "text", "default": "" },
+    { "name": "palette", "label": "Color Palette", "type": "select", "options": ["corporate", "security", "nature", "neon", "mono"], "default": "corporate" },
+    { "name": "accentLine", "label": "Accent Line", "type": "radio", "options": ["true", "false"], "default": "false" },
+    { "name": "sparklineType", "label": "Sparkline Type", "type": "select", "options": ["line", "area", "bar", "none"], "default": "area" },
+    { "name": "nodeRadius", "label": "Node Radius", "type": "text", "default": "8" },
+    { "name": "editMode", "label": "Edit Mode", "type": "radio", "options": ["true", "false"], "default": "false" },
+    { "name": "lock", "label": "Lock Nodes", "type": "radio", "options": ["true", "false"], "default": "false" },
+    { "name": "editorState", "label": "Editor State", "type": "text", "default": "" },
+    { "name": "drilldownField", "label": "Drilldown Field", "type": "text", "default": "sourcetype" }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "rowCountField": "_numRows",
+    "columns": ["sourcetype", "count", "step", "connects_to"],
+    "sampleRows": [
+      ["syslog", "12450", "1", ""],
+      ["firewall", "8920", "1", ""],
+      ["ids", "4300", "2", ""],
+      ["siem", "21000", "3", ""],
+      ["ticketing", "1850", "4", ""],
+      ["resolution", "920", "4", ""],
+      ["web_access", "34200", "1", "ids,siem"],
+      ["dns", "56000", "2", "siem"],
+      ["proxy", "15600", "2", ""],
+      ["email", "7800", "1", "ids"],
+      ["endpoint", "9400", "2", "siem,ticketing"],
+      ["cloud_audit", "3200", "3", "ticketing"]
+    ]
+  }
+}

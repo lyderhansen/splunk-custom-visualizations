@@ -7,6 +7,7 @@
     "radar_chart",
     "line_trend_chart",
     "process_mining",
-    "live_ticker"
+    "live_ticker",
+    "business_process_flow"
   ]
 }

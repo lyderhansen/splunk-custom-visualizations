@@ -54,21 +54,21 @@
 
 <form class="splunk-formatter-section" section-label="Editor">
 
-    <splunk-control-group label="Edit Mode" help="Toggle edit mode toolbar">
+    <splunk-control-group label="Edit Mode" help="Opens a full-screen editor to arrange nodes and connections">
         <splunk-radio-input name="{{VIZ_NAMESPACE}}.editMode" value="false">
-            <option value="true">Yes</option>
-            <option value="false">No</option>
+            <option value="true">Open</option>
+            <option value="false">Closed</option>
         </splunk-radio-input>
     </splunk-control-group>
 
-    <splunk-control-group label="Lock Nodes" help="Lock nodes in view mode">
+    <splunk-control-group label="Lock Nodes" help="Prevent node dragging in view mode">
         <splunk-radio-input name="{{VIZ_NAMESPACE}}.lock" value="false">
             <option value="true">Yes</option>
             <option value="false">No</option>
         </splunk-radio-input>
     </splunk-control-group>
 
-    <splunk-control-group label="Editor State" help="Editor state JSON (auto-populated)">
+    <splunk-control-group label="Layout Data" help="Auto-managed — do not edit manually">
         <splunk-text-area name="{{VIZ_NAMESPACE}}.editorState" value="">
         </splunk-text-area>
     </splunk-control-group>

@@ -795,7 +795,7 @@ define([
 
     // ── Toolbar Drawing ───────────────────────────────────────────
 
-    function drawToolbar(ctx, w, theme, toolbarH, buttons, hoverItem, lockMode) {
+    function drawToolbar(ctx, w, theme, toolbarH, buttons, hoverItem, lockMode, saveFlash, saveError, saveMessage) {
         // Background
         ctx.fillStyle = theme.toolbarBg;
         ctx.fillRect(0, 0, w, toolbarH);
@@ -865,12 +865,20 @@ define([
             btnX += bw + btnPad;
         }
 
-        // Right-aligned "EDIT MODE" label
+        // Right-aligned label
         ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = theme.textMuted;
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
-        ctx.fillText('EDIT MODE', w - 12, toolbarH / 2);
+        if (saveFlash) {
+            ctx.fillStyle = '#10b981';
+            ctx.fillText(saveMessage || 'SAVED!', w - 12, toolbarH / 2);
+        } else if (saveError) {
+            ctx.fillStyle = '#ef4444';
+            ctx.fillText('SAVE FAILED', w - 12, toolbarH / 2);
+        } else {
+            ctx.fillStyle = theme.textMuted;
+            ctx.fillText('EDIT MODE', w - 12, toolbarH / 2);
+        }
 
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
@@ -1200,14 +1208,24 @@ define([
             this.el.classList.add('business-process-flow-viz');
 
             // Create canvas
+            this.el.style.position = 'relative';
             this.canvas = document.createElement('canvas');
             this.canvas.style.width = '100%';
             this.canvas.style.height = '100%';
+            this.canvas.style.touchAction = 'none';
+            this.canvas.style.userSelect = 'none';
+            this.canvas.style.webkitUserSelect = 'none';
             this.el.appendChild(this.canvas);
+
+            // (No modal editor — editing happens directly on canvas in view mode)
 
             // State
             this._lastGoodData = null;
             this._editorState = { nodes: {}, connections: [], lock: false };
+            this._editorStateLoaded = false;
+            this._saveFlash = false;
+            this._saveError = false;
+            this._saveMessage = '';
             this._isDragging = false;
             this._dragNodeId = null;
             this._dragStartX = 0;
@@ -1249,56 +1267,78 @@ define([
             this._resizeStartNodeY = 0;
             this._resizeStartNodeW = 0;
             this._resizeStartNodeH = 0;
+            this._editBtnRect = null;
 
             var self = this;
 
-            // ── Save editor state to formatter DOM ──
-            this._saveEditorState = function() {
-                var stateJson = JSON.stringify(self._editorState);
-                // Try to find the formatter textarea for editorState
-                var ns = '';
-                try {
-                    ns = self.getPropertyNamespaceInfo().propertyNamespace;
-                } catch (e) {
-                    // ignore
-                }
-                var settingName = ns + 'editorState';
-                // Search for splunk-text-area and textarea elements
-                var found = false;
-                var textAreas = document.querySelectorAll('splunk-text-area, textarea');
-                for (var tai = 0; tai < textAreas.length; tai++) {
-                    var ta = textAreas[tai];
-                    var taName = ta.getAttribute('name') || '';
-                    if (taName === settingName) {
-                        if (ta.tagName.toLowerCase() === 'splunk-text-area') {
-                            ta.setAttribute('value', stateJson);
-                            // Also try setting the inner textarea
-                            var inner = ta.querySelector('textarea');
-                            if (inner) {
-                                inner.value = stateJson;
-                            }
-                            // Dispatch change event so Splunk picks it up
-                            var evt = document.createEvent('Event');
-                            evt.initEvent('change', true, true);
-                            ta.dispatchEvent(evt);
-                        } else {
-                            ta.value = stateJson;
-                            var evt2 = document.createEvent('Event');
-                            evt2.initEvent('change', true, true);
-                            ta.dispatchEvent(evt2);
-                        }
-                        found = true;
+            // ── localStorage key for caching ──
+            this._getStorageKey = function() {
+                var path = window.location.pathname.replace(/\/+$/, '');
+                var segments = path.split('/');
+                var dashName = segments[segments.length - 1] || 'default';
+                var appName = '';
+                for (var si = 0; si < segments.length; si++) {
+                    if (segments[si] === 'app' && si + 1 < segments.length) {
+                        appName = segments[si + 1];
                         break;
                     }
                 }
-                // Store internally regardless — will be available on next updateView
-                self._pendingSaveState = stateJson;
+                return 'bpf_' + appName + '_' + dashName;
+            };
+
+            // ── Write editorState to formatter DOM ──
+            // ── Save: localStorage + try formatter textarea ──
+            this._saveEditorState = function() {
+                var stateJson = JSON.stringify(self._editorState);
+                // 1. Save to localStorage
+                try { localStorage.setItem(self._getStorageKey(), stateJson); } catch(e) {}
+                // 2. Try to update formatter textarea (works if panel is open in edit mode)
+                var ns = '';
+                try { ns = self.getPropertyNamespaceInfo().propertyNamespace; } catch(e) {}
+                var settingName = ns + 'editorState';
+                var textAreas = document.querySelectorAll('splunk-text-area, textarea');
+                for (var i = 0; i < textAreas.length; i++) {
+                    var ta = textAreas[i];
+                    if ((ta.getAttribute('name') || '') === settingName) {
+                        if (ta.tagName.toLowerCase() === 'splunk-text-area') {
+                            ta.setAttribute('value', stateJson);
+                            var inner = ta.querySelector('textarea');
+                            if (inner) inner.value = stateJson;
+                        } else {
+                            ta.value = stateJson;
+                        }
+                        var evt = document.createEvent('Event');
+                        evt.initEvent('change', true, true);
+                        ta.dispatchEvent(evt);
+                        break;
+                    }
+                }
+                // 3. Copy to clipboard (fallback method for broader compatibility)
+                try {
+                    var copyArea = document.createElement('textarea');
+                    copyArea.value = stateJson;
+                    copyArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+                    document.body.appendChild(copyArea);
+                    copyArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(copyArea);
+                } catch(e) { /* ignore */ }
+                // 4. Visual feedback — show "SAVED! Paste into Layout Data"
+                self._saveFlash = true;
+                self._saveMessage = 'SAVED! Layout copied to clipboard';
+                self.invalidateUpdateView();
+                setTimeout(function() {
+                    self._saveFlash = false;
+                    self._saveMessage = '';
+                    self.invalidateUpdateView();
+                }, 3000);
             };
 
             // ── Execute toolbar action ──
             this._executeToolbarAction = function(action) {
                 if (action === 'save') {
                     self._saveEditorState();
+                    return;
                 } else if (action === 'lock') {
                     self._editorState.lock = !self._editorState.lock;
                     self._lockMode = self._editorState.lock;
@@ -1407,6 +1447,12 @@ define([
                 self._mouseY = my;
                 self._didDrag = false;
                 self._pendingToolbarAction = null;
+
+                // In modal edit mode, prevent event leaking
+                if (self._editMode) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
 
                 if (self._editMode) {
                     // Check toolbar buttons
@@ -1617,6 +1663,18 @@ define([
                     for (var ni = 0; ni < self._computedNodes.length; ni++) {
                         var nd = self._computedNodes[ni];
                         if (hitTestNode(mx, my, nd)) {
+                            // Pin ALL node positions to editorState so auto-layout
+                            // doesn't shift other nodes during drag
+                            for (var pinI = 0; pinI < self._computedNodes.length; pinI++) {
+                                var pinN = self._computedNodes[pinI];
+                                if (!self._editorState.nodes[pinN.id]) {
+                                    self._editorState.nodes[pinN.id] = {};
+                                }
+                                if (self._editorState.nodes[pinN.id].x === undefined) {
+                                    self._editorState.nodes[pinN.id].x = pinN.x;
+                                    self._editorState.nodes[pinN.id].y = pinN.y;
+                                }
+                            }
                             self._isDragging = true;
                             self._dragNodeId = nd.id;
                             self._dragStartX = mx;
@@ -1693,6 +1751,8 @@ define([
                     for (var vni = 0; vni < self._computedNodes.length; vni++) {
                         var vnd = self._computedNodes[vni];
                         if (hitTestNode(mx, my, vnd)) {
+                            e.preventDefault();
+                            e.stopPropagation();
                             self._isDragging = true;
                             self._dragNodeId = vnd.id;
                             self._dragStartX = mx;
@@ -1700,7 +1760,9 @@ define([
                             self._dragNodeStartX = vnd.x;
                             self._dragNodeStartY = vnd.y;
                             // Save original position for snap-back
-                            self._snapBackPos = { x: vnd.x, y: vnd.y };
+                            var hadPos = self._editorState.nodes[vnd.id] &&
+                                self._editorState.nodes[vnd.id].x !== undefined;
+                            self._snapBackPos = { x: vnd.x, y: vnd.y, hadPosition: hadPos };
                             return;
                         }
                     }
@@ -1709,6 +1771,11 @@ define([
 
             // ── Mouse Move ──
             this._onMouseMove = function(e) {
+                // Stop event propagation during modal interactions
+                if (self._isDragging || self._isResizing || self._isConnecting || self._editMode) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
                 var rect = self.canvas.getBoundingClientRect();
                 var mx = e.clientX - rect.left;
                 var my = e.clientY - rect.top;
@@ -1744,15 +1811,16 @@ define([
                         newNy = rny + rnh - newNh;
                     }
 
-                    for (var rdi = 0; rdi < self._computedNodes.length; rdi++) {
-                        if (self._computedNodes[rdi].id === self._resizeNodeId) {
-                            self._computedNodes[rdi].x = newNx;
-                            self._computedNodes[rdi].y = newNy;
-                            self._computedNodes[rdi].w = newNw;
-                            self._computedNodes[rdi].h = newNh;
-                            break;
-                        }
+                    // Update editorState in real-time so computeNodePositions
+                    // picks up the new size on redraw
+                    if (!self._editorState.nodes[self._resizeNodeId]) {
+                        self._editorState.nodes[self._resizeNodeId] = {};
                     }
+                    self._editorState.nodes[self._resizeNodeId].x = newNx;
+                    self._editorState.nodes[self._resizeNodeId].y = newNy;
+                    self._editorState.nodes[self._resizeNodeId].w = newNw;
+                    self._editorState.nodes[self._resizeNodeId].h = newNh;
+
                     self.invalidateUpdateView();
                     return;
                 }
@@ -1770,14 +1838,14 @@ define([
                     var newX = self._dragNodeStartX + deltaX;
                     var newY = self._dragNodeStartY + deltaY;
 
-                    // Update computed node position for visual feedback
-                    for (var di = 0; di < self._computedNodes.length; di++) {
-                        if (self._computedNodes[di].id === self._dragNodeId) {
-                            self._computedNodes[di].x = newX;
-                            self._computedNodes[di].y = newY;
-                            break;
-                        }
+                    // Update editorState in real-time so computeNodePositions
+                    // picks up the new position on redraw
+                    if (!self._editorState.nodes[self._dragNodeId]) {
+                        self._editorState.nodes[self._dragNodeId] = {};
                     }
+                    self._editorState.nodes[self._dragNodeId].x = newX;
+                    self._editorState.nodes[self._dragNodeId].y = newY;
+
                     self.invalidateUpdateView();
                     // Update cursor
                     self.canvas.style.cursor = self._editMode ? 'move' : 'grabbing';
@@ -1893,6 +1961,10 @@ define([
 
             // ── Mouse Up ──
             this._onMouseUp = function(e) {
+                if (self._editMode || self._isDragging || self._isResizing) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
                 var rect = self.canvas.getBoundingClientRect();
                 self._mouseX = e.clientX - rect.left;
                 self._mouseY = e.clientY - rect.top;
@@ -1945,7 +2017,7 @@ define([
                     var draggedId = self._dragNodeId;
 
                     if (self._editMode) {
-                        // Edit mode: persist position to editorState
+                        // Modal edit mode: persist position to editorState
                         if (wasDrag) {
                             for (var ni = 0; ni < self._computedNodes.length; ni++) {
                                 if (self._computedNodes[ni].id === draggedId) {
@@ -1960,13 +2032,25 @@ define([
                             }
                         }
                     } else {
-                        // View mode: snap back to original position
+                        // View mode: snap back to original position in editorState
                         if (self._snapBackPos && wasDrag) {
-                            for (var sni = 0; sni < self._computedNodes.length; sni++) {
-                                if (self._computedNodes[sni].id === draggedId) {
-                                    self._computedNodes[sni].x = self._snapBackPos.x;
-                                    self._computedNodes[sni].y = self._snapBackPos.y;
-                                    break;
+                            if (self._editorState.nodes[draggedId]) {
+                                if (self._snapBackPos.hadPosition) {
+                                    self._editorState.nodes[draggedId].x = self._snapBackPos.x;
+                                    self._editorState.nodes[draggedId].y = self._snapBackPos.y;
+                                } else {
+                                    // Node had no saved position before drag — remove it
+                                    delete self._editorState.nodes[draggedId].x;
+                                    delete self._editorState.nodes[draggedId].y;
+                                    // Clean up empty object
+                                    var hasProps = false;
+                                    for (var k in self._editorState.nodes[draggedId]) {
+                                        if (self._editorState.nodes[draggedId].hasOwnProperty(k)) {
+                                            hasProps = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!hasProps) delete self._editorState.nodes[draggedId];
                                 }
                             }
                             self.invalidateUpdateView();
@@ -2076,11 +2160,13 @@ define([
                 }
             };
 
-            this.canvas.addEventListener('mousedown', this._onMouseDown);
-            this.canvas.addEventListener('mousemove', this._onMouseMove);
-            this.canvas.addEventListener('mouseup', this._onMouseUp);
+            // Attach events to both canvas (for view mode) and overlay (for edit mode in Splunk)
+            this.canvas.addEventListener('mousedown', this._onMouseDown, true);
+            this.canvas.addEventListener('mousemove', this._onMouseMove, true);
+            this.canvas.addEventListener('mouseup', this._onMouseUp, true);
             this.canvas.addEventListener('dblclick', this._onDblClick);
             this.canvas.addEventListener('contextmenu', this._onContextMenu);
+            // (overlay removed — modal editor handles edit mode events)
             document.addEventListener('keydown', this._onKeyDown);
         },
 
@@ -2184,21 +2270,67 @@ define([
             var editorStateStr = config[ns + 'editorState']  || '';
             var drilldownField = config[ns + 'drilldownField'] || 'sourcetype';
 
+            var wasEditMode = this._editMode;
             this._editMode = editMode === 'true';
             this._lockMode = lock === 'true';
             this._drilldownField = drilldownField;
 
-            // 3. Parse editorState
-            if (editorStateStr) {
-                try {
-                    var parsed = JSON.parse(editorStateStr);
-                    if (parsed && typeof parsed === 'object') {
-                        // Merge with current in-memory state
-                        if (parsed.nodes) {
-                            var nkeys = Object.keys(parsed.nodes);
-                            for (var nk = 0; nk < nkeys.length; nk++) {
-                                this._editorState.nodes[nkeys[nk]] = parsed.nodes[nkeys[nk]];
+            // Start periodic auto-sync: localStorage → formatter textarea.
+            // Formatter textarea only exists when Dashboard Studio edit mode is open
+            // AND the user has clicked on this panel. We poll to catch that moment.
+            if (!this._syncInterval) {
+                var syncSelf = this;
+                this._syncInterval = setInterval(function() {
+                    try {
+                        var lsData = localStorage.getItem(syncSelf._getStorageKey());
+                        if (!lsData) return;
+                        var syncNs = '';
+                        try { syncNs = syncSelf.getPropertyNamespaceInfo().propertyNamespace; } catch(e4) {}
+                        var syncName = syncNs + 'editorState';
+                        var allTas = document.querySelectorAll('splunk-text-area, textarea');
+                        for (var st = 0; st < allTas.length; st++) {
+                            var syncTa = allTas[st];
+                            if ((syncTa.getAttribute('name') || '') === syncName) {
+                                var curVal = '';
+                                if (syncTa.tagName.toLowerCase() === 'splunk-text-area') {
+                                    var syncInner = syncTa.querySelector('textarea');
+                                    curVal = syncInner ? syncInner.value : (syncTa.getAttribute('value') || '');
+                                } else {
+                                    curVal = syncTa.value || '';
+                                }
+                                if (curVal !== lsData) {
+                                    if (syncTa.tagName.toLowerCase() === 'splunk-text-area') {
+                                        syncTa.setAttribute('value', lsData);
+                                        var syncInn = syncTa.querySelector('textarea');
+                                        if (syncInn) syncInn.value = lsData;
+                                    } else {
+                                        syncTa.value = lsData;
+                                    }
+                                    var syncEvt = document.createEvent('Event');
+                                    syncEvt.initEvent('change', true, true);
+                                    syncTa.dispatchEvent(syncEvt);
+                                }
+                                break;
                             }
+                        }
+                    } catch(e5) { /* ignore */ }
+                }, 2000);
+            }
+
+            // 3. Parse editorState — config (dashboard JSON) first, localStorage fallback
+            var stateSource = editorStateStr || '';
+            if (!stateSource) {
+                try {
+                    stateSource = localStorage.getItem(this._getStorageKey()) || '';
+                } catch (e) { /* ignore */ }
+            }
+            if (stateSource && !this._editorStateLoaded) {
+                this._editorStateLoaded = true;
+                try {
+                    var parsed = JSON.parse(stateSource);
+                    if (parsed && typeof parsed === 'object') {
+                        if (parsed.nodes) {
+                            this._editorState.nodes = parsed.nodes;
                         }
                         if (parsed.connections) {
                             this._editorState.connections = parsed.connections;
@@ -2207,9 +2339,7 @@ define([
                             this._editorState.lock = parsed.lock;
                         }
                     }
-                } catch (e) {
-                    // ignore invalid JSON
-                }
+                } catch (e) { /* ignore */ }
             }
 
             // 4. Size canvas for HiDPI
@@ -2347,112 +2477,91 @@ define([
                 nodeMap[positioned[nm].id] = positioned[nm];
             }
 
-            // 12. Clear canvas
-            ctx.fillStyle = theme.bg;
-            ctx.fillRect(0, 0, w, h);
+            // ── Render canvas ──
+            ctx.clearRect(0, 0, w, h);
 
-            // 13. Draw toolbar if edit mode
+            // Draw toolbar if edit mode
             if (this._editMode) {
-                drawToolbar(ctx, w, theme, toolbarH, this._toolbarButtons, this._hoverItem, this._lockMode);
+                drawToolbar(ctx, w, theme, toolbarH, this._toolbarButtons, this._hoverItem, this._lockMode, this._saveFlash, this._saveError, this._saveMessage);
             }
 
-            // 14. Draw all connections (behind nodes)
+            // Draw connections
             for (var ci = 0; ci < connections.length; ci++) {
                 var conn = connections[ci];
                 var fromNd = nodeMap[conn.from];
                 var toNd = nodeMap[conn.to];
                 if (fromNd && toNd) {
-                    var connSelected = this._selectedConnection !== null &&
+                    var connSelected = this._editMode && this._selectedConnection !== null &&
                         this._selectedConnection.from === conn.from &&
                         this._selectedConnection.to === conn.to;
                     drawConnection(ctx, fromNd, toNd, conn, theme, connSelected);
                 }
             }
 
-            // 15. Draw all nodes
+            // Draw nodes
             for (var di = 0; di < positioned.length; di++) {
                 var pn = positioned[di];
-                var isNodeSelected = this._selectedNodeId === pn.id;
+                var isNodeSelected = this._editMode && this._selectedNodeId === pn.id;
                 var isNodeHovered = this._hoverItem &&
                     this._hoverItem.type === 'node' &&
                     this._hoverItem.id === pn.id;
                 drawNode(ctx, pn, theme, accentLine, sparklineType, nodeRadius, isNodeSelected, isNodeHovered);
             }
 
-            // 16. Draw resize handles on selected node in edit mode
-            if (this._editMode && this._selectedNodeId) {
-                for (var rhi3 = 0; rhi3 < positioned.length; rhi3++) {
-                    if (positioned[rhi3].id === this._selectedNodeId) {
-                        drawResizeHandles(ctx, positioned[rhi3], theme);
-                        break;
+            // Edit mode UI extras
+            if (this._editMode) {
+                if (this._selectedNodeId) {
+                    for (var rhi3 = 0; rhi3 < positioned.length; rhi3++) {
+                        if (positioned[rhi3].id === this._selectedNodeId) {
+                            drawResizeHandles(ctx, positioned[rhi3], theme);
+                            break;
+                        }
                     }
                 }
-            }
-
-            // 17. Draw temporary connecting line
-            if (this._editMode && this._isConnecting && this._connectFromId) {
-                var fromConnNode = nodeMap[this._connectFromId];
-                if (fromConnNode) {
-                    var fcx = fromConnNode.x + fromConnNode.w / 2;
-                    var fcy = fromConnNode.y + fromConnNode.h / 2;
-                    ctx.save();
-                    ctx.setLineDash([6, 4]);
-                    ctx.strokeStyle = theme.textMuted;
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(fcx, fcy);
-                    ctx.lineTo(this._mouseX, this._mouseY);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    ctx.restore();
+                if (this._isConnecting && this._connectFromId) {
+                    var fromConnNode = nodeMap[this._connectFromId];
+                    if (fromConnNode) {
+                        ctx.save();
+                        ctx.setLineDash([6, 4]);
+                        ctx.strokeStyle = theme.textMuted;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(fromConnNode.x + fromConnNode.w / 2, fromConnNode.y + fromConnNode.h / 2);
+                        ctx.lineTo(this._mouseX, this._mouseY);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                        ctx.restore();
+                    }
                 }
-            }
-
-            // 18. Draw node popup
-            if (this._editMode && this._showNodePopup && this._nodePopupId) {
-                var popupNode = nodeMap[this._nodePopupId];
-                if (popupNode) {
-                    var edPopNode = this._editorState.nodes[this._nodePopupId] || {};
-                    var popResult = drawNodePopup(ctx, popupNode, edPopNode, colors, theme, w, h);
+                if (this._showNodePopup && this._nodePopupId && nodeMap[this._nodePopupId]) {
+                    var popResult = drawNodePopup(ctx, nodeMap[this._nodePopupId], this._editorState.nodes[this._nodePopupId] || {}, colors, theme, w, h);
                     this._nodePopupRect = { x: popResult.x, y: popResult.y, w: popResult.w, h: popResult.h };
                     this._nodePopupHits = popResult.hits;
                 }
-            }
-
-            // 19. Draw connection popup
-            if (this._editMode && this._showConnPopup && this._connPopupIdx !== null) {
-                var edConns2 = this._editorState.connections || [];
-                if (edConns2[this._connPopupIdx]) {
-                    var popConn = edConns2[this._connPopupIdx];
-                    var cpResult = drawConnectionPopup(ctx, popConn, this._connPopupIdx, colors, theme, this._connPopupPos.x, this._connPopupPos.y, w, h);
-                    this._connPopupRect = { x: cpResult.x, y: cpResult.y, w: cpResult.w, h: cpResult.h };
-                    this._connPopupHits = cpResult.hits;
+                if (this._showConnPopup && this._connPopupIdx !== null) {
+                    var edConns2 = this._editorState.connections || [];
+                    if (edConns2[this._connPopupIdx]) {
+                        var cpResult = drawConnectionPopup(ctx, edConns2[this._connPopupIdx], this._connPopupIdx, colors, theme, this._connPopupPos.x, this._connPopupPos.y, w, h);
+                        this._connPopupRect = { x: cpResult.x, y: cpResult.y, w: cpResult.w, h: cpResult.h };
+                        this._connPopupHits = cpResult.hits;
+                    }
                 }
             }
 
-            // 20. Hover tooltips in view mode
+            // Hover tooltips in view mode
             if (!this._editMode && this._hoverItem) {
-                if (this._hoverItem.type === 'node') {
+                if (this._hoverItem.type === 'node' && nodeMap[this._hoverItem.id]) {
                     var ttNode = nodeMap[this._hoverItem.id];
-                    if (ttNode) {
-                        var ttText = ttNode.label;
-                        if (ttNode.value !== null && ttNode.value !== undefined) {
-                            ttText = ttText + '\n' + formatCount(ttNode.value);
-                        }
-                        if (ttNode.subtitle) {
-                            ttText = ttText + '\n' + ttNode.subtitle;
-                        }
-                        drawTooltip(ctx, ttText, this._mouseX, this._mouseY, w, h, isDark);
-                    }
+                    var ttText = ttNode.label;
+                    if (ttNode.value !== null && ttNode.value !== undefined) ttText += '\n' + formatCount(ttNode.value);
+                    if (ttNode.subtitle) ttText += '\n' + ttNode.subtitle;
+                    drawTooltip(ctx, ttText, this._mouseX, this._mouseY, w, h, isDark);
                 } else if (this._hoverItem.type === 'connection') {
                     var ttConn = connections[this._hoverItem.index];
-                    if (ttConn && ttConn.label) {
-                        drawTooltip(ctx, ttConn.label, this._mouseX, this._mouseY, w, h, isDark);
-                    }
+                    if (ttConn && ttConn.label) drawTooltip(ctx, ttConn.label, this._mouseX, this._mouseY, w, h, isDark);
                 }
             }
 
-            // 21. Store hit data
             this._hitNodes = positioned;
             this._hitConnections = connections;
         },
