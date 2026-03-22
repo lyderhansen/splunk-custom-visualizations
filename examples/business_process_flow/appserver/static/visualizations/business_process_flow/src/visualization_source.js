@@ -1896,19 +1896,14 @@ define([
                     self._connectFromId = null;
                     self.canvas.style.cursor = 'crosshair';
                 } else if (action === 'delete') {
-                    // Delete selected connection first, then check node
-                    if (self._selectedConnection !== null) {
-                        var selFrom = self._selectedConnection.from;
-                        var selTo = self._selectedConnection.to;
-                        var keptConns = [];
+                    // Delete selected connection using popup index
+                    if (self._selectedConnection !== null && self._connPopupIdx !== null) {
                         var eConns = self._editorState.connections || [];
-                        for (var dci2 = 0; dci2 < eConns.length; dci2++) {
-                            if (eConns[dci2].from !== selFrom || eConns[dci2].to !== selTo) {
-                                keptConns.push(eConns[dci2]);
-                            }
+                        if (self._connPopupIdx >= 0 && self._connPopupIdx < eConns.length) {
+                            eConns.splice(self._connPopupIdx, 1);
                         }
-                        self._editorState.connections = keptConns;
                         self._selectedConnection = null;
+                        self._connPopupIdx = null;
                         self._showConnPopup = false;
                         self.invalidateUpdateView();
                     } else if (self._selectedNodeId) {
@@ -2591,20 +2586,31 @@ define([
                                 }
                             }
                             if (ccHit) {
-                                self._selectedConnection = { from: cc.from, to: cc.to };
+                                // Use computed connection index (cci) for unique identification
+                                self._selectedConnection = { index: cci };
                                 self._selectedNodeId = null;
                                 self._showNodePopup = false;
-                                // Show connection popup — find matching editorState index
+                                // Find matching editorState connection by from+to+index
+                                // Count how many connections with same from/to appear before this one
+                                var sameCount = 0;
+                                for (var scj = 0; scj < cci; scj++) {
+                                    if (self._computedConnections[scj].from === cc.from && self._computedConnections[scj].to === cc.to) {
+                                        sameCount++;
+                                    }
+                                }
                                 var edConnIdx = -1;
                                 var edCS = self._editorState.connections || [];
+                                var matchCount = 0;
                                 for (var eci = 0; eci < edCS.length; eci++) {
                                     if (edCS[eci].from === cc.from && edCS[eci].to === cc.to) {
-                                        edConnIdx = eci;
-                                        break;
+                                        if (matchCount === sameCount) {
+                                            edConnIdx = eci;
+                                            break;
+                                        }
+                                        matchCount++;
                                     }
                                 }
                                 if (edConnIdx === -1) {
-                                    // Connection not in editorState yet — add it so we can format it
                                     if (!self._editorState.connections) self._editorState.connections = [];
                                     self._editorState.connections.push({
                                         from: cc.from, to: cc.to,
@@ -2612,7 +2618,8 @@ define([
                                         color: cc.color || '',
                                         width: cc.width || 2,
                                         dash: cc.dash || false,
-                                        arrow: cc.arrow || 'forward',
+                                        startEndpoint: cc.startEndpoint || 'none',
+                                        endEndpoint: cc.endEndpoint || 'filledArrow',
                                         label: cc.label || '',
                                         manual: cc.manual || false
                                     });
@@ -3573,8 +3580,7 @@ define([
                 var toNd = nodeMap[conn.to];
                 if (fromNd && toNd) {
                     var connSelected = this._editMode && this._selectedConnection !== null &&
-                        this._selectedConnection.from === conn.from &&
-                        this._selectedConnection.to === conn.to;
+                        this._selectedConnection.index === ci;
                     var connHovered = this._hoverItem && this._hoverItem.type === 'connection' && this._hoverItem.index === ci;
                     drawConnection(ctx, fromNd, toNd, conn, theme, connSelected, this._editMode, connHovered);
                 }

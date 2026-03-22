@@ -1,5 +1,10 @@
 # Business Process Flow — Changelog
 
+## v4.4.2 — 2026-03-22 17:10
+- **Fix: individual connection selection** — Multiple connections between same nodes can now be selected independently (uses computed index instead of from/to matching)
+- **Fix: connection delete** — Deletes only the selected connection, not all connections between same node pair
+- **Fix: connection popup** — Edits apply to the correct connection when multiple exist between same nodes
+
 ## v4.4.1 — 2026-03-22 16:41
 - **Bidirectional arrows** — Start endpoints now point toward node, giving `<---->` instead of `>---->`
 - **Connection hover glow** — Lines glow with their color on hover (shadow effect) for easier selection
