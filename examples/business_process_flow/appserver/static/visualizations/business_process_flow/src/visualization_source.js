@@ -276,7 +276,9 @@ define([
                 fontSize: perNode.fontSize,
                 chartHeight: perNode.chartHeight,
                 opacity: perNode.opacity,
-                borderWidth: perNode.borderWidth
+                borderWidth: perNode.borderWidth,
+                prefix: edState ? edState.prefix : undefined,
+                suffix: edState ? edState.suffix : undefined
             };
 
             if (edState && edState.x !== undefined && edState.y !== undefined) {
@@ -581,7 +583,6 @@ define([
 
         // Per-node overrides from editorState
         var nodeSparkType = node.sparklineType || sparklineType;
-        if (nodeSparkType === 'default') nodeSparkType = sparklineType;
         var nodeFontSize = node.fontSize || 'default';
         var nodeChartH = node.chartHeight || 'default';
         var nodeOpacity = node.opacity || 'default';
@@ -703,7 +704,7 @@ define([
         var showValue = !node.hideValue;
         var valueY = y + h * 0.48;
         if (showValue) {
-            var valueText = formatCount(node.value);
+            var valueText = (node.prefix || '') + formatCount(node.value) + (node.suffix || '');
             ctx.font = 'bold ' + valueFontSize + 'px "SF Mono", "Fira Code", "Consolas", monospace';
             ctx.fillStyle = theme.text;
             ctx.textAlign = 'center';
@@ -882,7 +883,8 @@ define([
             { label: '\u2192', icon: '', action: 'addConnection',  w: 36 },
             { label: '\u2715', icon: '', action: 'delete',         w: 36, tint: 'red' },
             { label: '\u229E', icon: '', action: 'fit',            w: 36 },
-            { label: '{ }',   icon: '', action: 'code',            w: 40 }
+            { label: '{ }',   icon: '', action: 'code',            w: 40 },
+            { label: 'Close', icon: '', action: 'close',           w: 50, tint: 'gray' }
         ];
 
         for (var i = 0; i < btnDefs.length; i++) {
@@ -980,7 +982,7 @@ define([
 
         // Count rows to calculate height
         // Label, Shape, Value, Chart, Font Size, Chart Height, Opacity, Color (2 rows)
-        var numRows = 9;
+        var numRows = 11; // Label, Shape, Value, Prefix, Suffix, Chart, Font, GraphH, Opacity, Border, Color
         var popH = pad * 2 + numRows * rowH + 22; // extra for color 2nd row
 
         var px = node.x + node.w + 10;
@@ -1072,11 +1074,30 @@ define([
         ], isHidden, 'hideValue');
         rowY += rowH;
 
-        // ── 4. Chart Type ──
+        // ── 4. Prefix / Suffix ──
+        drawLabel('Prefix');
+        var prefix = (editorNode && editorNode.prefix) ? editorNode.prefix : '';
+        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillStyle = theme.text;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(prefix || '(none)', contentX, rowY + rowH / 2);
+        hits.push({ type: 'prefix', x: contentX, y: rowY, w: contentW, h: rowH });
+        rowY += rowH;
+
+        drawLabel('Suffix');
+        var suffix = (editorNode && editorNode.suffix) ? editorNode.suffix : '';
+        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillStyle = theme.text;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(suffix || '(none)', contentX, rowY + rowH / 2);
+        hits.push({ type: 'suffix', x: contentX, y: rowY, w: contentW, h: rowH });
+        rowY += rowH;
+
+        // ── 5. Chart Type ──
         drawLabel('Chart');
-        var nodeChart = (editorNode && editorNode.sparklineType) ? editorNode.sparklineType : 'default';
+        var nodeChart = (editorNode && editorNode.sparklineType) ? editorNode.sparklineType : '';
         drawToggleRow([
-            { value: 'default', label: 'Default', activeColor: '#6366f1' },
+            { value: '', label: 'Auto', activeColor: '#6366f1' },
             { value: 'line', label: 'Line', activeColor: '#6366f1' },
             { value: 'area', label: 'Area', activeColor: '#6366f1' },
             { value: 'bar', label: 'Bar', activeColor: '#6366f1' },
@@ -1084,7 +1105,7 @@ define([
         ], nodeChart, 'sparklineType');
         rowY += rowH;
 
-        // ── 5. Font Size ──
+        // ── 6. Font Size ──
         drawLabel('Font');
         var fontSize = (editorNode && editorNode.fontSize) ? editorNode.fontSize : 'default';
         drawToggleRow([
@@ -1583,6 +1604,17 @@ define([
                 } else if (action === 'code') {
                     self._showCodeEditor = !self._showCodeEditor;
                     self._updateCodeEditor();
+                } else if (action === 'close') {
+                    // Close edit mode
+                    self._editMode = false;
+                    self._showCodeEditor = false;
+                    if (self._codeEditorEl) self._codeEditorEl.style.display = 'none';
+                    self._selectedNodeId = null;
+                    self._selectedConnection = null;
+                    self._showNodePopup = false;
+                    self._showConnPopup = false;
+                    self._isConnecting = false;
+                    self.invalidateUpdateView();
                 }
             };
 
@@ -1769,6 +1801,39 @@ define([
                                             self._editorState.nodes[popNodeId][nHit.type] = nHit.value;
                                         }
                                         self.invalidateUpdateView();
+                                    } else if (nHit.type === 'prefix' || nHit.type === 'suffix') {
+                                        // Create temporary input for prefix/suffix editing
+                                        var psField = nHit.type;
+                                        var psValue = (self._editorState.nodes[popNodeId] && self._editorState.nodes[popNodeId][psField]) || '';
+                                        var psInp = document.createElement('input');
+                                        psInp.type = 'text';
+                                        psInp.value = psValue;
+                                        psInp.placeholder = psField === 'prefix' ? 'e.g. $, errors:' : 'e.g. %, events, /s';
+                                        psInp.style.cssText = 'position:absolute;z-index:9999;font-size:11px;border:1px solid #3b82f6;padding:0 4px;height:18px;background:#1e293b;color:#f1f5f9;border-radius:3px;';
+                                        var psRect = self.canvas.getBoundingClientRect();
+                                        psInp.style.left = (psRect.left + nHit.x) + 'px';
+                                        psInp.style.top = (psRect.top + nHit.y) + 'px';
+                                        psInp.style.width = nHit.w + 'px';
+                                        document.body.appendChild(psInp);
+                                        psInp.focus();
+                                        psInp.select();
+                                        var psDone = false;
+                                        var psNodeId = popNodeId;
+                                        function finishPsEdit() {
+                                            if (psDone) return;
+                                            psDone = true;
+                                            if (psInp.value) {
+                                                self._editorState.nodes[psNodeId][psField] = psInp.value;
+                                            } else {
+                                                delete self._editorState.nodes[psNodeId][psField];
+                                            }
+                                            if (psInp.parentNode) psInp.parentNode.removeChild(psInp);
+                                            self.invalidateUpdateView();
+                                        }
+                                        psInp.addEventListener('blur', finishPsEdit);
+                                        psInp.addEventListener('keydown', function(pke) {
+                                            if (pke.key === 'Enter') finishPsEdit();
+                                        });
                                     } else if (nHit.type === 'label') {
                                         // Create temporary input for label editing
                                         var popNode = null;
@@ -2558,8 +2623,16 @@ define([
             var editorStateStr = config[ns + 'editorState']  || '';
             var drilldownField = config[ns + 'drilldownField'] || 'sourcetype';
 
-            var wasEditMode = this._editMode;
-            this._editMode = editMode === 'true';
+            // Edit mode is NEVER restored from config — it's always session-only.
+            // The formatter toggle can activate it, but it resets on page load.
+            if (!this._editModeInitialized) {
+                this._editModeInitialized = true;
+                this._editMode = false; // Always start closed
+            }
+            // If formatter just toggled editMode to true, activate it
+            if (editMode === 'true' && !this._editMode) {
+                this._editMode = true;
+            }
             this._lockMode = lock === 'true';
             this._drilldownField = drilldownField;
 
