@@ -87,17 +87,80 @@ define([
     /**
      * Draw arrowhead at a point with given angle.
      */
+    // Legacy wrapper
     function drawArrowhead(ctx, x, y, angle, size, color) {
+        drawEndpoint(ctx, x, y, angle, 'filledArrow', size, color);
+    }
+
+    /**
+     * Draw a connection endpoint shape at a point with given angle.
+     * Types: none, filledArrow, openArrow, filledBall, ball, filledDiamond, diamond, bar
+     */
+    function drawEndpoint(ctx, x, y, angle, type, size, color) {
+        if (!type || type === 'none') return;
+        var s = size || 8;
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(angle);
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(-size, -size * 0.5);
-        ctx.lineTo(-size, size * 0.5);
-        ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
+
+        if (type === 'filledArrow') {
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-s, -s * 0.5);
+            ctx.lineTo(-s, s * 0.5);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+        } else if (type === 'openArrow') {
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-s, -s * 0.5);
+            ctx.lineTo(-s, s * 0.5);
+            ctx.closePath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        } else if (type === 'filledBall') {
+            ctx.beginPath();
+            ctx.arc(-s * 0.4, 0, s * 0.35, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        } else if (type === 'ball') {
+            ctx.beginPath();
+            ctx.arc(-s * 0.4, 0, s * 0.35, 0, Math.PI * 2);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        } else if (type === 'filledDiamond') {
+            var ds = s * 0.45;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-ds, -ds);
+            ctx.lineTo(-ds * 2, 0);
+            ctx.lineTo(-ds, ds);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+        } else if (type === 'diamond') {
+            var ds2 = s * 0.45;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-ds2, -ds2);
+            ctx.lineTo(-ds2 * 2, 0);
+            ctx.lineTo(-ds2, ds2);
+            ctx.closePath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        } else if (type === 'bar') {
+            ctx.beginPath();
+            ctx.moveTo(0, -s * 0.5);
+            ctx.lineTo(0, s * 0.5);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
         ctx.restore();
     }
 
@@ -402,7 +465,11 @@ define([
                     dash: mc.dash || false,
                     arrow: mc.arrow || 'forward',
                     label: mc.label || '',
-                    manual: true
+                    manual: true,
+                    startEndpoint: mc.startEndpoint,
+                    endEndpoint: mc.endEndpoint,
+                    sourceAnchor: mc.sourceAnchor || 'auto',
+                    targetAnchor: mc.targetAnchor || 'auto'
                 });
             }
         }
@@ -761,14 +828,39 @@ define([
 
     // ── Connection Drawing ────────────────────────────────────────
 
+    /**
+     * Get a specific anchor point on a node (top/bottom/left/right/center).
+     */
+    function getAnchorPoint(node, anchor) {
+        var cx = node.x + node.w / 2;
+        var cy = node.y + node.h / 2;
+        if (anchor === 'top') return { x: cx, y: node.y };
+        if (anchor === 'bottom') return { x: cx, y: node.y + node.h };
+        if (anchor === 'left') return { x: node.x, y: cy };
+        if (anchor === 'right') return { x: node.x + node.w, y: cy };
+        return { x: cx, y: cy }; // center or auto
+    }
+
     function drawConnection(ctx, fromNode, toNode, conn, theme, isSelected) {
         var fromCx = fromNode.x + fromNode.w / 2;
         var fromCy = fromNode.y + fromNode.h / 2;
         var toCx = toNode.x + toNode.w / 2;
         var toCy = toNode.y + toNode.h / 2;
 
-        var startPt = getEdgeConnectionPoint(fromNode, toCx, toCy);
-        var endPt = getEdgeConnectionPoint(toNode, fromCx, fromCy);
+        // Use anchors if specified, otherwise auto (edge intersection)
+        var srcAnchor = conn.sourceAnchor || 'auto';
+        var tgtAnchor = conn.targetAnchor || 'auto';
+        var startPt, endPt;
+        if (srcAnchor !== 'auto') {
+            startPt = getAnchorPoint(fromNode, srcAnchor);
+        } else {
+            startPt = getEdgeConnectionPoint(fromNode, toCx, toCy);
+        }
+        if (tgtAnchor !== 'auto') {
+            endPt = getAnchorPoint(toNode, tgtAnchor);
+        } else {
+            endPt = getEdgeConnectionPoint(toNode, fromCx, fromCy);
+        }
 
         var lineColor = conn.color || theme.lineBg;
         var lineWidth = conn.width || 2;
@@ -822,14 +914,24 @@ define([
         ctx.setLineDash([]);
         ctx.lineWidth = 1;
 
-        // Arrow
-        var arrowDir = conn.arrow || 'forward';
-        if (arrowDir === 'forward' || arrowDir === 'both') {
-            drawArrowhead(ctx, endPt.x, endPt.y, angle, 8, lineColor);
+        // Endpoints — new system with independent start/end types
+        // Migrate old 'arrow' field if startEndpoint/endEndpoint not set
+        var startEp = conn.startEndpoint;
+        var endEp = conn.endEndpoint;
+        if (startEp === undefined && endEp === undefined && conn.arrow) {
+            if (conn.arrow === 'forward') { startEp = 'none'; endEp = 'filledArrow'; }
+            else if (conn.arrow === 'backward') { startEp = 'filledArrow'; endEp = 'none'; }
+            else if (conn.arrow === 'both') { startEp = 'filledArrow'; endEp = 'filledArrow'; }
+            else { startEp = 'none'; endEp = 'none'; }
         }
-        if (arrowDir === 'backward' || arrowDir === 'both') {
-            var backAngle = angle + Math.PI;
-            drawArrowhead(ctx, startPt.x, startPt.y, backAngle, 8, lineColor);
+        if (startEp === undefined) startEp = 'none';
+        if (endEp === undefined) endEp = 'filledArrow';
+
+        if (endEp !== 'none') {
+            drawEndpoint(ctx, endPt.x, endPt.y, angle, endEp, 8, lineColor);
+        }
+        if (startEp !== 'none') {
+            drawEndpoint(ctx, startPt.x, startPt.y, angle + Math.PI, startEp, 8, lineColor);
         }
 
         // Label
@@ -1188,23 +1290,27 @@ define([
     // ── Connection Formatting Popup ──────────────────────────────
 
     function drawConnectionPopup(ctx, conn, connIdx, palette, theme, mouseX, mouseY, w, h) {
-        var popW = 210;
-        var popH = 190;
+        var popW = 260;
+        var rowH = 20;
+        var pad = 10;
+        var labelColW = 52;
+        var numRows = 9; // Style, Width, Dash, Start Ep, End Ep, Src Anchor, Tgt Anchor, Color, Label
+        var popH = pad * 2 + numRows * rowH + 4;
         var px = mouseX + 10;
         var py = mouseY + 10;
         if (px + popW > w) px = w - popW - 10;
         if (py + popH > h) py = h - popH - 10;
-        if (px < 0) px = 10;
-        if (py < 0) py = 10;
+        if (px < 4) px = 4;
+        if (py < 4) py = 4;
 
         var hits = [];
 
         // Background
         ctx.save();
-        ctx.shadowColor = 'rgba(0,0,0,0.2)';
-        ctx.shadowBlur = 8;
-        ctx.shadowOffsetY = 2;
-        roundRect(ctx, px, py, popW, popH, 6);
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 4;
+        roundRect(ctx, px, py, popW, popH, 8);
         ctx.fillStyle = theme.toolbarBg;
         ctx.fill();
         ctx.shadowColor = 'transparent';
@@ -1214,100 +1320,140 @@ define([
         ctx.stroke();
         ctx.restore();
 
-        var rowY = py + 10;
-        var leftX = px + 10;
-        var btnX;
+        var rowY = py + pad;
+        var leftX = px + pad;
+        var contentX = leftX + labelColW;
+        var contentW = popW - pad * 2 - labelColW;
 
-        // Helper to draw toggle button
-        function toggleBtn(x, y, w2, h2, label, active, hitType, hitValue) {
-            roundRect(ctx, x, y, w2, h2, 3);
-            ctx.fillStyle = active ? '#3b82f6' : theme.nodeBg;
-            ctx.fill();
-            ctx.strokeStyle = theme.nodeBorder;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            ctx.fillStyle = active ? '#fff' : theme.text;
+        function drawCLabel(text) {
             ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(label, x + w2 / 2, y + h2 / 2);
+            ctx.fillStyle = theme.textMuted;
             ctx.textAlign = 'left';
-            ctx.textBaseline = 'top';
-            hits.push({ type: hitType, value: hitValue, x: x, y: y, w: w2, h: h2 });
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, leftX, rowY + rowH / 2);
         }
 
-        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.textBaseline = 'top';
+        function drawCToggleRow(options, currentVal, hitType) {
+            var tX = contentX;
+            var tW = Math.floor(contentW / options.length) - 2;
+            for (var ti = 0; ti < options.length; ti++) {
+                var isAct = currentVal === options[ti].value;
+                roundRect(ctx, tX, rowY + 2, tW, rowH - 4, 3);
+                ctx.fillStyle = isAct ? '#3b82f6' : theme.nodeBg;
+                ctx.fill();
+                ctx.strokeStyle = isAct ? 'transparent' : theme.nodeBorder;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.fillStyle = isAct ? '#fff' : theme.text;
+                ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(options[ti].label, tX + tW / 2, rowY + rowH / 2);
+                hits.push({ type: hitType, value: options[ti].value, x: tX, y: rowY + 2, w: tW, h: rowH - 4 });
+                tX += tW + 2;
+            }
+            ctx.textAlign = 'left';
+        }
+
+        // Migrate old arrow field for display
+        var startEp = conn.startEndpoint || 'none';
+        var endEp = conn.endEndpoint || 'filledArrow';
+        if (conn.arrow && !conn.startEndpoint && !conn.endEndpoint) {
+            if (conn.arrow === 'forward') { startEp = 'none'; endEp = 'filledArrow'; }
+            else if (conn.arrow === 'backward') { startEp = 'filledArrow'; endEp = 'none'; }
+            else if (conn.arrow === 'both') { startEp = 'filledArrow'; endEp = 'filledArrow'; }
+            else { startEp = 'none'; endEp = 'none'; }
+        }
+
+        var epOpts = [
+            { value: 'none', label: '\u2014' },
+            { value: 'filledArrow', label: '\u25B6' },
+            { value: 'openArrow', label: '\u25B7' },
+            { value: 'filledBall', label: '\u25CF' },
+            { value: 'ball', label: '\u25CB' },
+            { value: 'filledDiamond', label: '\u25C6' },
+            { value: 'diamond', label: '\u25C7' },
+            { value: 'bar', label: '|' }
+        ];
+
+        var anchorOpts = [
+            { value: 'auto', label: 'Auto' },
+            { value: 'top', label: '\u25B2' },
+            { value: 'bottom', label: '\u25BC' },
+            { value: 'left', label: '\u25C0' },
+            { value: 'right', label: '\u25B6' }
+        ];
 
         // Row 1: Style
-        ctx.fillStyle = theme.textMuted;
-        ctx.fillText('Style:', leftX, rowY);
-        btnX = leftX + 42;
-        toggleBtn(btnX, rowY - 2, 50, 16, 'Straight', conn.style !== 'curved', 'style', 'straight');
-        toggleBtn(btnX + 56, rowY - 2, 50, 16, 'Curved', conn.style === 'curved', 'style', 'curved');
-        rowY += 22;
+        drawCLabel('Style');
+        drawCToggleRow([
+            { value: 'straight', label: 'Straight' },
+            { value: 'curved', label: 'Curved' }
+        ], conn.style || 'straight', 'style');
+        rowY += rowH;
 
         // Row 2: Width
-        ctx.fillStyle = theme.textMuted;
-        ctx.fillText('Width:', leftX, rowY);
-        btnX = leftX + 42;
-        var widths = [1, 2, 4];
-        for (var wi = 0; wi < widths.length; wi++) {
-            toggleBtn(btnX + wi * 32, rowY - 2, 26, 16, String(widths[wi]), conn.width === widths[wi], 'width', widths[wi]);
-        }
-        rowY += 22;
+        drawCLabel('Width');
+        drawCToggleRow([
+            { value: 1, label: '1' }, { value: 2, label: '2' },
+            { value: 3, label: '3' }, { value: 4, label: '4' }
+        ], conn.width || 2, 'width');
+        rowY += rowH;
 
         // Row 3: Dash
-        ctx.fillStyle = theme.textMuted;
-        ctx.fillText('Dash:', leftX, rowY);
-        btnX = leftX + 42;
-        toggleBtn(btnX, rowY - 2, 42, 16, 'Solid', !conn.dash, 'dash', false);
-        toggleBtn(btnX + 48, rowY - 2, 42, 16, 'Dashed', !!conn.dash, 'dash', true);
-        rowY += 22;
+        drawCLabel('Dash');
+        drawCToggleRow([
+            { value: false, label: 'Solid' },
+            { value: true, label: 'Dashed' }
+        ], !!conn.dash, 'dash');
+        rowY += rowH;
 
-        // Row 4: Arrow
-        ctx.fillStyle = theme.textMuted;
-        ctx.fillText('Arrow:', leftX, rowY);
-        btnX = leftX + 42;
-        var arrows = [
-            { label: 'None', value: 'none' },
-            { label: '\u2192', value: 'forward' },
-            { label: '\u2190', value: 'backward' },
-            { label: '\u2194', value: 'both' }
-        ];
-        for (var ai = 0; ai < arrows.length; ai++) {
-            toggleBtn(btnX + ai * 34, rowY - 2, 28, 16, arrows[ai].label, conn.arrow === arrows[ai].value, 'arrow', arrows[ai].value);
-        }
-        rowY += 22;
+        // Row 4: Start Endpoint
+        drawCLabel('Start');
+        drawCToggleRow(epOpts, startEp, 'startEndpoint');
+        rowY += rowH;
 
-        // Row 5: Color
-        ctx.fillStyle = theme.textMuted;
-        ctx.fillText('Color:', leftX, rowY);
-        var swatchX = leftX + 42;
-        var swatchS = 16;
+        // Row 5: End Endpoint
+        drawCLabel('End');
+        drawCToggleRow(epOpts, endEp, 'endEndpoint');
+        rowY += rowH;
+
+        // Row 6: Source Anchor
+        drawCLabel('Src \u2693');
+        drawCToggleRow(anchorOpts, conn.sourceAnchor || 'auto', 'sourceAnchor');
+        rowY += rowH;
+
+        // Row 7: Target Anchor
+        drawCLabel('Tgt \u2693');
+        drawCToggleRow(anchorOpts, conn.targetAnchor || 'auto', 'targetAnchor');
+        rowY += rowH;
+
+        // Row 8: Color
+        drawCLabel('Color');
+        var swatchX = contentX;
+        var swatchS = Math.min(18, Math.floor((contentW - 4) / palette.length) - 2);
         for (var ci2 = 0; ci2 < palette.length; ci2++) {
+            roundRect(ctx, swatchX, rowY + 2, swatchS, swatchS, 2);
             ctx.fillStyle = palette[ci2];
-            ctx.fillRect(swatchX, rowY - 1, swatchS, swatchS);
+            ctx.fill();
             if (conn.color === palette[ci2]) {
-                ctx.strokeStyle = theme.text;
+                ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 2;
-                ctx.strokeRect(swatchX - 1, rowY - 2, swatchS + 2, swatchS + 2);
+                ctx.stroke();
             }
-            hits.push({ type: 'connColor', value: palette[ci2], x: swatchX, y: rowY - 1, w: swatchS, h: swatchS });
-            swatchX += swatchS + 4;
+            hits.push({ type: 'connColor', value: palette[ci2], x: swatchX, y: rowY + 2, w: swatchS, h: swatchS });
+            swatchX += swatchS + 2;
         }
-        rowY += 22;
+        rowY += rowH;
 
-        // Row 6: Label
-        ctx.fillStyle = theme.textMuted;
-        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillText('Label:', leftX, rowY);
-        var labelText = conn.label || 'click to edit';
-        ctx.fillStyle = conn.label ? theme.text : theme.textMuted;
+        // Row 9: Label
+        drawCLabel('Label');
+        var connLblText = conn.label || '(click to edit)';
         ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        var lblX = leftX + 42;
-        ctx.fillText(truncateText(labelText, 18), lblX, rowY);
-        hits.push({ type: 'connLabel', x: lblX, y: rowY - 2, w: popW - 62, h: 16 });
+        ctx.fillStyle = conn.label ? theme.text : theme.textMuted;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(truncateText(connLblText, 20), contentX, rowY + rowH / 2);
+        hits.push({ type: 'connLabel', x: contentX, y: rowY, w: contentW, h: rowH });
 
         ctx.textBaseline = 'alphabetic';
         ctx.lineWidth = 1;
@@ -1900,8 +2046,16 @@ define([
                                         edConns[cIdx].width = cHit.value;
                                     } else if (cHit.type === 'dash' && edConns[cIdx]) {
                                         edConns[cIdx].dash = cHit.value;
-                                    } else if (cHit.type === 'arrow' && edConns[cIdx]) {
-                                        edConns[cIdx].arrow = cHit.value;
+                                    } else if (cHit.type === 'startEndpoint' && edConns[cIdx]) {
+                                        edConns[cIdx].startEndpoint = cHit.value;
+                                        delete edConns[cIdx].arrow; // remove legacy field
+                                    } else if (cHit.type === 'endEndpoint' && edConns[cIdx]) {
+                                        edConns[cIdx].endEndpoint = cHit.value;
+                                        delete edConns[cIdx].arrow;
+                                    } else if (cHit.type === 'sourceAnchor' && edConns[cIdx]) {
+                                        edConns[cIdx].sourceAnchor = cHit.value;
+                                    } else if (cHit.type === 'targetAnchor' && edConns[cIdx]) {
+                                        edConns[cIdx].targetAnchor = cHit.value;
                                     } else if (cHit.type === 'connColor' && edConns[cIdx]) {
                                         edConns[cIdx].color = cHit.value;
                                     } else if (cHit.type === 'connLabel' && edConns[cIdx]) {
@@ -2623,16 +2777,18 @@ define([
             var editorStateStr = config[ns + 'editorState']  || '';
             var drilldownField = config[ns + 'drilldownField'] || 'sourcetype';
 
-            // Edit mode is NEVER restored from config — it's always session-only.
-            // The formatter toggle can activate it, but it resets on page load.
-            if (!this._editModeInitialized) {
-                this._editModeInitialized = true;
-                this._editMode = false; // Always start closed
+            // Edit mode is session-only — NEVER persists across page loads.
+            // We detect when the formatter CHANGES from false→true (not just reads "true").
+            if (this._lastEditModeConfig === undefined) {
+                // First call — initialize. Ignore whatever is in config.
+                this._lastEditModeConfig = 'false';
+                this._editMode = false;
             }
-            // If formatter just toggled editMode to true, activate it
-            if (editMode === 'true' && !this._editMode) {
+            // Detect formatter toggle: config changed from 'false' to 'true'
+            if (editMode === 'true' && this._lastEditModeConfig !== 'true') {
                 this._editMode = true;
             }
+            this._lastEditModeConfig = editMode;
             this._lockMode = lock === 'true';
             this._drilldownField = drilldownField;
 
