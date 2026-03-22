@@ -2081,6 +2081,67 @@ define([
             this._editBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
             this.el.appendChild(this._editBtn);
 
+            // --- Properties Panel Shell ---
+            var selfPanel = this;
+            this._panelCollapsed = false;
+
+            // Panel container (dark default — themed in updateView)
+            this._panelEl = document.createElement('div');
+            this._panelEl.style.cssText = 'position:absolute;right:0;top:36px;bottom:0;width:280px;background:rgba(15,23,42,0.97);border-left:1px solid #334155;display:none;flex-direction:column;z-index:4;';
+
+            // Panel header
+            var panelHeader = document.createElement('div');
+            panelHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #334155;flex-shrink:0;';
+
+            var panelTitle = document.createElement('span');
+            panelTitle.textContent = 'Properties';
+            panelTitle.style.cssText = 'color:#fbbf24;font:bold 12px -apple-system,BlinkMacSystemFont,sans-serif;';
+            this._panelTitle = panelTitle;
+            panelHeader.appendChild(panelTitle);
+
+            var collapseBtn = document.createElement('button');
+            collapseBtn.textContent = '\u00bb';
+            collapseBtn.style.cssText = 'background:none;border:none;color:#cbd5e1;font-size:16px;cursor:pointer;padding:0 4px;line-height:1;';
+            collapseBtn.addEventListener('click', function() {
+                selfPanel._panelCollapsed = true;
+                selfPanel.invalidateUpdateView();
+            });
+            this._panelCollapseBtn = collapseBtn;
+            panelHeader.appendChild(collapseBtn);
+            this._panelHeader = panelHeader;
+
+            this._panelEl.appendChild(panelHeader);
+
+            // Panel body (scrollable content area)
+            this._panelBody = document.createElement('div');
+            this._panelBody.style.cssText = 'flex:1;overflow-y:auto;padding:0;';
+            this._panelEl.appendChild(this._panelBody);
+
+            this.el.appendChild(this._panelEl);
+
+            // Collapsed strip
+            this._panelStrip = document.createElement('div');
+            this._panelStrip.style.cssText = 'position:absolute;right:0;top:36px;bottom:0;width:24px;background:rgba(15,23,42,0.97);border-left:1px solid #334155;display:none;flex-direction:column;align-items:center;padding-top:8px;cursor:pointer;z-index:4;';
+
+            var stripIcon = document.createElement('span');
+            stripIcon.textContent = '\u00ab';
+            stripIcon.style.cssText = 'color:#cbd5e1;font-size:14px;line-height:1;';
+            this._panelStripIcon = stripIcon;
+            this._panelStrip.appendChild(stripIcon);
+
+            var stripLabel = document.createElement('span');
+            stripLabel.textContent = 'Properties';
+            stripLabel.style.cssText = 'color:#cbd5e1;font:bold 10px -apple-system,BlinkMacSystemFont,sans-serif;writing-mode:vertical-rl;text-orientation:mixed;margin-top:8px;';
+            this._panelStripLabel = stripLabel;
+            this._panelStrip.appendChild(stripLabel);
+
+            this._panelStrip.addEventListener('click', function() {
+                selfPanel._panelCollapsed = false;
+                selfPanel.invalidateUpdateView();
+            });
+
+            this.el.appendChild(this._panelStrip);
+
             // State
             this._lastGoodData = null;
             this._editorState = { nodes: {}, connections: [], lock: false };
@@ -4389,6 +4450,39 @@ define([
             // Show/hide edit button
             if (this._editBtn) {
                 this._editBtn.style.display = this._editMode ? 'none' : 'flex';
+            }
+
+            // Show/hide properties panel
+            if (this._panelEl && this._panelStrip) {
+                if (this._editMode) {
+                    // Theme the panel
+                    var panelBg = isDark ? 'rgba(15,23,42,0.97)' : 'rgba(255,255,255,0.97)';
+                    var panelBorder = isDark ? '#334155' : '#e2e8f0';
+                    var panelText = isDark ? '#cbd5e1' : '#334155';
+                    var panelTitleColor = isDark ? '#fbbf24' : '#b45309';
+
+                    this._panelEl.style.background = panelBg;
+                    this._panelEl.style.borderLeftColor = panelBorder;
+                    this._panelHeader.style.borderBottomColor = panelBorder;
+                    this._panelTitle.style.color = panelTitleColor;
+                    this._panelCollapseBtn.style.color = panelText;
+
+                    this._panelStrip.style.background = panelBg;
+                    this._panelStrip.style.borderLeftColor = panelBorder;
+                    this._panelStripIcon.style.color = panelText;
+                    this._panelStripLabel.style.color = panelText;
+
+                    if (this._panelCollapsed) {
+                        this._panelEl.style.display = 'none';
+                        this._panelStrip.style.display = 'flex';
+                    } else {
+                        this._panelEl.style.display = 'flex';
+                        this._panelStrip.style.display = 'none';
+                    }
+                } else {
+                    this._panelEl.style.display = 'none';
+                    this._panelStrip.style.display = 'none';
+                }
             }
 
             this._hitNodes = positioned;
