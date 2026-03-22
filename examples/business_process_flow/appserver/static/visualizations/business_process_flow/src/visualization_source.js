@@ -1583,7 +1583,19 @@ define([
             else { startEp = 'none'; endEp = 'none'; }
         }
 
-        var epOpts = [
+        // Start endpoints point LEFT (toward source node)
+        var startEpOpts = [
+            { value: 'none', label: '\u2014' },
+            { value: 'filledArrow', label: '\u25C0' },
+            { value: 'openArrow', label: '\u25C1' },
+            { value: 'filledBall', label: '\u25CF' },
+            { value: 'ball', label: '\u25CB' },
+            { value: 'filledDiamond', label: '\u25C6' },
+            { value: 'diamond', label: '\u25C7' },
+            { value: 'bar', label: '|' }
+        ];
+        // End endpoints point RIGHT (toward target node)
+        var endEpOpts = [
             { value: 'none', label: '\u2014' },
             { value: 'filledArrow', label: '\u25B6' },
             { value: 'openArrow', label: '\u25B7' },
@@ -1626,14 +1638,14 @@ define([
         ], !!conn.dash, 'dash');
         rowY += rowH;
 
-        // Row 4: Start Endpoint
+        // Row 4: Start Endpoint (icons point LEFT ◀ = toward source)
         drawCLabel('Start');
-        drawCToggleRow(epOpts, startEp, 'startEndpoint');
+        drawCToggleRow(startEpOpts, startEp, 'startEndpoint');
         rowY += rowH;
 
-        // Row 5: End Endpoint
+        // Row 5: End Endpoint (icons point RIGHT ▶ = toward target)
         drawCLabel('End');
-        drawCToggleRow(epOpts, endEp, 'endEndpoint');
+        drawCToggleRow(endEpOpts, endEp, 'endEndpoint');
         rowY += rowH;
 
         // Row 6: Source Anchor

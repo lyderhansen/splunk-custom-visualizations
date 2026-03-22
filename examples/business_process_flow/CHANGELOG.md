@@ -1,5 +1,9 @@
 # Business Process Flow — Changelog
 
+## v4.6.1 — 2026-03-22 19:15
+- **Fix: Start/End endpoint icons show direction** — Start row uses left-pointing icons (◀◁) and End row uses right-pointing icons (▶▷), making it clear which way each arrow will point
+- **Visual clarity** — `◀────▶` is now obvious from the popup: Start=◀ means arrow points toward source, End=▶ means arrow points toward target
+
 ## v4.6.0 — 2026-03-22 19:00
 - **Undo/Redo system** — Full undo/redo with 50-step history
   - Toolbar buttons: ↩ (undo) and ↪ (redo)
