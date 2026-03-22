@@ -847,7 +847,7 @@ define([
         return { x: cx, y: cy }; // center or auto
     }
 
-    function drawConnection(ctx, fromNode, toNode, conn, theme, isSelected, editMode) {
+    function drawConnection(ctx, fromNode, toNode, conn, theme, isSelected, editMode, isHovered) {
         var fromCx = fromNode.x + fromNode.w / 2;
         var fromCy = fromNode.y + fromNode.h / 2;
         var toCx = toNode.x + toNode.w / 2;
@@ -938,6 +938,13 @@ define([
         ctx.lineWidth = isSelected ? lineWidth + 1.5 : lineWidth;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
+        // Glow effect on hover
+        if (isHovered) {
+            ctx.shadowColor = lineColor;
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        }
         if (conn.dash) { ctx.setLineDash([6, 4]); } else { ctx.setLineDash([]); }
 
         var midX, midY, endAngle, startAngle;
@@ -995,6 +1002,9 @@ define([
 
         ctx.setLineDash([]);
         ctx.lineWidth = 1;
+        // Reset glow
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
 
         // DEFER endpoints and waypoints to be drawn AFTER nodes
         // Store them on the conn object for the deferred pass
@@ -1002,7 +1012,10 @@ define([
             endEp: endEp, endPtX: endPt.x, endPtY: endPt.y, endAngle: endAngle,
             startEp: startEp, startPtX: startPt.x, startPtY: startPt.y, startAngle: startAngle,
             epSize: epSize, lineColor: lineColor,
-            waypoints: waypoints, isSelected: isSelected, editMode: editMode
+            waypoints: waypoints, isSelected: isSelected, editMode: editMode,
+            // Original anchor points (before shortening) for anchor handles
+            origStartX: startPt.x, origStartY: startPt.y,
+            origEndX: endPt.x, origEndY: endPt.y
         };
 
         // Label — deferred to overlay pass, include position for dragging
@@ -1382,7 +1395,8 @@ define([
                 drawEndpoint(ctx, dd.endPtX, dd.endPtY, dd.endAngle, dd.endEp, dd.epSize, dd.lineColor);
             }
             if (dd.startEp !== 'none') {
-                drawEndpoint(ctx, dd.startPtX, dd.startPtY, dd.startAngle + Math.PI, dd.startEp, dd.epSize, dd.lineColor);
+                // Start endpoint points TOWARD the start node (arrow tip at node edge)
+                drawEndpoint(ctx, dd.startPtX, dd.startPtY, dd.startAngle, dd.startEp, dd.epSize, dd.lineColor);
             }
             // Waypoint handles
             if (dd.editMode && dd.waypoints && dd.waypoints.length > 0) {
@@ -1398,6 +1412,30 @@ define([
                 }
                 ctx.lineWidth = 1;
             }
+            // Anchor handles on selected connection (draggable circles at start/end)
+            if (dd.editMode && dd.isSelected) {
+                // Start anchor handle
+                ctx.beginPath();
+                ctx.arc(dd.origStartX, dd.origStartY, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#f59e0b';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                // End anchor handle
+                ctx.beginPath();
+                ctx.arc(dd.origEndX, dd.origEndY, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#f59e0b';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.lineWidth = 1;
+                // Store hit rects for anchor dragging
+                connections[oi]._startAnchorHit = { x: dd.origStartX, y: dd.origStartY };
+                connections[oi]._endAnchorHit = { x: dd.origEndX, y: dd.origEndY };
+            }
+
             // Labels (drawn on top of everything)
             if (dd.label) {
                 ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
@@ -1730,6 +1768,10 @@ define([
             this._isDraggingWaypoint = false;
             this._dragWpConnIdx = null;
             this._dragWpIdx = null;
+            this._isDraggingAnchor = false;
+            this._dragAnchorConnIdx = null;
+            this._dragAnchorEnd = null; // 'start' or 'end'
+            this._dragAnchorNode = null; // the node object
             this._isDraggingLabel = false;
             this._dragLabelConnIdx = null;
             this._dragLabelStartX = 0;
@@ -2383,6 +2425,48 @@ define([
                         return;
                     }
 
+                    // Check anchor handles for dragging on selected connection
+                    for (var ahi = 0; ahi < self._computedConnections.length; ahi++) {
+                        var ahc = self._computedConnections[ahi];
+                        if (ahc._startAnchorHit && pointInCircle(mx, my, ahc._startAnchorHit.x, ahc._startAnchorHit.y, 8)) {
+                            var edcAh = self._editorState.connections || [];
+                            for (var aeci = 0; aeci < edcAh.length; aeci++) {
+                                if (edcAh[aeci].from === ahc.from && edcAh[aeci].to === ahc.to) {
+                                    self._isDraggingAnchor = true;
+                                    self._dragAnchorConnIdx = aeci;
+                                    self._dragAnchorEnd = 'start';
+                                    // Find the source node
+                                    for (var ani = 0; ani < self._computedNodes.length; ani++) {
+                                        if (self._computedNodes[ani].id === ahc.from) {
+                                            self._dragAnchorNode = self._computedNodes[ani];
+                                            break;
+                                        }
+                                    }
+                                    self.canvas.style.cursor = 'crosshair';
+                                    return;
+                                }
+                            }
+                        }
+                        if (ahc._endAnchorHit && pointInCircle(mx, my, ahc._endAnchorHit.x, ahc._endAnchorHit.y, 8)) {
+                            var edcAh2 = self._editorState.connections || [];
+                            for (var aeci2 = 0; aeci2 < edcAh2.length; aeci2++) {
+                                if (edcAh2[aeci2].from === ahc.from && edcAh2[aeci2].to === ahc.to) {
+                                    self._isDraggingAnchor = true;
+                                    self._dragAnchorConnIdx = aeci2;
+                                    self._dragAnchorEnd = 'end';
+                                    for (var ani2 = 0; ani2 < self._computedNodes.length; ani2++) {
+                                        if (self._computedNodes[ani2].id === ahc.to) {
+                                            self._dragAnchorNode = self._computedNodes[ani2];
+                                            break;
+                                        }
+                                    }
+                                    self.canvas.style.cursor = 'crosshair';
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
                     // Check waypoint handles for dragging
                     var edConnsWp = self._editorState.connections || [];
                     for (var wci = 0; wci < edConnsWp.length; wci++) {
@@ -2584,6 +2668,52 @@ define([
                 var my = e.clientY - rect.top;
                 self._mouseX = mx;
                 self._mouseY = my;
+
+                // Handle anchor dragging — snap to nearest node edge
+                if (self._isDraggingAnchor && self._dragAnchorNode) {
+                    var an = self._dragAnchorNode;
+                    var aCx = an.x + an.w / 2;
+                    var aCy = an.y + an.h / 2;
+                    // Determine which edge is closest to mouse
+                    var dTop = Math.abs(my - an.y);
+                    var dBot = Math.abs(my - (an.y + an.h));
+                    var dLeft = Math.abs(mx - an.x);
+                    var dRight = Math.abs(mx - (an.x + an.w));
+                    var minD = Math.min(dTop, dBot, dLeft, dRight);
+                    var newAnchor = 'auto';
+                    var newOffset = 0;
+                    if (minD === dTop) {
+                        newAnchor = 'top';
+                        newOffset = Math.round(mx - aCx);
+                    } else if (minD === dBot) {
+                        newAnchor = 'bottom';
+                        newOffset = Math.round(mx - aCx);
+                    } else if (minD === dLeft) {
+                        newAnchor = 'left';
+                        newOffset = Math.round(my - aCy);
+                    } else {
+                        newAnchor = 'right';
+                        newOffset = Math.round(my - aCy);
+                    }
+                    // Clamp offset to node bounds
+                    if (newAnchor === 'top' || newAnchor === 'bottom') {
+                        newOffset = Math.max(-an.w / 2 + 5, Math.min(an.w / 2 - 5, newOffset));
+                    } else {
+                        newOffset = Math.max(-an.h / 2 + 5, Math.min(an.h / 2 - 5, newOffset));
+                    }
+                    var ec = self._editorState.connections[self._dragAnchorConnIdx];
+                    if (ec) {
+                        if (self._dragAnchorEnd === 'start') {
+                            ec.sourceAnchor = newAnchor;
+                            ec.sourceAnchorOffset = newOffset;
+                        } else {
+                            ec.targetAnchor = newAnchor;
+                            ec.targetAnchorOffset = newOffset;
+                        }
+                    }
+                    self.invalidateUpdateView();
+                    return;
+                }
 
                 // Handle waypoint dragging
                 if (self._isDraggingWaypoint && self._dragWpConnIdx !== null) {
@@ -2822,6 +2952,17 @@ define([
                     }
                     self._isDragging = false;
                     self._dragNodeId = null;
+                    return;
+                }
+
+                // Handle anchor drag end
+                if (self._isDraggingAnchor) {
+                    self._isDraggingAnchor = false;
+                    self._dragAnchorConnIdx = null;
+                    self._dragAnchorEnd = null;
+                    self._dragAnchorNode = null;
+                    self.canvas.style.cursor = 'default';
+                    self.invalidateUpdateView();
                     return;
                 }
 
@@ -3434,7 +3575,8 @@ define([
                     var connSelected = this._editMode && this._selectedConnection !== null &&
                         this._selectedConnection.from === conn.from &&
                         this._selectedConnection.to === conn.to;
-                    drawConnection(ctx, fromNd, toNd, conn, theme, connSelected, this._editMode);
+                    var connHovered = this._hoverItem && this._hoverItem.type === 'connection' && this._hoverItem.index === ci;
+                    drawConnection(ctx, fromNd, toNd, conn, theme, connSelected, this._editMode, connHovered);
                 }
             }
 
