@@ -127,6 +127,21 @@ define([
     }
 
     /**
+     * Stroke pattern lookup and helper.
+     */
+    var STROKE_PATTERNS = {
+        solid: [],
+        dashed: [8, 4],
+        dotted: [2, 3],
+        'dash-dot': [8, 4, 2, 4],
+        'long-dash': [16, 6]
+    };
+
+    function applyStrokePattern(ctx, pattern) {
+        ctx.setLineDash(STROKE_PATTERNS[pattern] || []);
+    }
+
+    /**
      * Rounded rectangle path (does not fill or stroke).
      */
     function roundRect(ctx, x, y, w, h, r) {
@@ -990,7 +1005,10 @@ define([
             shapePath();
             ctx.strokeStyle = isSelected ? node.color : (condColor || theme.nodeBorder);
             ctx.lineWidth = condColor ? Math.max(borderWidth, 2) : borderWidth;
+            var nodeStrokePattern = nodeState.strokePattern || 'solid';
+            applyStrokePattern(ctx, nodeStrokePattern);
             ctx.stroke();
+            ctx.setLineDash([]); // reset
         }
 
         // Reset shadow
@@ -1256,7 +1274,8 @@ define([
             ctx.shadowOffsetY = 0;
             ctx.lineWidth += 2; // thicken line on hover for visibility
         }
-        if (conn.dash) { ctx.setLineDash([6, 4]); } else { ctx.setLineDash([]); }
+        var connPattern = conn.strokePattern || (conn.dash ? 'dashed' : 'solid');
+        applyStrokePattern(ctx, connPattern);
 
         var midX, midY, endAngle, startAngle;
 
@@ -2668,6 +2687,17 @@ define([
             // ── Write editorState to formatter DOM ──
             // ── Save: localStorage + try formatter textarea ──
             this._saveEditorState = function() {
+                // Migrate legacy `dash` boolean to `strokePattern` string
+                var es = self._editorState;
+                if (es && es.connections) {
+                    for (var sci = 0; sci < es.connections.length; sci++) {
+                        var sc = es.connections[sci];
+                        if (sc.dash !== undefined && !sc.strokePattern) {
+                            sc.strokePattern = sc.dash ? 'dashed' : 'solid';
+                        }
+                        delete sc.dash;
+                    }
+                }
                 var stateJson = JSON.stringify(self._editorState);
                 // 1. Save to localStorage
                 try { localStorage.setItem(self._getStorageKey(), stateJson); } catch(e) {}
