@@ -1,5 +1,10 @@
 # Business Process Flow — Changelog
 
+## v4.5.1 — 2026-03-22 17:50
+- **Fix: circle/diamond anchor points** — Anchors now snap to actual shape boundary (circle radius, diamond edges) instead of bounding rectangle
+- **Better line hit testing** — Threshold increased to 16px, hover glow stronger (shadowBlur 16 + line thickens by 2px)
+- **Shape-aware anchor offset** — Offset follows circle curvature and diamond edges correctly
+
 ## v4.5.0 — 2026-03-22 17:35
 - **Removed Edit Mode from formatter** — No more confusing Open/Closed toggle in Dashboard Studio
 - **DOM Edit button** — "✎ Edit" button in bottom-right of panel, always visible in view mode, opens edit mode on click. Works in both Search view and Dashboard Studio view mode.

@@ -837,13 +837,32 @@ define([
     /**
      * Get a specific anchor point on a node (top/bottom/left/right/center).
      */
-    function getAnchorPoint(node, anchor) {
+    function getAnchorPoint(node, anchor, offset) {
         var cx = node.x + node.w / 2;
         var cy = node.y + node.h / 2;
-        if (anchor === 'top') return { x: cx, y: node.y };
-        if (anchor === 'bottom') return { x: cx, y: node.y + node.h };
-        if (anchor === 'left') return { x: node.x, y: cy };
-        if (anchor === 'right') return { x: node.x + node.w, y: cy };
+        var shape = node.shape || 'rect';
+        var off = parseInt(offset, 10) || 0;
+
+        if (shape === 'circle') {
+            var r = Math.min(node.w, node.h) / 2;
+            if (anchor === 'top') return { x: cx + off, y: cy - r };
+            if (anchor === 'bottom') return { x: cx + off, y: cy + r };
+            if (anchor === 'left') return { x: cx - r, y: cy + off };
+            if (anchor === 'right') return { x: cx + r, y: cy + off };
+        } else if (shape === 'diamond') {
+            var hw = node.w / 2;
+            var hh = node.h / 2;
+            if (anchor === 'top') return { x: cx + off * 0.5, y: cy - hh + Math.abs(off) * hh / hw };
+            if (anchor === 'bottom') return { x: cx + off * 0.5, y: cy + hh - Math.abs(off) * hh / hw };
+            if (anchor === 'left') return { x: cx - hw + Math.abs(off) * hw / hh, y: cy + off * 0.5 };
+            if (anchor === 'right') return { x: cx + hw - Math.abs(off) * hw / hh, y: cy + off * 0.5 };
+        } else {
+            // rect
+            if (anchor === 'top') return { x: cx + off, y: node.y };
+            if (anchor === 'bottom') return { x: cx + off, y: node.y + node.h };
+            if (anchor === 'left') return { x: node.x, y: cy + off };
+            if (anchor === 'right') return { x: node.x + node.w, y: cy + off };
+        }
         return { x: cx, y: cy }; // center or auto
     }
 
@@ -856,28 +875,18 @@ define([
         // Use anchors if specified, otherwise auto (edge intersection)
         var srcAnchor = conn.sourceAnchor || 'auto';
         var tgtAnchor = conn.targetAnchor || 'auto';
+        var srcOff = parseInt(conn.sourceAnchorOffset, 10) || 0;
+        var tgtOff = parseInt(conn.targetAnchorOffset, 10) || 0;
         var startPt, endPt;
         if (srcAnchor !== 'auto') {
-            startPt = getAnchorPoint(fromNode, srcAnchor);
+            startPt = getAnchorPoint(fromNode, srcAnchor, srcOff);
         } else {
             startPt = getEdgeConnectionPoint(fromNode, toCx, toCy);
         }
         if (tgtAnchor !== 'auto') {
-            endPt = getAnchorPoint(toNode, tgtAnchor);
+            endPt = getAnchorPoint(toNode, tgtAnchor, tgtOff);
         } else {
             endPt = getEdgeConnectionPoint(toNode, fromCx, fromCy);
-        }
-
-        // Apply anchor offset (px shift along the node edge)
-        var srcOff = parseInt(conn.sourceAnchorOffset, 10) || 0;
-        var tgtOff = parseInt(conn.targetAnchorOffset, 10) || 0;
-        if (srcOff && srcAnchor !== 'auto') {
-            if (srcAnchor === 'top' || srcAnchor === 'bottom') startPt.x += srcOff;
-            else startPt.y += srcOff;
-        }
-        if (tgtOff && tgtAnchor !== 'auto') {
-            if (tgtAnchor === 'top' || tgtAnchor === 'bottom') endPt.x += tgtOff;
-            else endPt.y += tgtOff;
         }
 
         var lineColor = conn.color || theme.lineBg;
@@ -938,12 +947,13 @@ define([
         ctx.lineWidth = isSelected ? lineWidth + 1.5 : lineWidth;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        // Glow effect on hover
+        // Glow effect on hover — strong and visible
         if (isHovered) {
             ctx.shadowColor = lineColor;
-            ctx.shadowBlur = 10;
+            ctx.shadowBlur = 16;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
+            ctx.lineWidth += 2; // thicken line on hover for visibility
         }
         if (conn.dash) { ctx.setLineDash([6, 4]); } else { ctx.setLineDash([]); }
 
@@ -2592,7 +2602,7 @@ define([
                             ccPts.push({ x: tCx, y: tCy });
                             var ccHit = false;
                             for (var csi = 0; csi < ccPts.length - 1; csi++) {
-                                if (pointNearLine(mx, my, ccPts[csi].x, ccPts[csi].y, ccPts[csi + 1].x, ccPts[csi + 1].y, 12)) {
+                                if (pointNearLine(mx, my, ccPts[csi].x, ccPts[csi].y, ccPts[csi + 1].x, ccPts[csi + 1].y, 16)) {
                                     ccHit = true;
                                     break;
                                 }
@@ -2874,7 +2884,7 @@ define([
                             hvPts.push({ x: tCx, y: tCy });
                             var hvHit = false;
                             for (var hsi = 0; hsi < hvPts.length - 1; hsi++) {
-                                if (pointNearLine(mx, my, hvPts[hsi].x, hvPts[hsi].y, hvPts[hsi + 1].x, hvPts[hsi + 1].y, 12)) {
+                                if (pointNearLine(mx, my, hvPts[hsi].x, hvPts[hsi].y, hvPts[hsi + 1].x, hvPts[hsi + 1].y, 16)) {
                                     hvHit = true;
                                     break;
                                 }
