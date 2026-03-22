@@ -247,11 +247,13 @@ define([
             var nh = (edState && edState.h) ? edState.h : defaultH;
             var shape = (edState && edState.shape) ? edState.shape : 'rect';
             var colorOverride = (edState && edState.color) ? edState.color : null;
+            var hideValue = (edState && edState.hideValue) ? true : false;
+            var labelOverride = (edState && edState.label) ? edState.label : null;
 
             if (edState && edState.x !== undefined && edState.y !== undefined) {
                 result.push({
                     id: nd.id,
-                    label: nd.label,
+                    label: labelOverride || nd.label,
                     value: nd.value,
                     subtitle: nd.subtitle || '',
                     x: edState.x,
@@ -263,12 +265,13 @@ define([
                     series: nd.series || [],
                     connectsTo: nd.connectsTo || [],
                     step: nd.step,
-                    rowIndex: nd.rowIndex
+                    rowIndex: nd.rowIndex,
+                    hideValue: hideValue
                 });
             } else {
                 autoNodes.push({
                     id: nd.id,
-                    label: nd.label,
+                    label: labelOverride || nd.label,
                     value: nd.value,
                     subtitle: nd.subtitle || '',
                     w: nw,
@@ -278,7 +281,8 @@ define([
                     series: nd.series || [],
                     connectsTo: nd.connectsTo || [],
                     step: nd.step,
-                    rowIndex: nd.rowIndex
+                    rowIndex: nd.rowIndex,
+                    hideValue: hideValue
                 });
             }
         }
@@ -653,20 +657,26 @@ define([
         }
         ctx.fillText(truncateText(node.label, 18), x + w / 2, labelY);
 
-        // Value
-        var valueText = formatCount(node.value);
-        ctx.font = 'bold 22px "SF Mono", "Fira Code", "Consolas", monospace';
-        ctx.fillStyle = theme.text;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+        // Value (skip if hideValue is set on this node)
+        var showValue = !node.hideValue;
         var valueY = y + h * 0.45;
-        if (hasSpark) {
-            valueY = y + h * 0.38;
+        if (showValue) {
+            var valueText = formatCount(node.value);
+            ctx.font = 'bold 22px "SF Mono", "Fira Code", "Consolas", monospace';
+            ctx.fillStyle = theme.text;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            if (hasSpark) {
+                valueY = y + h * 0.38;
+            }
+            if (node.subtitle) {
+                valueY = y + h * 0.35;
+            }
+            ctx.fillText(valueText, x + w / 2, valueY);
+        } else {
+            // No value — center label vertically instead
+            valueY = y + h * 0.45;
         }
-        if (node.subtitle) {
-            valueY = y + h * 0.35;
-        }
-        ctx.fillText(valueText, x + w / 2, valueY);
 
         // Subtitle
         if (node.subtitle) {
@@ -912,7 +922,7 @@ define([
 
     function drawNodePopup(ctx, node, editorNode, palette, theme, w, h) {
         var popW = 210;
-        var popH = 130;
+        var popH = 155;
         var px = node.x + node.w + 10;
         var py = node.y;
         if (px + popW > w) px = node.x - popW - 10;
@@ -982,6 +992,34 @@ define([
             ctx.textAlign = 'left';
             hits.push({ type: 'shape', value: shapes[si], x: shapeX, y: rowY - 2, w: 24, h: 16 });
             shapeX += 30;
+        }
+        rowY += 22;
+
+        // Value toggle row
+        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillStyle = theme.textMuted;
+        ctx.textBaseline = 'top';
+        ctx.fillText('Value:', leftX, rowY);
+
+        var valOpts = ['show', 'hide'];
+        var valLabels = ['Show', 'Hide'];
+        var isHidden = (editorNode && editorNode.hideValue) ? true : false;
+        var valX = leftX + 42;
+        for (var vi = 0; vi < valOpts.length; vi++) {
+            var valActive = (vi === 0 && !isHidden) || (vi === 1 && isHidden);
+            roundRect(ctx, valX, rowY - 2, 38, 16, 3);
+            ctx.fillStyle = valActive ? (vi === 0 ? '#10b981' : '#ef4444') : theme.nodeBg;
+            ctx.fill();
+            ctx.strokeStyle = theme.nodeBorder;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.fillStyle = valActive ? '#fff' : theme.text;
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(valLabels[vi], valX + 19, rowY + 6);
+            ctx.textAlign = 'left';
+            hits.push({ type: 'hideValue', value: vi === 1, x: valX, y: rowY - 2, w: 38, h: 16 });
+            valX += 44;
         }
         rowY += 22;
 
@@ -1604,6 +1642,13 @@ define([
                                         self.invalidateUpdateView();
                                     } else if (nHit.type === 'color') {
                                         self._editorState.nodes[popNodeId].color = nHit.value;
+                                        self.invalidateUpdateView();
+                                    } else if (nHit.type === 'hideValue') {
+                                        if (nHit.value) {
+                                            self._editorState.nodes[popNodeId].hideValue = true;
+                                        } else {
+                                            delete self._editorState.nodes[popNodeId].hideValue;
+                                        }
                                         self.invalidateUpdateView();
                                     } else if (nHit.type === 'label') {
                                         // Create temporary input for label editing
