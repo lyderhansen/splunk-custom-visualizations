@@ -1,5 +1,8 @@
 # Business Process Flow — Changelog
 
+## v4.8.1 — 2026-03-22 20:05
+- **Fix: flipped endpoint positioning** — When an endpoint direction is flipped, the arrow/icon is now shifted outward along the line by 80% of its size, preventing it from overlapping or hiding inside the node shape
+
 ## v4.8.0 — 2026-03-22 19:50
 - **Sparkline position per node** — New "Spark" row in node popup with 4 layout options:
   - **Below** (default): label top, value middle, sparkline at bottom

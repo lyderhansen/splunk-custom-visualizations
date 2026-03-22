@@ -1474,15 +1474,27 @@ define([
             connections[oi]._wpDeleteHits = null; // reset each frame
             var dd = connections[oi]._deferredDraw;
             if (!dd) continue;
-            // End endpoint: default points toward target (▶), flipped = points away (◀)
+            // End endpoint — when flipped, shift outward along line so it doesn't overlap node
             if (dd.endEp !== 'none') {
                 var endA = dd.endFlipped ? dd.endAngle + Math.PI : dd.endAngle;
-                drawEndpoint(ctx, dd.endPtX, dd.endPtY, endA, dd.endEp, dd.epSize, dd.lineColor);
+                var edx = dd.endPtX;
+                var edy = dd.endPtY;
+                if (dd.endFlipped) {
+                    edx -= Math.cos(dd.endAngle) * dd.epSize * 0.8;
+                    edy -= Math.sin(dd.endAngle) * dd.epSize * 0.8;
+                }
+                drawEndpoint(ctx, edx, edy, endA, dd.endEp, dd.epSize, dd.lineColor);
             }
-            // Start endpoint: default points toward source (◀), flipped = points away (▶)
+            // Start endpoint — when flipped, shift outward along line
             if (dd.startEp !== 'none') {
                 var startA = dd.startFlipped ? dd.startAngle : dd.startAngle + Math.PI;
-                drawEndpoint(ctx, dd.startPtX, dd.startPtY, startA, dd.startEp, dd.epSize, dd.lineColor);
+                var sdx = dd.startPtX;
+                var sdy = dd.startPtY;
+                if (dd.startFlipped) {
+                    sdx += Math.cos(dd.startAngle) * dd.epSize * 0.8;
+                    sdy += Math.sin(dd.startAngle) * dd.epSize * 0.8;
+                }
+                drawEndpoint(ctx, sdx, sdy, startA, dd.startEp, dd.epSize, dd.lineColor);
             }
             // Waypoint handles — with clickable delete button on hover
             if (dd.editMode && dd.waypoints && dd.waypoints.length > 0) {
