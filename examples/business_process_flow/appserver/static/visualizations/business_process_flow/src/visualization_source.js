@@ -817,8 +817,7 @@ define([
         var btnX = 12;
 
         var btnDefs = [
-            { label: 'Save',  icon: 'Save',  action: 'save',           w: 60 },
-            { label: lockMode ? '\uD83D\uDD12' : '\uD83D\uDD13', icon: '', action: 'lock', w: 36 },
+            { label: 'Copy Layout', icon: '', action: 'save',       w: 90 },
             { label: '+',     icon: '+',     action: 'addNode',        w: 36 },
             { label: '\u2192', icon: '', action: 'addConnection',  w: 36 },
             { label: '\u2715', icon: '', action: 'delete',         w: 36, tint: 'red' },
@@ -1325,7 +1324,7 @@ define([
                 } catch(e) { /* ignore */ }
                 // 4. Visual feedback — show "SAVED! Paste into Layout Data"
                 self._saveFlash = true;
-                self._saveMessage = 'SAVED! Layout copied to clipboard';
+                self._saveMessage = 'Copied to clipboard!';
                 self.invalidateUpdateView();
                 setTimeout(function() {
                     self._saveFlash = false;
@@ -1339,10 +1338,6 @@ define([
                 if (action === 'save') {
                     self._saveEditorState();
                     return;
-                } else if (action === 'lock') {
-                    self._editorState.lock = !self._editorState.lock;
-                    self._lockMode = self._editorState.lock;
-                    self.invalidateUpdateView();
                 } else if (action === 'addNode') {
                     // Create a new manual node at center of canvas
                     var newId = 'manual_' + Date.now();
