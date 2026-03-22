@@ -1,5 +1,13 @@
 # Business Process Flow — Changelog
 
+## v4.8.0 — 2026-03-22 19:50
+- **Sparkline position per node** — New "Spark" row in node popup with 4 layout options:
+  - **Below** (default): label top, value middle, sparkline at bottom
+  - **Above**: sparkline in top half, label and value below
+  - **Behind**: sparkline fills entire node background, text overlays on top
+  - **Left**: sparkline on left 45%, text on right 55%
+- **Duplicate delete button removed** — Single ✕ in toolbar
+
 ## v4.7.0 — 2026-03-22 19:30
 - **Flip direction per endpoint** — Each Start/End row has a flip button (🔄) that reverses the arrow direction
   - Default Start: ◀ (points toward source) → Flipped: ▶ (points away from source)
