@@ -821,7 +821,8 @@ define([
             { label: '+',     icon: '+',     action: 'addNode',        w: 36 },
             { label: '\u2192', icon: '', action: 'addConnection',  w: 36 },
             { label: '\u2715', icon: '', action: 'delete',         w: 36, tint: 'red' },
-            { label: '\u229E', icon: '', action: 'fit',            w: 36 }
+            { label: '\u229E', icon: '', action: 'fit',            w: 36 },
+            { label: '{ }',   icon: '', action: 'code',            w: 40 }
         ];
 
         for (var i = 0; i < btnDefs.length; i++) {
@@ -1225,6 +1226,8 @@ define([
             this._saveFlash = false;
             this._saveError = false;
             this._saveMessage = '';
+            this._showCodeEditor = false;
+            this._codeEditorEl = null;
             this._isDragging = false;
             this._dragNodeId = null;
             this._dragStartX = 0;
@@ -1430,7 +1433,133 @@ define([
                         self._editorState.nodes[fn2.id].y = newFy;
                     }
                     self.invalidateUpdateView();
+                } else if (action === 'code') {
+                    self._showCodeEditor = !self._showCodeEditor;
+                    self._updateCodeEditor();
                 }
+            };
+
+            // ── Code Editor (DOM-based with syntax highlighting) ──
+            this._updateCodeEditor = function() {
+                if (self._showCodeEditor) {
+                    if (!self._codeEditorEl) {
+                        // Create code editor container
+                        var wrap = document.createElement('div');
+                        wrap.style.cssText = 'position:absolute;bottom:0;left:0;right:0;height:40%;background:#0f172a;border-top:2px solid #3b82f6;display:flex;flex-direction:column;z-index:5;font-family:monospace;';
+
+                        // Header
+                        var hdr = document.createElement('div');
+                        hdr.style.cssText = 'padding:4px 12px;background:#1e293b;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid #334155;';
+                        var hdrLabel = document.createElement('span');
+                        hdrLabel.textContent = 'Layout JSON';
+                        hdrLabel.style.cssText = 'color:#94a3b8;font-size:11px;font-weight:bold;font-family:sans-serif;';
+                        var applyBtn = document.createElement('button');
+                        applyBtn.textContent = 'Apply';
+                        applyBtn.style.cssText = 'padding:2px 12px;background:#3b82f6;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;font-family:sans-serif;';
+                        hdr.appendChild(hdrLabel);
+                        hdr.appendChild(applyBtn);
+
+                        // Editor area with overlay for syntax highlighting
+                        var editorWrap = document.createElement('div');
+                        editorWrap.style.cssText = 'flex:1;position:relative;overflow:hidden;';
+
+                        // Highlighted pre (behind textarea)
+                        var pre = document.createElement('pre');
+                        pre.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;margin:0;padding:8px 12px;overflow:auto;font-size:12px;line-height:1.5;color:#e2e8f0;white-space:pre-wrap;word-wrap:break-word;pointer-events:none;';
+
+                        // Transparent textarea (on top, captures input)
+                        var ta = document.createElement('textarea');
+                        ta.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;margin:0;padding:8px 12px;font-size:12px;line-height:1.5;font-family:monospace;color:transparent;caret-color:#e2e8f0;background:transparent;border:none;outline:none;resize:none;white-space:pre-wrap;word-wrap:break-word;overflow:auto;';
+                        ta.spellcheck = false;
+
+                        editorWrap.appendChild(pre);
+                        editorWrap.appendChild(ta);
+                        wrap.appendChild(hdr);
+                        wrap.appendChild(editorWrap);
+                        self.el.appendChild(wrap);
+
+                        self._codeEditorEl = wrap;
+                        self._codePre = pre;
+                        self._codeTa = ta;
+
+                        // Sync scroll between textarea and pre
+                        ta.addEventListener('scroll', function() {
+                            pre.scrollTop = ta.scrollTop;
+                            pre.scrollLeft = ta.scrollLeft;
+                        });
+
+                        // Live syntax highlighting on input
+                        ta.addEventListener('input', function() {
+                            self._highlightJson(pre, ta.value);
+                        });
+
+                        // Apply button — parse JSON and update editorState
+                        applyBtn.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            try {
+                                var parsed = JSON.parse(ta.value);
+                                if (parsed && typeof parsed === 'object') {
+                                    self._editorState = parsed;
+                                    if (!self._editorState.nodes) self._editorState.nodes = {};
+                                    if (!self._editorState.connections) self._editorState.connections = [];
+                                    self._editorStateLoaded = false;
+                                    self.invalidateUpdateView();
+                                    hdrLabel.textContent = 'Layout JSON \u2714 Applied';
+                                    hdrLabel.style.color = '#10b981';
+                                    setTimeout(function() {
+                                        hdrLabel.textContent = 'Layout JSON';
+                                        hdrLabel.style.color = '#94a3b8';
+                                    }, 1500);
+                                }
+                            } catch(pe) {
+                                hdrLabel.textContent = 'Layout JSON \u2716 Invalid JSON';
+                                hdrLabel.style.color = '#ef4444';
+                                setTimeout(function() {
+                                    hdrLabel.textContent = 'Layout JSON';
+                                    hdrLabel.style.color = '#94a3b8';
+                                }, 2000);
+                            }
+                        });
+
+                        // Prevent canvas mouse handlers from interfering
+                        wrap.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                        wrap.addEventListener('mousemove', function(e) { e.stopPropagation(); });
+                        wrap.addEventListener('mouseup', function(e) { e.stopPropagation(); });
+                    }
+                    // Update content
+                    var json = JSON.stringify(self._editorState, null, 2);
+                    self._codeTa.value = json;
+                    self._highlightJson(self._codePre, json);
+                    self._codeEditorEl.style.display = 'flex';
+                } else {
+                    if (self._codeEditorEl) {
+                        self._codeEditorEl.style.display = 'none';
+                    }
+                }
+            };
+
+            // ── JSON Syntax Highlighting ──
+            this._highlightJson = function(pre, json) {
+                // Escape HTML first
+                var escaped = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                // Apply syntax colors
+                var highlighted = escaped.replace(
+                    /("(?:\\.|[^"\\])*")\s*:/g,
+                    '<span style="color:#7dd3fc;">$1</span>:'  // keys: light blue
+                ).replace(
+                    /:\s*("(?:\\.|[^"\\])*")/g,
+                    ': <span style="color:#86efac;">$1</span>'  // string values: green
+                ).replace(
+                    /:\s*(-?\d+\.?\d*)/g,
+                    ': <span style="color:#fbbf24;">$1</span>'  // numbers: amber
+                ).replace(
+                    /:\s*(true|false)/g,
+                    ': <span style="color:#c084fc;">$1</span>'  // booleans: purple
+                ).replace(
+                    /:\s*(null)/g,
+                    ': <span style="color:#94a3b8;">$1</span>'  // null: gray
+                );
+                pre.innerHTML = highlighted;
             };
 
             // ── Mouse Down ──
