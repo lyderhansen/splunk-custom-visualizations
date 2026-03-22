@@ -366,6 +366,114 @@ define([
         };
     }
 
+    // ── Grid Drawing ──────────────────────────────────────────────
+
+    function drawGrid(ctx, w, h, gridSize, panX, panY, isDark) {
+        var dotColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+        var gs = gridSize;
+        ctx.fillStyle = dotColor;
+        var gStartX = Math.floor(-panX / gs) * gs;
+        var gStartY = Math.floor(-panY / gs) * gs;
+        var gEndX = gStartX + w + gs;
+        var gEndY = gStartY + h + gs;
+        for (var gx = gStartX; gx < gEndX; gx += gs) {
+            for (var gy = gStartY; gy < gEndY; gy += gs) {
+                ctx.beginPath();
+                ctx.arc(gx, gy, 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+
+    // ── Align & Distribute ────────────────────────────────────────
+
+    function alignNodes(editorState, nodeIds, computedNodes, direction) {
+        if (nodeIds.length < 2) return;
+        var positions = [];
+        for (var i = 0; i < nodeIds.length; i++) {
+            var cn = computedNodes[nodeIds[i]];
+            if (cn) positions.push({ id: nodeIds[i], x: cn.x, y: cn.y, w: cn.w, h: cn.h });
+        }
+        if (positions.length < 2) return;
+
+        var target;
+        if (direction === 'left') {
+            target = positions[0].x;
+            for (var a = 1; a < positions.length; a++) { if (positions[a].x < target) target = positions[a].x; }
+            for (var b = 0; b < positions.length; b++) {
+                if (!editorState.nodes[positions[b].id]) editorState.nodes[positions[b].id] = {};
+                editorState.nodes[positions[b].id].x = target;
+            }
+        } else if (direction === 'center') {
+            var sum = 0;
+            for (var c = 0; c < positions.length; c++) sum += positions[c].x + positions[c].w / 2;
+            var avg = sum / positions.length;
+            for (var d = 0; d < positions.length; d++) {
+                if (!editorState.nodes[positions[d].id]) editorState.nodes[positions[d].id] = {};
+                editorState.nodes[positions[d].id].x = avg - positions[d].w / 2;
+            }
+        } else if (direction === 'right') {
+            target = positions[0].x + positions[0].w;
+            for (var e2 = 1; e2 < positions.length; e2++) { var r = positions[e2].x + positions[e2].w; if (r > target) target = r; }
+            for (var f = 0; f < positions.length; f++) {
+                if (!editorState.nodes[positions[f].id]) editorState.nodes[positions[f].id] = {};
+                editorState.nodes[positions[f].id].x = target - positions[f].w;
+            }
+        } else if (direction === 'top') {
+            target = positions[0].y;
+            for (var g = 1; g < positions.length; g++) { if (positions[g].y < target) target = positions[g].y; }
+            for (var h2 = 0; h2 < positions.length; h2++) {
+                if (!editorState.nodes[positions[h2].id]) editorState.nodes[positions[h2].id] = {};
+                editorState.nodes[positions[h2].id].y = target;
+            }
+        } else if (direction === 'middle') {
+            var sumY = 0;
+            for (var j = 0; j < positions.length; j++) sumY += positions[j].y + positions[j].h / 2;
+            var avgY = sumY / positions.length;
+            for (var k = 0; k < positions.length; k++) {
+                if (!editorState.nodes[positions[k].id]) editorState.nodes[positions[k].id] = {};
+                editorState.nodes[positions[k].id].y = avgY - positions[k].h / 2;
+            }
+        } else if (direction === 'bottom') {
+            target = positions[0].y + positions[0].h;
+            for (var m = 1; m < positions.length; m++) { var b2 = positions[m].y + positions[m].h; if (b2 > target) target = b2; }
+            for (var n2 = 0; n2 < positions.length; n2++) {
+                if (!editorState.nodes[positions[n2].id]) editorState.nodes[positions[n2].id] = {};
+                editorState.nodes[positions[n2].id].y = target - positions[n2].h;
+            }
+        }
+    }
+
+    function distributeNodes(editorState, nodeIds, computedNodes, axis) {
+        if (nodeIds.length < 3) return;
+        var positions = [];
+        for (var i = 0; i < nodeIds.length; i++) {
+            var cn = computedNodes[nodeIds[i]];
+            if (cn) positions.push({ id: nodeIds[i], x: cn.x, y: cn.y, w: cn.w, h: cn.h });
+        }
+        if (positions.length < 3) return;
+
+        if (axis === 'horizontal') {
+            positions.sort(function(a, b) { return a.x - b.x; });
+            var first = positions[0].x;
+            var last = positions[positions.length - 1].x;
+            var spacing = (last - first) / (positions.length - 1);
+            for (var j = 1; j < positions.length - 1; j++) {
+                if (!editorState.nodes[positions[j].id]) editorState.nodes[positions[j].id] = {};
+                editorState.nodes[positions[j].id].x = first + spacing * j;
+            }
+        } else {
+            positions.sort(function(a, b) { return a.y - b.y; });
+            var firstY = positions[0].y;
+            var lastY = positions[positions.length - 1].y;
+            var spacingY = (lastY - firstY) / (positions.length - 1);
+            for (var k = 1; k < positions.length - 1; k++) {
+                if (!editorState.nodes[positions[k].id]) editorState.nodes[positions[k].id] = {};
+                editorState.nodes[positions[k].id].y = firstY + spacingY * k;
+            }
+        }
+    }
+
     // ── Node Positioning ──────────────────────────────────────────
 
     function computeNodePositions(nodes, editorState, w, h, toolbarH) {
@@ -2446,6 +2554,7 @@ define([
             this._mouseY = 0;
             this._toolbarButtons = [];
             this._computedNodes = [];
+            this._computedNodeMap = {};
             this._computedConnections = [];
             this._showNodePopup = false;
             this._nodePopupId = null;
@@ -4007,6 +4116,17 @@ define([
                                     }
                                 }
                             }
+                            // Snap to grid
+                            if (self._snapEnabled && self._gridSize > 0) {
+                                for (var snapI = 0; snapI < self._selectedNodeIds.length; snapI++) {
+                                    var snapId = self._selectedNodeIds[snapI];
+                                    var snapNode = self._editorState.nodes[snapId];
+                                    if (snapNode && snapNode.x !== undefined) {
+                                        snapNode.x = Math.round(snapNode.x / self._gridSize) * self._gridSize;
+                                        snapNode.y = Math.round(snapNode.y / self._gridSize) * self._gridSize;
+                                    }
+                                }
+                            }
                         }
                     } else {
                         // View mode: snap back to original position in editorState
@@ -4352,24 +4472,26 @@ define([
 
             // Align buttons
             var alignRows = [
-                [{label: 'Left'}, {label: 'Center'}, {label: 'Right'}],
-                [{label: 'Top'}, {label: 'Middle'}, {label: 'Bottom'}]
+                [{label: 'Left', dir: 'left'}, {label: 'Center', dir: 'center'}, {label: 'Right', dir: 'right'}],
+                [{label: 'Top', dir: 'top'}, {label: 'Middle', dir: 'middle'}, {label: 'Bottom', dir: 'bottom'}]
             ];
             for (var ai = 0; ai < alignRows.length; ai++) {
                 var aRow = document.createElement('div');
                 aRow.style.cssText = 'display:flex;gap:4px;padding:2px 10px;';
                 for (var abi = 0; abi < alignRows[ai].length; abi++) {
-                    (function() {
+                    (function(btnDef) {
+                        var direction = btnDef.dir;
                         var btn = document.createElement('button');
-                        btn.textContent = alignRows[ai][abi].label;
+                        btn.textContent = btnDef.label;
                         btn.style.cssText = 'flex:1;padding:5px 2px;border-radius:4px;border:1px solid #334155;background:rgba(30,41,59,0.8);color:#cbd5e1;font:10px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;';
                         btn.addEventListener('click', function() {
-                            self._statusMessage = 'Align: coming in Task 8';
+                            alignNodes(self._editorState, self._selectedNodeIds, self._computedNodeMap, direction);
+                            self._pushUndo();
                             self.invalidateUpdateView();
                         });
                         btn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
                         aRow.appendChild(btn);
-                    })();
+                    })(alignRows[ai][abi]);
                 }
                 selBody.appendChild(aRow);
             }
@@ -4377,19 +4499,21 @@ define([
             // Distribute buttons
             var distRow = document.createElement('div');
             distRow.style.cssText = 'display:flex;gap:4px;padding:4px 10px 6px 10px;';
-            var distBtns = [{label: 'Distrib H'}, {label: 'Distrib V'}];
+            var distBtns = [{label: 'Distrib H', axis: 'horizontal'}, {label: 'Distrib V', axis: 'vertical'}];
             for (var di = 0; di < distBtns.length; di++) {
-                (function() {
+                (function(btnDef) {
+                    var axis = btnDef.axis;
                     var btn = document.createElement('button');
-                    btn.textContent = distBtns[di].label;
+                    btn.textContent = btnDef.label;
                     btn.style.cssText = 'flex:1;padding:5px 2px;border-radius:4px;border:1px solid #334155;background:rgba(30,41,59,0.8);color:#cbd5e1;font:10px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;';
                     btn.addEventListener('click', function() {
-                        self._statusMessage = 'Align: coming in Task 8';
+                        distributeNodes(self._editorState, self._selectedNodeIds, self._computedNodeMap, axis);
+                        self._pushUndo();
                         self.invalidateUpdateView();
                     });
                     btn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
                     distRow.appendChild(btn);
-                })();
+                })(distBtns[di]);
             }
             selBody.appendChild(distRow);
 
@@ -5206,6 +5330,10 @@ define([
             // 9. Compute node positions
             var positioned = computeNodePositions(resolvedNodes, this._editorState, w, h, toolbarH);
             this._computedNodes = positioned;
+            this._computedNodeMap = {};
+            for (var ci2 = 0; ci2 < positioned.length; ci2++) {
+                this._computedNodeMap[positioned[ci2].id] = positioned[ci2];
+            }
 
             // 10. Build connections
             var connections = buildConnections(positioned, this._editorState);
@@ -5228,6 +5356,11 @@ define([
             // Apply pan offset for world-space drawing
             ctx.save();
             ctx.translate(this._panX, this._panY);
+
+            // Draw grid (in world space, scrolls with canvas)
+            if (this._editMode && this._gridEnabled) {
+                drawGrid(ctx, w, h, this._gridSize, this._panX, this._panY, isDark);
+            }
 
             // Draw connections
             for (var ci = 0; ci < connections.length; ci++) {
