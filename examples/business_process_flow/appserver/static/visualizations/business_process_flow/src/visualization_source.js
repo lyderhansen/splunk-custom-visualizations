@@ -2300,11 +2300,11 @@ define([
                 if (self._selectedNodeIds.length > 0) {
                     var anyDeleted = false;
                     var anyBlocked = false;
-                    self._pushUndo();
                     for (var sdi = 0; sdi < self._selectedNodeIds.length; sdi++) {
                         var delId = self._selectedNodeIds[sdi];
                         var selN = self._editorState.nodes[delId];
                         if (selN && selN.manual) {
+                            if (!anyDeleted) { self._pushUndo(); }
                             delete self._editorState.nodes[delId];
                             var kc = [];
                             var ac = self._editorState.connections || [];
@@ -3627,7 +3627,7 @@ define([
 
             // ── Mouse Up ──
             this._onMouseUp = function(e) {
-                if (self._editMode || self._isDragging || self._isResizing) {
+                if (self._editMode || self._isDragging || self._isResizing || self._isRubberBanding) {
                     e.preventDefault();
                     e.stopPropagation();
                 }
@@ -3827,6 +3827,7 @@ define([
 
                 self._isDragging = false;
                 self._dragNodeId = null;
+                self._dragNodeStarts = {};
                 self._didDrag = false;
             };
 
