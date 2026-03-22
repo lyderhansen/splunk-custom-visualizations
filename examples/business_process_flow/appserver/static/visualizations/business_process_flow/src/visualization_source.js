@@ -3149,118 +3149,7 @@ define([
                         }
                     }
 
-                    // Check connection popup hits
-                    if (self._showConnPopup && self._connPopupRect) {
-                        if (pointInRect(mx, my, self._connPopupRect.x, self._connPopupRect.y, self._connPopupRect.w, self._connPopupRect.h)) {
-                            var cIdx = self._connPopupIdx;
-                            var edConns = self._editorState.connections;
-                            for (var cph = 0; cph < self._connPopupHits.length; cph++) {
-                                var cHit = self._connPopupHits[cph];
-                                if (pointInRect(mx, my, cHit.x, cHit.y, cHit.w, cHit.h)) {
-                                    self._pushUndo();
-                                    if (cHit.type === 'style' && edConns[cIdx]) {
-                                        edConns[cIdx].style = cHit.value;
-                                    } else if (cHit.type === 'width' && edConns[cIdx]) {
-                                        edConns[cIdx].width = cHit.value;
-                                    } else if (cHit.type === 'dash' && edConns[cIdx]) {
-                                        edConns[cIdx].dash = cHit.value;
-                                    } else if (cHit.type === 'startEndpoint' && edConns[cIdx]) {
-                                        edConns[cIdx].startEndpoint = cHit.value;
-                                        delete edConns[cIdx].arrow; // remove legacy field
-                                    } else if (cHit.type === 'endEndpoint' && edConns[cIdx]) {
-                                        edConns[cIdx].endEndpoint = cHit.value;
-                                        delete edConns[cIdx].arrow;
-                                    } else if (cHit.type === 'startFlipped' && edConns[cIdx]) {
-                                        edConns[cIdx].startFlipped = cHit.value;
-                                    } else if (cHit.type === 'endFlipped' && edConns[cIdx]) {
-                                        edConns[cIdx].endFlipped = cHit.value;
-                                    } else if (cHit.type === 'sourceAnchor' && edConns[cIdx]) {
-                                        edConns[cIdx].sourceAnchor = cHit.value;
-                                    } else if (cHit.type === 'targetAnchor' && edConns[cIdx]) {
-                                        edConns[cIdx].targetAnchor = cHit.value;
-                                    } else if ((cHit.type === 'endpointSize' || cHit.type === 'sourceAnchorOffset' || cHit.type === 'targetAnchorOffset') && edConns[cIdx]) {
-                                        // Input field for numeric value
-                                        var numField = cHit.type;
-                                        var numVal = edConns[cIdx][numField] || '';
-                                        var numInp = document.createElement('input');
-                                        numInp.type = 'text';
-                                        numInp.value = numVal;
-                                        numInp.placeholder = numField === 'endpointSize' ? 'e.g. 8, 12, 16' : 'e.g. -20, 0, 30';
-                                        numInp.style.cssText = 'position:absolute;z-index:9999;font-size:11px;border:1px solid #3b82f6;padding:0 4px;height:18px;background:#1e293b;color:#f1f5f9;border-radius:3px;width:' + cHit.w + 'px;';
-                                        var numRect = self.canvas.getBoundingClientRect();
-                                        numInp.style.left = (numRect.left + cHit.x) + 'px';
-                                        numInp.style.top = (numRect.top + cHit.y) + 'px';
-                                        document.body.appendChild(numInp);
-                                        numInp.focus();
-                                        numInp.select();
-                                        var numDone = false;
-                                        var numCIdx = cIdx;
-                                        function finishNumEdit() {
-                                            if (numDone) return;
-                                            numDone = true;
-                                            var v = numInp.value.trim();
-                                            if (v && !isNaN(parseInt(v, 10))) {
-                                                self._editorState.connections[numCIdx][numField] = parseInt(v, 10);
-                                            } else {
-                                                delete self._editorState.connections[numCIdx][numField];
-                                            }
-                                            if (numInp.parentNode) numInp.parentNode.removeChild(numInp);
-                                            self.invalidateUpdateView();
-                                        }
-                                        numInp.addEventListener('blur', finishNumEdit);
-                                        numInp.addEventListener('keydown', function(nke) {
-                                            if (nke.key === 'Enter') finishNumEdit();
-                                        });
-                                        return;
-                                    } else if (cHit.type === 'connColor' && edConns[cIdx]) {
-                                        edConns[cIdx].color = cHit.value;
-                                    } else if (cHit.type === 'connLabel' && edConns[cIdx]) {
-                                        // Create temporary input for label editing
-                                        var currLabel = edConns[cIdx].label || '';
-                                        var cInp = document.createElement('input');
-                                        cInp.type = 'text';
-                                        cInp.value = currLabel;
-                                        cInp.style.position = 'absolute';
-                                        var cCanvasRect = self.canvas.getBoundingClientRect();
-                                        cInp.style.left = (cCanvasRect.left + cHit.x) + 'px';
-                                        cInp.style.top = (cCanvasRect.top + cHit.y) + 'px';
-                                        cInp.style.width = cHit.w + 'px';
-                                        cInp.style.height = '18px';
-                                        cInp.style.fontSize = '11px';
-                                        cInp.style.border = '1px solid #3b82f6';
-                                        cInp.style.padding = '0 4px';
-                                        cInp.style.zIndex = '9999';
-                                        document.body.appendChild(cInp);
-                                        cInp.focus();
-                                        cInp.select();
-                                        var cInputDone = false;
-                                        var capturedIdx = cIdx;
-                                        function finishConnLabelEdit() {
-                                            if (cInputDone) return;
-                                            cInputDone = true;
-                                            if (self._editorState.connections[capturedIdx]) {
-                                                self._editorState.connections[capturedIdx].label = cInp.value;
-                                            }
-                                            if (cInp.parentNode) cInp.parentNode.removeChild(cInp);
-                                            self.invalidateUpdateView();
-                                        }
-                                        cInp.addEventListener('blur', finishConnLabelEdit);
-                                        cInp.addEventListener('keydown', function(cke) {
-                                            if (cke.key === 'Enter') finishConnLabelEdit();
-                                        });
-                                        return;
-                                    }
-                                    self.invalidateUpdateView();
-                                    return;
-                                }
-                            }
-                            return;
-                        } else {
-                            self._showConnPopup = false;
-                            self._connPopupIdx = null;
-                            self.invalidateUpdateView();
-                        }
-                    }
+                    // Connection popup hit-testing removed — DOM panel handles connection edits
 
                     // In connecting mode, handle node clicks
                     if (self._isConnecting) {
@@ -4311,7 +4200,7 @@ define([
                 // Multi-select panel — placeholder for Task 6
             } else if (this._selectedConnection !== null && this._selectedConnection !== undefined) {
                 this._panelTitle.textContent = 'Connection';
-                // Connection panel — placeholder for Task 5
+                this._buildConnectionPanel(body);
             } else {
                 this._panelTitle.textContent = 'Canvas Tools';
                 // Canvas tools — placeholder for Task 6
@@ -4594,6 +4483,186 @@ define([
             condBody.appendChild(addRuleBtn);
 
             body.appendChild(condSec);
+        },
+
+        _buildConnectionPanel: function(body) {
+            var idx = this._connPopupIdx;
+            var conns = this._editorState.connections || [];
+            if (idx === null || idx === undefined || idx >= conns.length) return;
+            var conn = conns[idx];
+            var self = this;
+            var es = this._editorState;
+            var colors = PALETTES[this._currentPalette || 'corporate'] || PALETTES.corporate;
+
+            function makeConnChange(prop) {
+                return function(val) {
+                    conns[idx][prop] = val;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                };
+            }
+
+            // ── Style Section ──
+            var styleSec = createPanelSection('Style', '', true);
+            var styleBody = styleSec._body;
+
+            // Line Style
+            styleBody.appendChild(createToggleRow('Line Style', [
+                {value: 'straight', label: 'Straight'},
+                {value: 'curved', label: 'Curved'}
+            ], conn.style || 'straight', makeConnChange('style')));
+
+            // Width
+            styleBody.appendChild(createToggleRow('Width', [
+                {value: 1, label: '1'}, {value: 2, label: '2'},
+                {value: 3, label: '3'}, {value: 4, label: '4'}
+            ], conn.width || 2, makeConnChange('width')));
+
+            // Stroke Pattern
+            styleBody.appendChild(createToggleRow('Stroke Pattern', [
+                {value: 'solid', label: 'Solid'}, {value: 'dashed', label: 'Dashed'},
+                {value: 'dotted', label: 'Dotted'}, {value: 'dash-dot', label: 'Dash-Dot'},
+                {value: 'long-dash', label: 'Long'}
+            ], conn.strokePattern || 'solid', makeConnChange('strokePattern')));
+
+            // Color
+            styleBody.appendChild(createColorRow('Color', colors, conn.color || '', makeConnChange('color')));
+
+            body.appendChild(styleSec);
+
+            // ── Endpoints Section ──
+            var epSec = createPanelSection('Endpoints', '', true);
+            var epBody = epSec._body;
+
+            // Migrate old arrow field for display
+            var startEp = conn.startEndpoint || 'none';
+            var endEp = conn.endEndpoint || 'filledArrow';
+            if (conn.arrow && !conn.startEndpoint && !conn.endEndpoint) {
+                if (conn.arrow === 'forward') { startEp = 'none'; endEp = 'filledArrow'; }
+                else if (conn.arrow === 'backward') { startEp = 'filledArrow'; endEp = 'none'; }
+                else if (conn.arrow === 'both') { startEp = 'filledArrow'; endEp = 'filledArrow'; }
+                else { startEp = 'none'; endEp = 'none'; }
+            }
+
+            var epTypes = [
+                {value: 'none', label: '\u2014'},
+                {value: 'filledArrow', label: '\u25C0'},
+                {value: 'openArrow', label: '\u25C1'},
+                {value: 'filledBall', label: '\u25CF'},
+                {value: 'ball', label: '\u25CB'},
+                {value: 'filledDiamond', label: '\u25C6'},
+                {value: 'diamond', label: '\u25C7'},
+                {value: 'bar', label: '|'}
+            ];
+
+            var endEpTypes = [
+                {value: 'none', label: '\u2014'},
+                {value: 'filledArrow', label: '\u25B6'},
+                {value: 'openArrow', label: '\u25B7'},
+                {value: 'filledBall', label: '\u25CF'},
+                {value: 'ball', label: '\u25CB'},
+                {value: 'filledDiamond', label: '\u25C6'},
+                {value: 'diamond', label: '\u25C7'},
+                {value: 'bar', label: '|'}
+            ];
+
+            // Start Type
+            epBody.appendChild(createToggleRow('Start Type', epTypes, startEp, function(val) {
+                conns[idx].startEndpoint = val;
+                delete conns[idx].arrow;
+                self._pushUndo();
+                self.invalidateUpdateView();
+            }));
+
+            // Start Flip
+            epBody.appendChild(createToggleRow('Start Flip', [
+                {value: 'false', label: 'Off'}, {value: 'true', label: 'On'}
+            ], conn.startFlipped ? 'true' : 'false', function(val) {
+                conns[idx].startFlipped = (val === 'true');
+                self._pushUndo();
+                self.invalidateUpdateView();
+            }));
+
+            // End Type
+            epBody.appendChild(createToggleRow('End Type', endEpTypes, endEp, function(val) {
+                conns[idx].endEndpoint = val;
+                delete conns[idx].arrow;
+                self._pushUndo();
+                self.invalidateUpdateView();
+            }));
+
+            // End Flip
+            epBody.appendChild(createToggleRow('End Flip', [
+                {value: 'false', label: 'Off'}, {value: 'true', label: 'On'}
+            ], conn.endFlipped ? 'true' : 'false', function(val) {
+                conns[idx].endFlipped = (val === 'true');
+                self._pushUndo();
+                self.invalidateUpdateView();
+            }));
+
+            // Endpoint Size
+            epBody.appendChild(createTextRow('Endpoint Size', conn.endpointSize || '', function(val) {
+                var num = parseInt(val, 10);
+                if (val && !isNaN(num)) {
+                    conns[idx].endpointSize = num;
+                } else {
+                    delete conns[idx].endpointSize;
+                }
+                self._pushUndo();
+                self.invalidateUpdateView();
+            }));
+
+            body.appendChild(epSec);
+
+            // ── Anchors Section ──
+            var srcAnchor = conn.sourceAnchor || 'auto';
+            var tgtAnchor = conn.targetAnchor || 'auto';
+            var anchorSummary = srcAnchor + ' \u2192 ' + tgtAnchor;
+            var anchorSec = createPanelSection('Anchors', anchorSummary, false);
+            var anchorBody = anchorSec._body;
+
+            var anchorOpts = [
+                {value: 'auto', label: 'Auto'},
+                {value: 'top', label: 'Top'},
+                {value: 'bottom', label: 'Bottom'},
+                {value: 'left', label: 'Left'},
+                {value: 'right', label: 'Right'}
+            ];
+
+            anchorBody.appendChild(createToggleRow('Source Anchor', anchorOpts, srcAnchor, makeConnChange('sourceAnchor')));
+            anchorBody.appendChild(createToggleRow('Target Anchor', anchorOpts, tgtAnchor, makeConnChange('targetAnchor')));
+
+            anchorBody.appendChild(createTextRow('Source Offset', conn.sourceAnchorOffset || '', function(val) {
+                var num = parseInt(val, 10);
+                if (val && !isNaN(num)) {
+                    conns[idx].sourceAnchorOffset = num;
+                } else {
+                    delete conns[idx].sourceAnchorOffset;
+                }
+                self._pushUndo();
+                self.invalidateUpdateView();
+            }));
+
+            anchorBody.appendChild(createTextRow('Target Offset', conn.targetAnchorOffset || '', function(val) {
+                var num = parseInt(val, 10);
+                if (val && !isNaN(num)) {
+                    conns[idx].targetAnchorOffset = num;
+                } else {
+                    delete conns[idx].targetAnchorOffset;
+                }
+                self._pushUndo();
+                self.invalidateUpdateView();
+            }));
+
+            body.appendChild(anchorSec);
+
+            // ── Label Section ──
+            var labelSec = createPanelSection('Label', '', false);
+            var labelBody = labelSec._body;
+
+            labelBody.appendChild(createTextRow('Label Text', conn.label || '', makeConnChange('label')));
+
+            body.appendChild(labelSec);
         },
 
         getInitialDataParams: function() {
@@ -4980,14 +5049,7 @@ define([
                     ctx.restore();
                 }
                 // Node popup replaced by DOM panel (_updatePanel / _buildNodePanel)
-                if (this._showConnPopup && this._connPopupIdx !== null) {
-                    var edConns2 = this._editorState.connections || [];
-                    if (edConns2[this._connPopupIdx]) {
-                        var cpResult = drawConnectionPopup(ctx, edConns2[this._connPopupIdx], this._connPopupIdx, colors, theme, this._connPopupPos.x, this._connPopupPos.y, w, h);
-                        this._connPopupRect = { x: cpResult.x, y: cpResult.y, w: cpResult.w, h: cpResult.h };
-                        this._connPopupHits = cpResult.hits;
-                    }
-                }
+                // Connection popup replaced by DOM panel (_updatePanel / _buildConnectionPanel)
             }
 
             // Hover tooltips in view mode
