@@ -427,6 +427,18 @@ define([
         return dist <= threshold;
     }
 
+    // Returns the minimum distance from point (px,py) to the segment (x1,y1)-(x2,y2)
+    function distToLine(px, py, x1, y1, x2, y2) {
+        var dx = x2 - x1;
+        var dy = y2 - y1;
+        var lenSq = dx * dx + dy * dy;
+        if (lenSq === 0) return Math.sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1));
+        var t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lenSq));
+        var projX = x1 + t * dx;
+        var projY = y1 + t * dy;
+        return Math.sqrt((px - projX) * (px - projX) + (py - projY) * (py - projY));
+    }
+
     function pointNearBezier(px, py, x1, y1, cpx, cpy, x2, y2, threshold, steps) {
         var numSteps = steps || 20;
         for (var i = 0; i <= numSteps; i++) {
@@ -4456,7 +4468,12 @@ define([
                         }
                     }
 
-                    // Check connection hits for selection
+                    // Check connection hits for selection — find the CLOSEST connection
+                    // within threshold rather than returning on the first match, so that
+                    // when two connections share a node the correct one is chosen.
+                    var hitThreshold = 16;
+                    var closestCci = -1;
+                    var closestDist = Infinity;
                     for (var cci = 0; cci < self._computedConnections.length; cci++) {
                         var cc = self._computedConnections[cci];
                         var fromNd = null;
@@ -4470,14 +4487,14 @@ define([
                             var fCy = fromNd.y + fromNd.h / 2;
                             var tCx = toNd.x + toNd.w / 2;
                             var tCy = toNd.y + toNd.h / 2;
-                            // Check all segments — sample bezier for curved lines
+                            // Compute minimum distance to this connection
                             var ccWps = cc.waypoints || [];
                             var ccPts = [{ x: fCx, y: fCy }];
                             for (var cwi = 0; cwi < ccWps.length; cwi++) ccPts.push(ccWps[cwi]);
                             ccPts.push({ x: tCx, y: tCy });
-                            var ccHit = false;
+                            var ccMinDist = Infinity;
                             if ((cc.style === 'curved') && ccPts.length === 2) {
-                                // Simple bezier — sample 10 points along curve
+                                // Sample bezier to get minimum distance along curve
                                 var bx0 = ccPts[0].x, by0 = ccPts[0].y;
                                 var bx2 = ccPts[1].x, by2 = ccPts[1].y;
                                 var bmx = (bx0 + bx2) / 2, bmy = (by0 + by2) / 2;
@@ -4492,74 +4509,75 @@ define([
                                     var bt = bsi / 10;
                                     var bpx = (1 - bt) * (1 - bt) * bx0 + 2 * (1 - bt) * bt * bcpx + bt * bt * bx2;
                                     var bpy = (1 - bt) * (1 - bt) * by0 + 2 * (1 - bt) * bt * bcpy + bt * bt * by2;
-                                    if (pointNearLine(mx, my, prevBx, prevBy, bpx, bpy, 16)) {
-                                        ccHit = true;
-                                        break;
-                                    }
+                                    var segDist = distToLine(mx, my, prevBx, prevBy, bpx, bpy);
+                                    if (segDist < ccMinDist) ccMinDist = segDist;
                                     prevBx = bpx;
                                     prevBy = bpy;
                                 }
                             } else {
                                 for (var csi = 0; csi < ccPts.length - 1; csi++) {
-                                    if (pointNearLine(mx, my, ccPts[csi].x, ccPts[csi].y, ccPts[csi + 1].x, ccPts[csi + 1].y, 16)) {
-                                        ccHit = true;
-                                        break;
-                                    }
+                                    var segDist = distToLine(mx, my, ccPts[csi].x, ccPts[csi].y, ccPts[csi + 1].x, ccPts[csi + 1].y);
+                                    if (segDist < ccMinDist) ccMinDist = segDist;
                                 }
                             }
-                            if (ccHit) {
-                                // Use computed connection index (cci) for unique identification
-                                self._selectedConnection = { index: cci };
-                                self._selectedNodeIds = [];
-                                self._showNodePopup = false;
-                                // Find matching editorState connection by from+to+index
-                                // Count how many connections with same from/to appear before this one
-                                var sameCount = 0;
-                                for (var scj = 0; scj < cci; scj++) {
-                                    if (self._computedConnections[scj].from === cc.from && self._computedConnections[scj].to === cc.to) {
-                                        sameCount++;
-                                    }
-                                }
-                                var edConnIdx = -1;
-                                var edCS = self._editorState.connections || [];
-                                var matchCount = 0;
-                                for (var eci = 0; eci < edCS.length; eci++) {
-                                    if (edCS[eci].from === cc.from && edCS[eci].to === cc.to) {
-                                        if (matchCount === sameCount) {
-                                            edConnIdx = eci;
-                                            break;
-                                        }
-                                        matchCount++;
-                                    }
-                                }
-                                if (edConnIdx === -1) {
-                                    if (!self._editorState.connections) self._editorState.connections = [];
-                                    self._editorState.connections.push({
-                                        from: cc.from, to: cc.to,
-                                        style: cc.style || 'straight',
-                                        color: cc.color || '',
-                                        width: cc.width || 2,
-                                        dash: cc.dash || false,
-                                        startEndpoint: cc.startEndpoint || 'none',
-                                        endEndpoint: cc.endEndpoint || 'filledArrow',
-                                        label: cc.label || '',
-                                        manual: cc.manual || false
-                                    });
-                                    edConnIdx = self._editorState.connections.length - 1;
-                                }
-                                // Toggle click-triggered animation active state
-                                var edCSClick = self._editorState.connections || [];
-                                if (edConnIdx >= 0 && edCSClick[edConnIdx] && edCSClick[edConnIdx].animationTrigger === 'click') {
-                                    edCSClick[edConnIdx]._animActive = !edCSClick[edConnIdx]._animActive;
-                                }
-                                self._showConnPopup = true;
-                                self._connPopupIdx = edConnIdx;
-                                self._connPopupPos = { x: mx, y: my };
-                                self._updatePanel();
-                                self.invalidateUpdateView();
-                                return;
+                            if (ccMinDist <= hitThreshold && ccMinDist < closestDist) {
+                                closestDist = ccMinDist;
+                                closestCci = cci;
                             }
                         }
+                    }
+                    if (closestCci >= 0) {
+                        var cc = self._computedConnections[closestCci];
+                        // Use computed connection index (closestCci) for unique identification
+                        self._selectedConnection = { index: closestCci };
+                        self._selectedNodeIds = [];
+                        self._showNodePopup = false;
+                        // Find matching editorState connection by from+to+index
+                        // Count how many connections with same from/to appear before this one
+                        var sameCount = 0;
+                        for (var scj = 0; scj < closestCci; scj++) {
+                            if (self._computedConnections[scj].from === cc.from && self._computedConnections[scj].to === cc.to) {
+                                sameCount++;
+                            }
+                        }
+                        var edConnIdx = -1;
+                        var edCS = self._editorState.connections || [];
+                        var matchCount = 0;
+                        for (var eci = 0; eci < edCS.length; eci++) {
+                            if (edCS[eci].from === cc.from && edCS[eci].to === cc.to) {
+                                if (matchCount === sameCount) {
+                                    edConnIdx = eci;
+                                    break;
+                                }
+                                matchCount++;
+                            }
+                        }
+                        if (edConnIdx === -1) {
+                            if (!self._editorState.connections) self._editorState.connections = [];
+                            self._editorState.connections.push({
+                                from: cc.from, to: cc.to,
+                                style: cc.style || 'straight',
+                                color: cc.color || '',
+                                width: cc.width || 2,
+                                dash: cc.dash || false,
+                                startEndpoint: cc.startEndpoint || 'none',
+                                endEndpoint: cc.endEndpoint || 'filledArrow',
+                                label: cc.label || '',
+                                manual: cc.manual || false
+                            });
+                            edConnIdx = self._editorState.connections.length - 1;
+                        }
+                        // Toggle click-triggered animation active state
+                        var edCSClick = self._editorState.connections || [];
+                        if (edConnIdx >= 0 && edCSClick[edConnIdx] && edCSClick[edConnIdx].animationTrigger === 'click') {
+                            edCSClick[edConnIdx]._animActive = !edCSClick[edConnIdx]._animActive;
+                        }
+                        self._showConnPopup = true;
+                        self._connPopupIdx = edConnIdx;
+                        self._connPopupPos = { x: mx, y: my };
+                        self._updatePanel();
+                        self.invalidateUpdateView();
+                        return;
                     }
 
                     // Clicked empty space — start rubber-band selection
@@ -4595,7 +4613,11 @@ define([
                         }
                     }
                     // View mode: handle click-trigger animation toggle for connections
+                    // Find the CLOSEST connection within threshold, not just the first match
                     var edConnsVM = self._editorState.connections || [];
+                    var vmHitThreshold = 16;
+                    var vmClosestCi = -1;
+                    var vmClosestDist = Infinity;
                     for (var vmci = 0; vmci < self._computedConnections.length; vmci++) {
                         var vmConn = self._computedConnections[vmci];
                         var vmFrom = null;
@@ -4609,23 +4631,25 @@ define([
                             var vmWps = vmConn.waypoints || [];
                             for (var vmwi = 0; vmwi < vmWps.length; vmwi++) vmPts.push(vmWps[vmwi]);
                             vmPts.push({ x: vmTo.x + vmTo.w / 2, y: vmTo.y + vmTo.h / 2 });
-                            var vmHit = false;
+                            var vmMinDist = Infinity;
                             for (var vmsi = 0; vmsi < vmPts.length - 1; vmsi++) {
-                                if (pointNearLine(mx, my, vmPts[vmsi].x, vmPts[vmsi].y, vmPts[vmsi + 1].x, vmPts[vmsi + 1].y, 16)) {
-                                    vmHit = true;
-                                    break;
-                                }
+                                var vmSegDist = distToLine(mx, my, vmPts[vmsi].x, vmPts[vmsi].y, vmPts[vmsi + 1].x, vmPts[vmsi + 1].y);
+                                if (vmSegDist < vmMinDist) vmMinDist = vmSegDist;
                             }
-                            if (vmHit) {
-                                // Find editorState connection and toggle click animation
-                                for (var vmei = 0; vmei < edConnsVM.length; vmei++) {
-                                    if (edConnsVM[vmei].from === vmConn.from && edConnsVM[vmei].to === vmConn.to) {
-                                        if (edConnsVM[vmei].animationTrigger === 'click') {
-                                            edConnsVM[vmei]._animActive = !edConnsVM[vmei]._animActive;
-                                            self.invalidateUpdateView();
-                                        }
-                                        break;
-                                    }
+                            if (vmMinDist <= vmHitThreshold && vmMinDist < vmClosestDist) {
+                                vmClosestDist = vmMinDist;
+                                vmClosestCi = vmci;
+                            }
+                        }
+                    }
+                    if (vmClosestCi >= 0) {
+                        var vmConn = self._computedConnections[vmClosestCi];
+                        // Find editorState connection and toggle click animation
+                        for (var vmei = 0; vmei < edConnsVM.length; vmei++) {
+                            if (edConnsVM[vmei].from === vmConn.from && edConnsVM[vmei].to === vmConn.to) {
+                                if (edConnsVM[vmei].animationTrigger === 'click') {
+                                    edConnsVM[vmei]._animActive = !edConnsVM[vmei]._animActive;
+                                    self.invalidateUpdateView();
                                 }
                                 break;
                             }
@@ -4860,8 +4884,11 @@ define([
                     }
                 }
 
-                // Check connections
+                // Check connections — find closest within threshold, not first match
                 if (!self._hoverItem) {
+                    var hvThreshold = 16;
+                    var hvClosestCci = -1;
+                    var hvClosestDist = Infinity;
                     for (var cci = 0; cci < self._computedConnections.length; cci++) {
                         var cc = self._computedConnections[cci];
                         var fromNd = null;
@@ -4879,7 +4906,7 @@ define([
                             var hvPts = [{ x: fCx, y: fCy }];
                             for (var hwi = 0; hwi < hvWps.length; hwi++) hvPts.push(hvWps[hwi]);
                             hvPts.push({ x: tCx, y: tCy });
-                            var hvHit = false;
+                            var hvMinDist = Infinity;
                             if ((cc.style === 'curved') && hvPts.length === 2) {
                                 var hbx0 = hvPts[0].x, hby0 = hvPts[0].y;
                                 var hbx2 = hvPts[1].x, hby2 = hvPts[1].y;
@@ -4895,31 +4922,30 @@ define([
                                     var hbt = hbi / 10;
                                     var hbpx = (1 - hbt) * (1 - hbt) * hbx0 + 2 * (1 - hbt) * hbt * hbcpx + hbt * hbt * hbx2;
                                     var hbpy = (1 - hbt) * (1 - hbt) * hby0 + 2 * (1 - hbt) * hbt * hbcpy + hbt * hbt * hby2;
-                                    if (pointNearLine(mx, my, hprevX, hprevY, hbpx, hbpy, 16)) {
-                                        hvHit = true;
-                                        break;
-                                    }
+                                    var hvSegDist = distToLine(mx, my, hprevX, hprevY, hbpx, hbpy);
+                                    if (hvSegDist < hvMinDist) hvMinDist = hvSegDist;
                                     hprevX = hbpx;
                                     hprevY = hbpy;
                                 }
                             } else {
                                 for (var hsi = 0; hsi < hvPts.length - 1; hsi++) {
-                                    if (pointNearLine(mx, my, hvPts[hsi].x, hvPts[hsi].y, hvPts[hsi + 1].x, hvPts[hsi + 1].y, 16)) {
-                                        hvHit = true;
-                                        break;
-                                    }
+                                    var hvSegDist = distToLine(mx, my, hvPts[hsi].x, hvPts[hsi].y, hvPts[hsi + 1].x, hvPts[hsi + 1].y);
+                                    if (hvSegDist < hvMinDist) hvMinDist = hvSegDist;
                                 }
                             }
-                            if (hvHit) {
-                                self._hoverItem = { type: 'connection', index: cci };
-                                // Set _animActive for hover-triggered animations
-                                var edConnsHv = self._editorState.connections || [];
-                                for (var hvei = 0; hvei < edConnsHv.length; hvei++) {
-                                    if (edConnsHv[hvei].animationTrigger === 'hover') {
-                                        edConnsHv[hvei]._animActive = (hvei === cci);
-                                    }
-                                }
-                                break;
+                            if (hvMinDist <= hvThreshold && hvMinDist < hvClosestDist) {
+                                hvClosestDist = hvMinDist;
+                                hvClosestCci = cci;
+                            }
+                        }
+                    }
+                    if (hvClosestCci >= 0) {
+                        self._hoverItem = { type: 'connection', index: hvClosestCci };
+                        // Set _animActive for hover-triggered animations
+                        var edConnsHv = self._editorState.connections || [];
+                        for (var hvei = 0; hvei < edConnsHv.length; hvei++) {
+                            if (edConnsHv[hvei].animationTrigger === 'hover') {
+                                edConnsHv[hvei]._animActive = (hvei === hvClosestCci);
                             }
                         }
                     }
@@ -5309,12 +5335,17 @@ define([
                 }
 
                 // Double-click on connection → add waypoint
+                // Find the closest connection segment to the click, then insert there
                 var conns = self._computedConnections;
                 var nodes = self._computedNodes;
                 var nodeMap2 = {};
                 for (var nmi = 0; nmi < nodes.length; nmi++) {
                     nodeMap2[nodes[nmi].id] = nodes[nmi];
                 }
+                var dcHitThreshold = 20;
+                var dcClosestIdx = -1;
+                var dcClosestSeg = -1;
+                var dcClosestDist = Infinity;
                 for (var dci = 0; dci < conns.length; dci++) {
                     var dc = conns[dci];
                     var dcFrom = nodeMap2[dc.from];
@@ -5324,7 +5355,6 @@ define([
                     var dcFcy = dcFrom.y + dcFrom.h / 2;
                     var dcTcx = dcTo.x + dcTo.w / 2;
                     var dcTcy = dcTo.y + dcTo.h / 2;
-                    // Check all segments of the polyline (including waypoints)
                     var dcWps = dc.waypoints || [];
                     var dcPts = [{ x: dcFcx, y: dcFcy }];
                     for (var dwi = 0; dwi < dcWps.length; dwi++) {
@@ -5332,36 +5362,43 @@ define([
                     }
                     dcPts.push({ x: dcTcx, y: dcTcy });
                     for (var dsi = 0; dsi < dcPts.length - 1; dsi++) {
-                        if (pointNearLine(mx, my, dcPts[dsi].x, dcPts[dsi].y, dcPts[dsi + 1].x, dcPts[dsi + 1].y, 20)) {
-                            // Find matching editorState connection
-                            var edConns3 = self._editorState.connections || [];
-                            for (var eci2 = 0; eci2 < edConns3.length; eci2++) {
-                                if (edConns3[eci2].from === dc.from && edConns3[eci2].to === dc.to) {
-                                    if (!edConns3[eci2].waypoints) edConns3[eci2].waypoints = [];
-                                    // Insert waypoint at click position, in correct segment position
-                                    edConns3[eci2].waypoints.splice(dsi, 0, { x: mx, y: my });
-                                    self.invalidateUpdateView();
-                                    return;
-                                }
-                            }
-                            // If not in editorState yet, promote it
-                            if (!self._editorState.connections) self._editorState.connections = [];
-                            self._editorState.connections.push({
-                                from: dc.from, to: dc.to,
-                                style: dc.style || 'straight',
-                                color: dc.color || '',
-                                width: dc.width || 2,
-                                dash: dc.dash || false,
-                                startEndpoint: dc.startEndpoint || 'none',
-                                endEndpoint: dc.endEndpoint || 'filledArrow',
-                                label: dc.label || '',
-                                manual: dc.manual || false,
-                                waypoints: [{ x: mx, y: my }]
-                            });
+                        var dcSegDist = distToLine(mx, my, dcPts[dsi].x, dcPts[dsi].y, dcPts[dsi + 1].x, dcPts[dsi + 1].y);
+                        if (dcSegDist <= dcHitThreshold && dcSegDist < dcClosestDist) {
+                            dcClosestDist = dcSegDist;
+                            dcClosestIdx = dci;
+                            dcClosestSeg = dsi;
+                        }
+                    }
+                }
+                if (dcClosestIdx >= 0) {
+                    var dc = conns[dcClosestIdx];
+                    // Find matching editorState connection
+                    var edConns3 = self._editorState.connections || [];
+                    for (var eci2 = 0; eci2 < edConns3.length; eci2++) {
+                        if (edConns3[eci2].from === dc.from && edConns3[eci2].to === dc.to) {
+                            if (!edConns3[eci2].waypoints) edConns3[eci2].waypoints = [];
+                            // Insert waypoint at click position, in correct segment position
+                            edConns3[eci2].waypoints.splice(dcClosestSeg, 0, { x: mx, y: my });
                             self.invalidateUpdateView();
                             return;
                         }
                     }
+                    // If not in editorState yet, promote it
+                    if (!self._editorState.connections) self._editorState.connections = [];
+                    self._editorState.connections.push({
+                        from: dc.from, to: dc.to,
+                        style: dc.style || 'straight',
+                        color: dc.color || '',
+                        width: dc.width || 2,
+                        dash: dc.dash || false,
+                        startEndpoint: dc.startEndpoint || 'none',
+                        endEndpoint: dc.endEndpoint || 'filledArrow',
+                        label: dc.label || '',
+                        manual: dc.manual || false,
+                        waypoints: [{ x: mx, y: my }]
+                    });
+                    self.invalidateUpdateView();
+                    return;
                 }
             };
 
