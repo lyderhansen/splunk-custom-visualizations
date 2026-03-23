@@ -5961,6 +5961,7 @@ define([
                     es.nodes[nodeId].borderRadius = val;
                     self._pushUndo();
                     self.invalidateUpdateView();
+                    self._refreshPanel();
                 }, { numeric: true, min: 0, max: 100, step: 1 }));
             }
 
@@ -5990,6 +5991,7 @@ define([
                     es.nodes[nodeId].opacity = String(pct / 100);
                     self._pushUndo();
                     self.invalidateUpdateView();
+                    self._refreshPanel();
                 }
             }, { numeric: true, min: 0, max: 100, step: 5 }));
 
@@ -6028,6 +6030,7 @@ define([
                 es.nodes[nodeId].borderWidth = val;
                 self._pushUndo();
                 self.invalidateUpdateView();
+                self._refreshPanel();
             }, { numeric: true, min: 0, max: 20, step: 1 }));
 
             body.appendChild(appearSec);
@@ -6107,6 +6110,7 @@ define([
                     es.nodes[nodeId].fontSize = 'default';
                     self._pushUndo();
                     self.invalidateUpdateView();
+                    self._refreshPanel();
                 }, { numeric: true, min: 6, max: 72, step: 1 }));
 
                 // H. Align
@@ -6157,6 +6161,7 @@ define([
                     es.nodes[nodeId].padding = '';
                     self._pushUndo();
                     self.invalidateUpdateView();
+                    self._refreshPanel();
                 }, { numeric: true, min: 0, max: 50, step: 2 }));
 
                 body.appendChild(textSec);
@@ -6213,6 +6218,7 @@ define([
                 es.nodes[nodeId].chartHeight = 'default';
                 self._pushUndo();
                 self.invalidateUpdateView();
+                self._refreshPanel();
             }, { numeric: true, min: 10, max: 200, step: 5 }));
 
             sparkBody.appendChild(createToggleRow('Hover Detail', [
