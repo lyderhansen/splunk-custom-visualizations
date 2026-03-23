@@ -2322,13 +2322,15 @@ define([
         ctx.lineWidth = isSelected ? lineWidth + 1.5 : lineWidth;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        // Glow effect on hover — strong and visible
-        if (isHovered) {
+        // Glow effect on hover — but skip if hover-triggered animation is active
+        // (animation provides its own visual feedback)
+        var hasHoverAnim = isHovered && conn.animationType && conn.animationType !== 'none' && conn.animationTrigger === 'hover' && conn._animActive;
+        if (isHovered && !hasHoverAnim) {
             ctx.shadowColor = lineColor;
             ctx.shadowBlur = 16;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-            ctx.lineWidth += 2; // thicken line on hover for visibility
+            ctx.lineWidth += 2;
         }
         var connPattern = conn.strokePattern || (conn.dash ? 'dashed' : 'solid');
         var connDashPattern;
