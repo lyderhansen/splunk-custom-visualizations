@@ -6315,15 +6315,153 @@ define([
             var condSec = createPanelSection('Conditions', condSummary, false);
             var condBody = condSec._body;
 
+            // Get the node's current computed value for presets and context display
+            var computedNode = self._computedNodeMap ? self._computedNodeMap[nodeId] : null;
+            var nodeValue = computedNode ? computedNode.value : 0;
+            var nodeValueNum = parseFloat(nodeValue) || 0;
+
+            // Current value context
+            var valueCtx = document.createElement('div');
+            valueCtx.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 8px;background:#0f172a;border:1px solid #1e293b;border-radius:4px;margin-bottom:8px;';
+            var valueLabel = document.createElement('span');
+            valueLabel.textContent = 'Current value:';
+            valueLabel.style.cssText = 'color:#64748b;font-size:9px;';
+            var valueDisplay = document.createElement('span');
+            valueDisplay.textContent = nodeValueNum ? formatCount(nodeValueNum) : String(nodeValue || 'N/A');
+            valueDisplay.style.cssText = 'color:#e2e8f0;font-size:11px;font-weight:600;font-family:monospace;';
+            valueCtx.appendChild(valueLabel);
+            valueCtx.appendChild(valueDisplay);
+            condBody.appendChild(valueCtx);
+
+            // ── Quick Presets ──
+            var presetLabel = document.createElement('div');
+            presetLabel.textContent = 'QUICK PRESETS';
+            presetLabel.style.cssText = 'color:#64748b;font-size:8px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;';
+            condBody.appendChild(presetLabel);
+
+            var presetRow = document.createElement('div');
+            presetRow.style.cssText = 'display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;';
+
+            var presets = [
+                {
+                    label: 'Traffic Light',
+                    create: function() {
+                        var v = nodeValueNum || 100;
+                        var lo = Math.round(v * 0.5);
+                        var hi = Math.round(v * 1.5);
+                        return [
+                            {op: '<=', val: String(lo), color: '#22c55e'},
+                            {op: '<=', val: String(hi), color: '#eab308'},
+                            {op: '>', val: String(hi), color: '#ef4444'}
+                        ];
+                    }
+                },
+                {
+                    label: 'Binary',
+                    create: function() {
+                        var v = nodeValueNum || 100;
+                        var mid = Math.round(v);
+                        return [
+                            {op: '<=', val: String(mid), color: '#22c55e'},
+                            {op: '>', val: String(mid), color: '#ef4444'}
+                        ];
+                    }
+                },
+                {
+                    label: 'Heat Map',
+                    create: function() {
+                        var v = nodeValueNum || 100;
+                        return [
+                            {op: '<=', val: String(Math.round(v * 0.25)), color: '#3b82f6'},
+                            {op: '<=', val: String(Math.round(v * 0.5)), color: '#22c55e'},
+                            {op: '<=', val: String(Math.round(v * 1.5)), color: '#f97316'},
+                            {op: '>', val: String(Math.round(v * 1.5)), color: '#ef4444'}
+                        ];
+                    }
+                },
+                {
+                    label: 'Status Text',
+                    create: function() {
+                        return [
+                            {op: 'contains', val: 'ok', color: '#22c55e'},
+                            {op: 'contains', val: 'warn', color: '#eab308'},
+                            {op: 'contains', val: 'error', color: '#ef4444'},
+                            {op: 'contains', val: 'critical', color: '#dc2626'}
+                        ];
+                    }
+                }
+            ];
+
+            for (var pi = 0; pi < presets.length; pi++) {
+                (function(preset) {
+                    var presetBtn = document.createElement('button');
+                    presetBtn.textContent = preset.label;
+                    presetBtn.style.cssText = 'padding:3px 8px;border-radius:3px;font-size:9px;font-weight:600;cursor:pointer;border:1px solid #334155;background:#1e293b;color:#94a3b8;transition:all 0.15s;';
+                    presetBtn.addEventListener('mouseenter', function() {
+                        presetBtn.style.borderColor = '#3b82f6';
+                        presetBtn.style.color = '#93c5fd';
+                        presetBtn.style.background = 'rgba(59,130,246,0.15)';
+                    });
+                    presetBtn.addEventListener('mouseleave', function() {
+                        presetBtn.style.borderColor = '#334155';
+                        presetBtn.style.color = '#94a3b8';
+                        presetBtn.style.background = '#1e293b';
+                    });
+                    presetBtn.addEventListener('click', function() {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        es.nodes[nodeId].conditions = preset.create();
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                        var scrollPos = self._panelBody ? self._panelBody.scrollTop : 0;
+                        self._updatePanel();
+                        if (self._panelBody) self._panelBody.scrollTop = scrollPos;
+                    });
+                    presetBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                    presetRow.appendChild(presetBtn);
+                })(presets[pi]);
+            }
+            condBody.appendChild(presetRow);
+
+            // ── Rules list ──
+            if (conds.length > 0) {
+                var rulesLabel = document.createElement('div');
+                rulesLabel.textContent = 'RULES';
+                rulesLabel.style.cssText = 'color:#64748b;font-size:8px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;';
+                condBody.appendChild(rulesLabel);
+            }
+
             for (var ci = 0; ci < conds.length; ci++) {
                 (function(ruleIdx) {
                     var rule = conds[ruleIdx];
                     var ruleRow = document.createElement('div');
-                    ruleRow.style.cssText = 'display:flex;gap:4px;align-items:center;margin-bottom:6px;';
+                    ruleRow.style.cssText = 'display:flex;align-items:center;gap:4px;margin-bottom:4px;padding:4px 6px;background:#0f172a;border-radius:4px;border:1px solid #1e293b;';
+
+                    // Color indicator (left)
+                    var colorDot = document.createElement('div');
+                    var dotColor = (rule.color && /^#[0-9a-fA-F]{6}$/.test(rule.color)) ? rule.color : '#ef4444';
+                    colorDot.style.cssText = 'width:16px;height:16px;border-radius:3px;background:' + dotColor + ';cursor:pointer;flex-shrink:0;position:relative;';
+                    // Hidden color picker behind the dot
+                    var hiddenColor = document.createElement('input');
+                    hiddenColor.type = 'color';
+                    hiddenColor.value = dotColor;
+                    hiddenColor.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;';
+                    hiddenColor.addEventListener('input', function() {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        if (!es.nodes[nodeId].conditions) es.nodes[nodeId].conditions = [];
+                        if (es.nodes[nodeId].conditions[ruleIdx]) {
+                            es.nodes[nodeId].conditions[ruleIdx].color = hiddenColor.value;
+                        }
+                        colorDot.style.background = hiddenColor.value;
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                    });
+                    hiddenColor.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                    colorDot.appendChild(hiddenColor);
+                    ruleRow.appendChild(colorDot);
 
                     // Operator dropdown
                     var opSelect = document.createElement('select');
-                    opSelect.style.cssText = 'background:#0f172a;border:1px solid #334155;border-radius:4px;color:#cbd5e1;font-size:10px;padding:2px 4px;outline:none;width:52px;';
+                    opSelect.style.cssText = 'background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:3px;font-size:10px;padding:2px;width:50px;outline:none;';
                     var ops = ['<', '<=', '>', '>=', '=', '!=', 'contains'];
                     for (var oi = 0; oi < ops.length; oi++) {
                         var opt = document.createElement('option');
@@ -6348,7 +6486,8 @@ define([
                     var valInput = document.createElement('input');
                     valInput.type = 'text';
                     valInput.value = rule.val || '';
-                    valInput.style.cssText = 'flex:1;min-width:0;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#cbd5e1;font-size:10px;padding:2px 5px;outline:none;';
+                    valInput.placeholder = 'value';
+                    valInput.style.cssText = 'flex:1;min-width:0;background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:3px;font-size:10px;padding:3px 6px;outline:none;';
                     valInput.addEventListener('blur', function() {
                         if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
                         if (!es.nodes[nodeId].conditions) es.nodes[nodeId].conditions = [];
@@ -6366,34 +6505,19 @@ define([
                     valInput.addEventListener('keypress', function(e) { e.stopPropagation(); });
                     ruleRow.appendChild(valInput);
 
-                    // Color picker (small swatch + native picker)
-                    var ruleColor = document.createElement('input');
-                    ruleColor.type = 'color';
-                    ruleColor.value = (rule.color && /^#[0-9a-fA-F]{6}$/.test(rule.color)) ? rule.color : '#ef4444';
-                    ruleColor.style.cssText = 'width:22px;height:22px;border:none;background:none;cursor:pointer;padding:0;border-radius:3px;flex-shrink:0;';
-                    ruleColor.addEventListener('input', function() {
-                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
-                        if (!es.nodes[nodeId].conditions) es.nodes[nodeId].conditions = [];
-                        if (es.nodes[nodeId].conditions[ruleIdx]) {
-                            es.nodes[nodeId].conditions[ruleIdx].color = ruleColor.value;
-                        }
-                        self._pushUndo();
-                        self.invalidateUpdateView();
-                    });
-                    ruleColor.addEventListener('mousedown', function(e) { e.stopPropagation(); });
-                    ruleRow.appendChild(ruleColor);
-
                     // Delete button
                     var delBtn = document.createElement('button');
                     delBtn.textContent = '\u00D7';
-                    delBtn.style.cssText = 'background:none;border:none;color:#ef4444;font-size:14px;cursor:pointer;padding:0 3px;flex-shrink:0;';
+                    delBtn.style.cssText = 'width:20px;height:20px;border-radius:3px;border:none;background:#dc2626;color:#fff;font-size:12px;cursor:pointer;flex-shrink:0;line-height:1;display:flex;align-items:center;justify-content:center;';
                     delBtn.addEventListener('click', function() {
                         if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
                         if (!es.nodes[nodeId].conditions) es.nodes[nodeId].conditions = [];
                         es.nodes[nodeId].conditions.splice(ruleIdx, 1);
                         self._pushUndo();
                         self.invalidateUpdateView();
+                        var scrollPos = self._panelBody ? self._panelBody.scrollTop : 0;
                         self._updatePanel();
+                        if (self._panelBody) self._panelBody.scrollTop = scrollPos;
                     });
                     delBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
                     ruleRow.appendChild(delBtn);
@@ -6402,20 +6526,46 @@ define([
                 })(ci);
             }
 
+            // ── Bottom buttons: Add Rule + Clear All ──
+            var condBtnRow = document.createElement('div');
+            condBtnRow.style.cssText = 'display:flex;gap:6px;margin-top:6px;';
+
             // Add Rule button
             var addRuleBtn = document.createElement('button');
             addRuleBtn.textContent = '+ Rule';
-            addRuleBtn.style.cssText = 'padding:4px 12px;border-radius:4px;font-size:10px;font-weight:bold;cursor:pointer;border:1px solid #3b82f6;background:rgba(59,130,246,0.2);color:#93c5fd;margin-top:4px;';
+            addRuleBtn.style.cssText = 'padding:4px 12px;border-radius:4px;font-size:10px;font-weight:bold;cursor:pointer;border:1px solid #3b82f6;background:rgba(59,130,246,0.2);color:#93c5fd;flex:1;';
             addRuleBtn.addEventListener('click', function() {
                 if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
                 if (!es.nodes[nodeId].conditions) es.nodes[nodeId].conditions = [];
                 es.nodes[nodeId].conditions.push({op: '>', val: '0', color: '#ef4444'});
                 self._pushUndo();
                 self.invalidateUpdateView();
+                var scrollPos = self._panelBody ? self._panelBody.scrollTop : 0;
                 self._updatePanel();
+                if (self._panelBody) self._panelBody.scrollTop = scrollPos;
             });
             addRuleBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
-            condBody.appendChild(addRuleBtn);
+            condBtnRow.appendChild(addRuleBtn);
+
+            // Clear All button (only show if rules exist)
+            if (conds.length > 0) {
+                var clearBtn = document.createElement('button');
+                clearBtn.textContent = 'Clear All';
+                clearBtn.style.cssText = 'padding:4px 12px;border-radius:4px;font-size:10px;font-weight:bold;cursor:pointer;border:1px solid #dc2626;background:rgba(220,38,38,0.15);color:#fca5a5;';
+                clearBtn.addEventListener('click', function() {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].conditions = [];
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                    var scrollPos = self._panelBody ? self._panelBody.scrollTop : 0;
+                    self._updatePanel();
+                    if (self._panelBody) self._panelBody.scrollTop = scrollPos;
+                });
+                clearBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                condBtnRow.appendChild(clearBtn);
+            }
+
+            condBody.appendChild(condBtnRow);
 
             body.appendChild(condSec);
         },
