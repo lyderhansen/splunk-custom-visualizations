@@ -50,6 +50,36 @@
         </splunk-text-input>
     </splunk-control-group>
 
+    <splunk-control-group label="Default Opacity" help="Default node opacity (0 to 1)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.defaultOpacity" value="1">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Default Stroke Pattern" help="Default border stroke pattern">
+        <splunk-select name="{{VIZ_NAMESPACE}}.defaultStrokePattern" value="solid">
+            <option value="solid">Solid</option>
+            <option value="dashed">Dashed</option>
+            <option value="dotted">Dotted</option>
+            <option value="dash-dot">Dash-Dot</option>
+            <option value="long-dash">Long Dash</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Default Border Width" help="Default border width in pixels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.defaultBorderWidth" value="1">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Default Border Color" help="Default border color (hex, leave empty for theme default)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.defaultBorderColor" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Default Background Color" help="Default node background color (hex, leave empty for theme default)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.defaultBgColor" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
 </form>
 
 <form class="splunk-formatter-section" section-label="Editor">

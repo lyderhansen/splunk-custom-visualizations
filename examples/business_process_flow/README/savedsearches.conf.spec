@@ -17,3 +17,8 @@ display.visualizations.custom.business_process_flow.business_process_flow.shadow
 display.visualizations.custom.business_process_flow.business_process_flow.glowEnabled = <boolean>
 display.visualizations.custom.business_process_flow.business_process_flow.glowBlur = <integer>
 display.visualizations.custom.business_process_flow.business_process_flow.glowColor = <string>
+display.visualizations.custom.business_process_flow.business_process_flow.defaultOpacity = <string>
+display.visualizations.custom.business_process_flow.business_process_flow.defaultStrokePattern = <string>
+display.visualizations.custom.business_process_flow.business_process_flow.defaultBorderWidth = <string>
+display.visualizations.custom.business_process_flow.business_process_flow.defaultBorderColor = <string>
+display.visualizations.custom.business_process_flow.business_process_flow.defaultBgColor = <string>

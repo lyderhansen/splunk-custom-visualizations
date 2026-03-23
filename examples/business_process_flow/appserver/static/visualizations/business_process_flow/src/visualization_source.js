@@ -260,15 +260,21 @@ define([
     }
 
     function drawCloudPath(ctx, x, y, w, h) {
-        var cx1 = x + w * 0.25, cy1 = y + h * 0.6, r1 = w * 0.2;
-        var cx2 = x + w * 0.45, cy2 = y + h * 0.35, r2 = w * 0.25;
-        var cx3 = x + w * 0.7, cy3 = y + h * 0.45, r3 = w * 0.2;
-        var cx4 = x + w * 0.5, cy4 = y + h * 0.65, r4 = w * 0.22;
         ctx.beginPath();
-        ctx.arc(cx1, cy1, r1, 0, Math.PI * 2);
-        ctx.arc(cx2, cy2, r2, 0, Math.PI * 2);
-        ctx.arc(cx3, cy3, r3, 0, Math.PI * 2);
-        ctx.arc(cx4, cy4, r4, 0, Math.PI * 2);
+        // Bottom center start
+        ctx.moveTo(x + w * 0.2, y + h * 0.75);
+        // Left bump
+        ctx.bezierCurveTo(x + w * 0.05, y + h * 0.75, x, y + h * 0.5, x + w * 0.15, y + h * 0.4);
+        // Top-left bump
+        ctx.bezierCurveTo(x + w * 0.1, y + h * 0.15, x + w * 0.3, y + h * 0.05, x + w * 0.45, y + h * 0.15);
+        // Top-right bump
+        ctx.bezierCurveTo(x + w * 0.55, y, x + w * 0.75, y + h * 0.05, x + w * 0.82, y + h * 0.25);
+        // Right bump
+        ctx.bezierCurveTo(x + w, y + h * 0.25, x + w * 1.02, y + h * 0.55, x + w * 0.85, y + h * 0.7);
+        // Bottom right
+        ctx.bezierCurveTo(x + w * 0.78, y + h * 0.85, x + w * 0.65, y + h * 0.85, x + w * 0.55, y + h * 0.8);
+        // Bottom left
+        ctx.bezierCurveTo(x + w * 0.4, y + h * 0.9, x + w * 0.25, y + h * 0.85, x + w * 0.2, y + h * 0.75);
         ctx.closePath();
     }
 
@@ -640,7 +646,11 @@ define([
                 fontSize: edState ? edState.fontSize : undefined,
                 chartHeight: edState ? edState.chartHeight : undefined,
                 opacity: edState ? edState.opacity : undefined,
-                borderWidth: edState ? edState.borderWidth : undefined
+                borderWidth: edState ? edState.borderWidth : undefined,
+                strokePattern: edState ? edState.strokePattern : undefined,
+                borderRadius: edState ? edState.borderRadius : undefined,
+                bgColor: edState ? edState.bgColor : undefined,
+                borderColor: edState ? edState.borderColor : undefined
             };
 
             var baseObj = {
@@ -662,6 +672,10 @@ define([
                 chartHeight: perNode.chartHeight,
                 opacity: perNode.opacity,
                 borderWidth: perNode.borderWidth,
+                strokePattern: perNode.strokePattern,
+                borderRadius: perNode.borderRadius,
+                bgColor: perNode.bgColor,
+                borderColor: perNode.borderColor,
                 prefix: edState ? edState.prefix : undefined,
                 suffix: edState ? edState.suffix : undefined,
                 sparkPosition: edState ? edState.sparkPosition : undefined,
@@ -984,7 +998,9 @@ define([
         var w = node.w;
         var h = node.h;
         var shape = node.shape || 'rect';
-        var radius = parseInt(nodeRadius, 10) || 8;
+        var globalRadius = parseInt(nodeRadius, 10) || 8;
+        var radius = node.borderRadius !== undefined && node.borderRadius !== 'default' && node.borderRadius !== ''
+            ? parseInt(node.borderRadius, 10) : globalRadius;
 
         // Per-node overrides from editorState
         var nodeSparkType = node.sparklineType || sparklineType;
@@ -1022,16 +1038,19 @@ define([
         else if (nodeChartH === 'large') sparkH = Math.round(h * 0.50);
         sparkH = Math.max(12, Math.min(h * 0.6, sparkH));
 
-        // Compute opacity
+        // Compute opacity — per-node, then global default, then 1
         var nodeAlpha = 1;
-        if (nodeOpacity !== 'default') nodeAlpha = parseFloat(nodeOpacity) || 1;
+        if (nodeOpacity !== 'default') {
+            nodeAlpha = parseFloat(nodeOpacity) || 1;
+        } else if (ge.defaultOpacity !== undefined && ge.defaultOpacity !== '') {
+            nodeAlpha = parseFloat(ge.defaultOpacity) || 1;
+        }
 
-        // Compute border
-        var borderWidth = 1;
-        if (nodeBorderW === '0') borderWidth = 0;
-        else if (nodeBorderW === '1') borderWidth = 1;
-        else if (nodeBorderW === '2') borderWidth = 2;
-        else if (nodeBorderW === '3') borderWidth = 3;
+        // Compute border — per-node, then global default, then 1
+        var globalBorderW = ge.defaultBorderWidth !== undefined && ge.defaultBorderWidth !== '' ? ge.defaultBorderWidth : '1';
+        var effectiveBorderW = nodeBorderW !== 'default' ? nodeBorderW : globalBorderW;
+        var borderWidth = parseInt(effectiveBorderW, 10);
+        if (isNaN(borderWidth) || borderWidth < 0) borderWidth = 1;
         if (isSelected) borderWidth = Math.max(borderWidth, 2.5);
 
         // Apply opacity
@@ -1083,9 +1102,10 @@ define([
             ctx.shadowColor = node.shadowColor || ge.shadowColor || '#000000';
         }
 
-        // Draw shape fill — conditional color tints the background subtly
+        // Draw shape fill — conditional color tints the background subtly; per-node/global bgColor override
+        var nodeBgColor = node.bgColor || ge.defaultBgColor || '';
         shapePath();
-        ctx.fillStyle = condColor ? hexToRgba(condColor, 0.15) : theme.nodeBg;
+        ctx.fillStyle = condColor ? hexToRgba(condColor, 0.15) : (nodeBgColor || theme.nodeBg);
         ctx.fill();
 
         // Reset shadow after fill
@@ -1094,12 +1114,13 @@ define([
         ctx.shadowOffsetY = 0;
         ctx.shadowColor = 'transparent';
 
-        // Draw border — conditional color replaces border color
+        // Draw border — conditional color replaces border color; per-node/global borderColor override
+        var nodeBorderColor = node.borderColor || ge.defaultBorderColor || '';
         if (borderWidth > 0) {
             shapePath();
-            ctx.strokeStyle = isSelected ? node.color : (condColor || theme.nodeBorder);
+            ctx.strokeStyle = isSelected ? node.color : (condColor || nodeBorderColor || theme.nodeBorder);
             ctx.lineWidth = condColor ? Math.max(borderWidth, 2) : borderWidth;
-            var nodeStrokePattern = node.strokePattern || 'solid';
+            var nodeStrokePattern = node.strokePattern || ge.defaultStrokePattern || 'solid';
             applyStrokePattern(ctx, nodeStrokePattern);
             ctx.stroke();
             ctx.setLineDash([]); // reset
@@ -2693,6 +2714,7 @@ define([
                     updateSwatches(color);
                     if (onSelect) onSelect(color);
                 });
+                swatch.addEventListener('mousedown', function(e) { e.stopPropagation(); });
                 swatchRow.appendChild(swatch);
                 swatches.push(swatch);
             })(colors[ci]);
@@ -2723,6 +2745,7 @@ define([
                 if (onSelect) onSelect(val);
             }
         });
+        hexInput.addEventListener('mousedown', function(e) { e.stopPropagation(); });
         hexInput.addEventListener('keydown', function(e) { e.stopPropagation(); });
         hexInput.addEventListener('keyup', function(e) { e.stopPropagation(); });
         hexInput.addEventListener('keypress', function(e) {
@@ -2735,6 +2758,7 @@ define([
         colorPicker.value = (activeColor && /^#[0-9a-fA-F]{6}$/.test(activeColor)) ? activeColor : '#3b82f6';
         colorPicker.style.cssText = 'width:24px;height:24px;border:none;background:none;cursor:pointer;padding:0;border-radius:3px;flex-shrink:0;';
 
+        colorPicker.addEventListener('mousedown', function(e) { e.stopPropagation(); });
         colorPicker.addEventListener('input', function() {
             var val = colorPicker.value;
             hexInput.value = val;
@@ -5049,8 +5073,14 @@ define([
                 {value: 'cloud', label: 'Cloud'}, {value: 'pill', label: 'Pill'}
             ], currentShape, makeOnChange('shape')));
 
-            // Color
-            appearBody.appendChild(createColorRow('Color', colors, ns.color || '', makeOnChange('color')));
+            // Value Color (accent/palette color)
+            appearBody.appendChild(createColorRow('Value Color', colors, ns.color || '', makeOnChange('color')));
+
+            // Background Color override
+            appearBody.appendChild(createColorRow('Background', colors, ns.bgColor || '', makeOnChange('bgColor')));
+
+            // Border Color override
+            appearBody.appendChild(createColorRow('Border Color', colors, ns.borderColor || '', makeOnChange('borderColor')));
 
             // Border Radius (only for rect)
             if (currentShape === 'rect') {
@@ -5059,6 +5089,7 @@ define([
                     {value: '8', label: '8'}, {value: '12', label: '12'},
                     {value: '20', label: '20'}, {value: '50', label: '50'}
                 ], ns.borderRadius || '0', makeOnChange('borderRadius')));
+                appearBody.appendChild(createTextRow('Custom Radius', ns.borderRadius || '', makeOnChange('borderRadius')));
             }
 
             // Opacity
@@ -5066,6 +5097,13 @@ define([
                 {value: 'default', label: '100%'}, {value: '0.8', label: '80%'},
                 {value: '0.6', label: '60%'}, {value: '0.4', label: '40%'}
             ], ns.opacity || 'default', makeOnChange('opacity')));
+            var opacityOnChange = makeOnChange('opacity');
+            appearBody.appendChild(createTextRow('Custom %', String(Math.round((parseFloat(ns.opacity) || 1) * 100)), function(val) {
+                var pct = parseInt(val, 10);
+                if (!isNaN(pct) && pct >= 0 && pct <= 100) {
+                    opacityOnChange(String(pct / 100));
+                }
+            }));
 
             // Stroke Pattern
             appearBody.appendChild(createToggleRow('Stroke Pattern', [
@@ -5080,6 +5118,7 @@ define([
                 {value: '1', label: 'Thin'}, {value: '2', label: 'Med'},
                 {value: '3', label: 'Thick'}
             ], ns.borderWidth || 'default', makeOnChange('borderWidth')));
+            appearBody.appendChild(createTextRow('Custom Width (px)', ns.borderWidth || '', makeOnChange('borderWidth')));
 
             body.appendChild(appearSec);
 
@@ -5660,6 +5699,11 @@ define([
             var globalGlowEnabled = config[ns + 'glowEnabled'] === 'true';
             var globalGlowBlur = parseInt(config[ns + 'glowBlur'], 10) || 12;
             var globalGlowColor = config[ns + 'glowColor'] || '#3b82f6';
+            var globalDefaultOpacity = config[ns + 'defaultOpacity'] || '1';
+            var globalDefaultStrokePattern = config[ns + 'defaultStrokePattern'] || 'solid';
+            var globalDefaultBorderWidth = config[ns + 'defaultBorderWidth'] || '1';
+            var globalDefaultBorderColor = config[ns + 'defaultBorderColor'] || '';
+            var globalDefaultBgColor = config[ns + 'defaultBgColor'] || '';
 
             // Edit mode is session-only — controlled by DOM Edit button, not config
             this._lockMode = lock === 'true';
@@ -5670,7 +5714,12 @@ define([
                 shadowEnabled: globalShadowEnabled, shadowBlur: globalShadowBlur,
                 shadowOffsetX: globalShadowOffsetX, shadowOffsetY: globalShadowOffsetY,
                 shadowColor: globalShadowColor,
-                glowEnabled: globalGlowEnabled, glowBlur: globalGlowBlur, glowColor: globalGlowColor
+                glowEnabled: globalGlowEnabled, glowBlur: globalGlowBlur, glowColor: globalGlowColor,
+                defaultOpacity: globalDefaultOpacity,
+                defaultStrokePattern: globalDefaultStrokePattern,
+                defaultBorderWidth: globalDefaultBorderWidth,
+                defaultBorderColor: globalDefaultBorderColor,
+                defaultBgColor: globalDefaultBgColor
             };
 
             // Start periodic auto-sync: localStorage → formatter textarea.
