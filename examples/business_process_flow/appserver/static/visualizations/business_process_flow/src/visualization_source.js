@@ -2422,12 +2422,14 @@ define([
         var animOff = animOffset || 0;
         if (isAnimActive && animType === 'marching-ants') {
             var marchSpeed = speedMap[animSpeed] || 1.5;
-            ctx.strokeStyle = lineColor;
-            ctx.lineWidth = isSelected ? lineWidth + 1.5 : lineWidth;
+            // Draw contrasting animated dashes on top of the base line
+            // Use white/bright color that stands out against the line
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = Math.max(lineWidth + 1, 3);
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            // Use custom dash/gap if set, otherwise fall back to [8,4] marching ants default
-            var marchDash = connDashPattern.length > 0 ? connDashPattern : [8, 4];
+            ctx.globalAlpha = 0.8;
+            var marchDash = [12, 8];
             ctx.setLineDash(marchDash);
             ctx.lineDashOffset = -(animOff * marchSpeed);
             // Re-draw path with animated dash
@@ -2452,14 +2454,22 @@ define([
                 }
             }
             ctx.stroke();
+            ctx.globalAlpha = 1;
             ctx.lineDashOffset = 0;
             ctx.setLineDash([]);
         } else if (isAnimActive && animType === 'pulse') {
             var freq = pulseFreqMap[animSpeed] || 0.04;
-            var pulseAlpha = 0.4 + 0.6 * Math.abs(Math.sin(animOff * freq));
-            ctx.globalAlpha = pulseAlpha;
+            var pulsePhase = Math.sin(animOff * freq);
+            // Pulse: line grows and shrinks, with a glow effect
+            var pulseWidth = lineWidth + 4 * Math.abs(pulsePhase);
+            ctx.globalAlpha = 0.3 + 0.7 * Math.abs(pulsePhase);
             ctx.strokeStyle = lineColor;
-            ctx.lineWidth = (conn.width || 2) + 1;
+            ctx.lineWidth = pulseWidth;
+            // Add glow
+            ctx.shadowBlur = 8 + 12 * Math.abs(pulsePhase);
+            ctx.shadowColor = lineColor;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.beginPath();
@@ -2484,6 +2494,8 @@ define([
             }
             ctx.stroke();
             ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
             ctx.lineWidth = conn.width || 2;
         }
     }
