@@ -6652,10 +6652,12 @@ define([
             var addRuleBtn = document.createElement('button');
             addRuleBtn.textContent = '+ Rule';
             addRuleBtn.style.cssText = 'padding:4px 12px;border-radius:4px;font-size:10px;font-weight:bold;cursor:pointer;border:1px solid #3b82f6;background:rgba(59,130,246,0.2);color:#93c5fd;flex:1;';
+            var ruleColors = ['#22c55e', '#eab308', '#f97316', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4'];
             addRuleBtn.addEventListener('click', function() {
                 if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
                 if (!es.nodes[nodeId].conditions) es.nodes[nodeId].conditions = [];
-                es.nodes[nodeId].conditions.push({op: '>', val: '0', color: '#ef4444'});
+                var nextColor = ruleColors[es.nodes[nodeId].conditions.length % ruleColors.length];
+                es.nodes[nodeId].conditions.push({op: '>', val: '0', color: nextColor});
                 self._pushUndo();
                 self.invalidateUpdateView();
                 self._refreshPanel();
