@@ -1116,7 +1116,8 @@ define([
                     endFlipped: mc.endFlipped || false,
                     animationType: mc.animationType,
                     animationTrigger: mc.animationTrigger,
-                    animationSpeed: mc.animationSpeed
+                    animationSpeed: mc.animationSpeed,
+                    _animActive: mc._animActive
                 });
             }
         }
