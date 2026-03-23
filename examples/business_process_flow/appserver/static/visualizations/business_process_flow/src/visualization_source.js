@@ -592,6 +592,17 @@ define([
                     closestSeg = 0;
                 }
             }
+        } else if (conn.style === 'orthogonal' && points.length > 2) {
+            // Orthogonal with waypoints: expand each segment to 90-degree turns
+            for (var owpi = 0; owpi < points.length - 1; owpi++) {
+                var owPrev = points[owpi];
+                var owCur = points[owpi + 1];
+                var owCorner = { x: owCur.x, y: owPrev.y };
+                var owd1 = distToLine(px, py, owPrev.x, owPrev.y, owCorner.x, owCorner.y);
+                var owd2 = distToLine(px, py, owCorner.x, owCorner.y, owCur.x, owCur.y);
+                if (owd1 < minDist) { minDist = owd1; closestSeg = owpi; }
+                if (owd2 < minDist) { minDist = owd2; closestSeg = owpi; }
+            }
         } else {
             // Straight polyline — test each segment
             for (var si2 = 0; si2 < points.length - 1; si2++) {
@@ -2225,7 +2236,10 @@ define([
                 ctx.lineTo(boEnd.x, boEnd.y);
             } else {
                 for (var boi = 1; boi < points.length; boi++) {
-                    ctx.lineTo(points[boi].x, points[boi].y);
+                    var boPrev = points[boi - 1];
+                    var boCur = points[boi];
+                    ctx.lineTo(boCur.x, boPrev.y);
+                    ctx.lineTo(boCur.x, boCur.y);
                 }
             }
         } else {
@@ -2421,9 +2435,12 @@ define([
                 ctx.lineTo(oMidX, oEnd.y);
                 ctx.lineTo(oEnd.x, oEnd.y);
             } else {
-                // Use waypoints as corners for orthogonal path
+                // Route each pair of consecutive points with 90-degree turns
                 for (var opi = 1; opi < points.length; opi++) {
-                    ctx.lineTo(points[opi].x, points[opi].y);
+                    var opPrev = points[opi - 1];
+                    var opCur = points[opi];
+                    ctx.lineTo(opCur.x, opPrev.y);
+                    ctx.lineTo(opCur.x, opCur.y);
                 }
             }
             ctx.stroke();
@@ -2563,7 +2580,7 @@ define([
      * Only processes connections with lineHop === 'over' or lineHop === 'gap'.
      * Skips curved connections (hops only work on straight/orthogonal polylines).
      */
-    function drawConnectionHops(ctx, connections) {
+    function drawConnectionHops(ctx, connections, bgColor) {
         var hopRadius = 8;
 
         // Pre-compute sampled points for curved connections (for intersection testing)
@@ -2619,6 +2636,30 @@ define([
             // Redraw the connection line with hops in place of the original straight stroke
             var lineColor = conn.color || '#94a3b8';
             var lineWidth = conn.width || 2;
+
+            // First pass: erase the original line at each crossing point with background color
+            ctx.strokeStyle = bgColor || '#0f172a';
+            ctx.lineWidth = lineWidth + 6;
+            ctx.lineCap = 'round';
+            ctx.setLineDash([]);
+
+            for (var ei = 0; ei < intersections.length; ei++) {
+                var eIsct = intersections[ei];
+                var sp = points[eIsct.seg];
+                var spn = points[Math.min(eIsct.seg + 1, points.length - 1)];
+                var edx = spn.x - sp.x;
+                var edy = spn.y - sp.y;
+                var elen = Math.sqrt(edx * edx + edy * edy);
+                var enx = elen > 0 ? edx / elen : 0;
+                var eny = elen > 0 ? edy / elen : 0;
+
+                ctx.beginPath();
+                ctx.moveTo(eIsct.x - enx * (hopRadius + 3), eIsct.y - eny * (hopRadius + 3));
+                ctx.lineTo(eIsct.x + enx * (hopRadius + 3), eIsct.y + eny * (hopRadius + 3));
+                ctx.stroke();
+            }
+
+            // Second pass: redraw the line with hops
             ctx.strokeStyle = lineColor;
             ctx.lineWidth = lineWidth;
             ctx.lineCap = 'round';
@@ -7225,7 +7266,8 @@ define([
             }
 
             // Draw line hops (bridges) where hop-enabled connections cross others
-            drawConnectionHops(ctx, connections);
+            var bgColor = isDark ? '#0f172a' : '#ffffff';
+            drawConnectionHops(ctx, connections, bgColor);
 
             // Sort nodes by zOrder before drawing (lower first = drawn underneath)
             var drawOrder = [];
