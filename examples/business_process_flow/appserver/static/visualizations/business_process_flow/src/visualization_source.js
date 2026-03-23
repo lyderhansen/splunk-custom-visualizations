@@ -1110,8 +1110,7 @@ define([
                     targetAnchorOffset: mc.targetAnchorOffset || 0,
                     endpointSize: mc.endpointSize,
                     waypoints: mc.waypoints || [],
-                    labelOffsetX: mc.labelOffsetX || 0,
-                    labelOffsetY: mc.labelOffsetY || 0,
+                    labelPosition: mc.labelPosition !== undefined ? parseFloat(mc.labelPosition) : 0.5,
                     startFlipped: mc.startFlipped || false,
                     endFlipped: mc.endFlipped || false,
                     animationType: mc.animationType,
@@ -2205,6 +2204,59 @@ define([
     }
 
     /**
+     * Get a point at position t (0-1) along the connection path.
+     * Mirrors the exact geometry used by drawConnection for curved and straight paths.
+     */
+    function interpolateConnectionPath(points, style, t) {
+        if (!points || points.length < 2) return { x: 0, y: 0 };
+
+        if (style === 'curved' && points.length === 2) {
+            // Quadratic bezier — matches drawConnection simple curve
+            var mx2 = (points[0].x + points[1].x) / 2;
+            var my2 = (points[0].y + points[1].y) / 2;
+            var dx2 = points[1].x - points[0].x;
+            var dy2 = points[1].y - points[0].y;
+            var len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+            var off2 = Math.min(40, len2 * 0.2);
+            var nx2 = len2 > 0 ? -dy2 / len2 : 0;
+            var ny2 = len2 > 0 ? dx2 / len2 : 0;
+            var cpx2 = mx2 + nx2 * off2;
+            var cpy2 = my2 + ny2 * off2;
+            var mt = 1 - t;
+            return {
+                x: mt * mt * points[0].x + 2 * mt * t * cpx2 + t * t * points[1].x,
+                y: mt * mt * points[0].y + 2 * mt * t * cpy2 + t * t * points[1].y
+            };
+        }
+
+        // For straight lines or multi-point: walk segments by total length
+        var totalLen = 0;
+        var segLens = [];
+        for (var i = 1; i < points.length; i++) {
+            var sdx = points[i].x - points[i - 1].x;
+            var sdy = points[i].y - points[i - 1].y;
+            var slen = Math.sqrt(sdx * sdx + sdy * sdy);
+            segLens.push(slen);
+            totalLen += slen;
+        }
+        if (totalLen === 0) return { x: points[0].x, y: points[0].y };
+
+        var targetDist = t * totalLen;
+        var accum = 0;
+        for (var j = 0; j < segLens.length; j++) {
+            if (accum + segLens[j] >= targetDist) {
+                var segT = segLens[j] > 0 ? (targetDist - accum) / segLens[j] : 0;
+                return {
+                    x: points[j].x + (points[j + 1].x - points[j].x) * segT,
+                    y: points[j].y + (points[j + 1].y - points[j].y) * segT
+                };
+            }
+            accum += segLens[j];
+        }
+        return { x: points[points.length - 1].x, y: points[points.length - 1].y };
+    }
+
+    /**
      * Build the connection path on ctx (beginPath + moveTo/lineTo/quadraticCurveTo).
      * Matches the exact geometry used by drawConnection for all curve types.
      */
@@ -2430,15 +2482,16 @@ define([
             mouseX: conn._mouseX, mouseY: conn._mouseY
         };
 
-        // Label — deferred to overlay pass, include position for dragging
+        // Label — deferred to overlay pass, position snapped along path
         if (conn.label) {
-            var lblOffX = conn.labelOffsetX || 0;
-            var lblOffY = conn.labelOffsetY || 0;
+            var labelT = conn.labelPosition !== undefined ? parseFloat(conn.labelPosition) : 0.5;
+            labelT = Math.max(0, Math.min(1, labelT));
+            var labelPt = interpolateConnectionPath(points, conn.style, labelT);
             conn._deferredDraw.label = conn.label;
-            conn._deferredDraw.labelX = midX + lblOffX;
-            conn._deferredDraw.labelY = midY + lblOffY;
-            conn._deferredDraw.midX = midX;
-            conn._deferredDraw.midY = midY;
+            conn._deferredDraw.labelX = labelPt.x;
+            conn._deferredDraw.labelY = labelPt.y;
+            conn._deferredDraw.labelPoints = points;
+            conn._deferredDraw.labelStyle = conn.style;
         }
 
         // Animation overlay (marching-ants or pulse)
@@ -4784,10 +4837,8 @@ define([
                                     if (edcArr[leci].from === lhc.from && edcArr[leci].to === lhc.to) {
                                         self._isDraggingLabel = true;
                                         self._dragLabelConnIdx = leci;
-                                        self._dragLabelStartX = mx;
-                                        self._dragLabelStartY = my;
-                                        self._dragLabelOrigOffX = edcArr[leci].labelOffsetX || 0;
-                                        self._dragLabelOrigOffY = edcArr[leci].labelOffsetY || 0;
+                                        self._dragLabelConnFrom = lhc.from;
+                                        self._dragLabelConnTo = lhc.to;
                                         self.canvas.style.cursor = 'move';
                                         return;
                                     }
@@ -5125,12 +5176,37 @@ define([
                     return;
                 }
 
-                // Handle label dragging
+                // Handle label dragging — project mouse onto connection path
                 if (self._isDraggingLabel && self._dragLabelConnIdx !== null) {
                     var lblConns = self._editorState.connections;
-                    if (lblConns[self._dragLabelConnIdx]) {
-                        lblConns[self._dragLabelConnIdx].labelOffsetX = self._dragLabelOrigOffX + (mx - self._dragLabelStartX);
-                        lblConns[self._dragLabelConnIdx].labelOffsetY = self._dragLabelOrigOffY + (my - self._dragLabelStartY);
+                    var lblConn = lblConns[self._dragLabelConnIdx];
+                    if (lblConn) {
+                        // Find the computed connection to get its cached points
+                        var lblCompConn = null;
+                        for (var lci2 = 0; lci2 < self._computedConnections.length; lci2++) {
+                            if (self._computedConnections[lci2].from === self._dragLabelConnFrom &&
+                                self._computedConnections[lci2].to === self._dragLabelConnTo) {
+                                lblCompConn = self._computedConnections[lci2];
+                                break;
+                            }
+                        }
+                        var lblPts = lblCompConn && lblCompConn._deferredDraw ? lblCompConn._deferredDraw.labelPoints : null;
+                        var lblStyle = lblCompConn ? lblCompConn.style : 'straight';
+                        if (lblPts && lblPts.length >= 2) {
+                            var bestT = 0.5;
+                            var bestDist = Infinity;
+                            for (var lt = 0; lt <= 1.0; lt += 0.02) {
+                                var lpt = interpolateConnectionPath(lblPts, lblStyle, lt);
+                                var ldx = mx - lpt.x;
+                                var ldy = my - lpt.y;
+                                var ldist = ldx * ldx + ldy * ldy;
+                                if (ldist < bestDist) {
+                                    bestDist = ldist;
+                                    bestT = lt;
+                                }
+                            }
+                            lblConn.labelPosition = bestT;
+                        }
                     }
                     self.invalidateUpdateView();
                     self.canvas.style.cursor = 'move';
@@ -6978,6 +7054,15 @@ define([
             var labelBody = labelSec._body;
 
             labelBody.appendChild(createTextRow('Label Text', conn.label || '', makeConnChange('label')));
+
+            labelBody.appendChild(createTextRow('Position %', String(Math.round((conn.labelPosition !== undefined ? conn.labelPosition : 0.5) * 100)), function(val) {
+                var pct = parseInt(val, 10);
+                if (!isNaN(pct)) {
+                    conns[idx].labelPosition = Math.max(0, Math.min(100, pct)) / 100;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                }
+            }, { numeric: true, min: 0, max: 100, step: 5 }));
 
             body.appendChild(labelSec);
 
