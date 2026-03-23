@@ -1306,6 +1306,17 @@ define([
         } else if (shape === 'cylinder') {
             textInsetTop = h * 0.15;
             textInsetBottom = h * 0.15;
+        } else if (shape === 'pill') {
+            // Pill has fully rounded ends — inset by half the height (the radius)
+            var pillR = Math.min(h / 2, w / 2);
+            textInsetLeft = pillR * 0.6;
+            textInsetRight = pillR * 0.6;
+        } else if (shape === 'circle') {
+            // Circle: inscribed rect has ~29% inset on each side
+            textInsetTop = h * 0.15;
+            textInsetBottom = h * 0.15;
+            textInsetLeft = w * 0.15;
+            textInsetRight = w * 0.15;
         }
 
         // Effective text area after shape insets
@@ -5153,7 +5164,7 @@ define([
 
             var alignBtnGroups = [
                 [{label: 'Left'}, {label: 'Center'}, {label: 'Right'}],
-                [{label: 'Top'}, {label: 'Middle'}, {label: 'Bottom'}],
+                [{label: 'Top'}, {label: 'Center'}, {label: 'Bottom'}],
                 [{label: 'Distrib H'}, {label: 'Distrib V'}]
             ];
             for (var gi = 0; gi < alignBtnGroups.length; gi++) {
@@ -5189,7 +5200,7 @@ define([
             // Align buttons
             var alignRows = [
                 [{label: 'Left', dir: 'left'}, {label: 'Center', dir: 'center'}, {label: 'Right', dir: 'right'}],
-                [{label: 'Top', dir: 'top'}, {label: 'Middle', dir: 'middle'}, {label: 'Bottom', dir: 'bottom'}]
+                [{label: 'Top', dir: 'top'}, {label: 'Center', dir: 'middle'}, {label: 'Bottom', dir: 'bottom'}]
             ];
             for (var ai = 0; ai < alignRows.length; ai++) {
                 var aRow = document.createElement('div');
