@@ -1135,10 +1135,21 @@ define([
             var customDash = parseInt(node.strokeDash, 10);
             var customGap = parseInt(node.strokeGap, 10);
             var basePattern = STROKE_PATTERNS[nodeStrokePattern] || [];
-            if (customDash > 0 || customGap > 0) {
-                var d = customDash > 0 ? customDash : (basePattern[0] || 8);
-                var g = customGap > 0 ? customGap : (basePattern[1] || 4);
-                dashPattern = [d, g];
+            if ((customDash > 0 || customGap > 0) && basePattern.length > 0) {
+                // Scale the base pattern: replace dash segments with customDash, gap segments with customGap
+                dashPattern = [];
+                for (var dpi = 0; dpi < basePattern.length; dpi++) {
+                    if (dpi % 2 === 0) {
+                        // Dash segment (even indices: 0, 2, 4...)
+                        dashPattern.push(customDash > 0 ? customDash : basePattern[dpi]);
+                    } else {
+                        // Gap segment (odd indices: 1, 3, 5...)
+                        dashPattern.push(customGap > 0 ? customGap : basePattern[dpi]);
+                    }
+                }
+            } else if (customDash > 0 || customGap > 0) {
+                // No base pattern (solid) but custom values set — create simple dash
+                dashPattern = [customDash > 0 ? customDash : 8, customGap > 0 ? customGap : 4];
             } else {
                 dashPattern = basePattern;
             }
@@ -1547,10 +1558,17 @@ define([
         var connCustomDash = parseInt(conn.strokeDash, 10);
         var connCustomGap = parseInt(conn.strokeGap, 10);
         var connBasePattern = STROKE_PATTERNS[connPattern] || [];
-        if (connCustomDash > 0 || connCustomGap > 0) {
-            var cd = connCustomDash > 0 ? connCustomDash : (connBasePattern[0] || 8);
-            var cg = connCustomGap > 0 ? connCustomGap : (connBasePattern[1] || 4);
-            connDashPattern = [cd, cg];
+        if ((connCustomDash > 0 || connCustomGap > 0) && connBasePattern.length > 0) {
+            connDashPattern = [];
+            for (var cdpi = 0; cdpi < connBasePattern.length; cdpi++) {
+                if (cdpi % 2 === 0) {
+                    connDashPattern.push(connCustomDash > 0 ? connCustomDash : connBasePattern[cdpi]);
+                } else {
+                    connDashPattern.push(connCustomGap > 0 ? connCustomGap : connBasePattern[cdpi]);
+                }
+            }
+        } else if (connCustomDash > 0 || connCustomGap > 0) {
+            connDashPattern = [connCustomDash > 0 ? connCustomDash : 8, connCustomGap > 0 ? connCustomGap : 4];
         } else {
             connDashPattern = connBasePattern;
         }
