@@ -3782,7 +3782,7 @@ define([
             this._resizeStartNodeW = 0;
             this._resizeStartNodeH = 0;
             this._editBtnRect = null;
-            this._gridEnabled = false;
+            this._gridEnabled = true;
             this._gridSize = 20;
             this._snapEnabled = false;
             this._panX = 0;
