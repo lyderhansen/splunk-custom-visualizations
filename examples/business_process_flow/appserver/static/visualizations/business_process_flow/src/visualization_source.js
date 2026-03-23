@@ -1116,6 +1116,8 @@ define([
                     labelBgColor: mc.labelBgColor,
                     labelBorderColor: mc.labelBorderColor,
                     labelBorderStyle: mc.labelBorderStyle,
+                    labelBorderWidth: mc.labelBorderWidth,
+                    labelBorderRadius: mc.labelBorderRadius,
                     startFlipped: mc.startFlipped || false,
                     endFlipped: mc.endFlipped || false,
                     animationType: mc.animationType,
@@ -2502,6 +2504,8 @@ define([
             conn._deferredDraw.labelBgColor = conn.labelBgColor;
             conn._deferredDraw.labelBorderColor = conn.labelBorderColor;
             conn._deferredDraw.labelBorderStyle = conn.labelBorderStyle;
+            conn._deferredDraw.labelBorderWidth = conn.labelBorderWidth;
+            conn._deferredDraw.labelBorderRadius = conn.labelBorderRadius;
         }
 
         // Animation overlay (marching-ants or pulse)
@@ -3096,7 +3100,8 @@ define([
                 var lblH = lblFontSize + lblPad;
                 var lblX = dd.labelX - lblW / 2;
                 var lblY = dd.labelY - lblH / 2;
-                roundRect(ctx, lblX, lblY, lblW, lblH, 3);
+                var lblRadius = dd.labelBorderRadius ? parseInt(dd.labelBorderRadius, 10) : 3;
+                roundRect(ctx, lblX, lblY, lblW, lblH, lblRadius);
                 // Background
                 ctx.fillStyle = dd.labelBgColor || theme.nodeBg;
                 ctx.globalAlpha = dd.labelBgColor ? 1 : 0.9;
@@ -3104,9 +3109,10 @@ define([
                 ctx.globalAlpha = 1;
                 // Border
                 var lblBorderStyle = dd.labelBorderStyle || 'solid';
-                if (lblBorderStyle !== 'none') {
+                var lblBorderW = dd.labelBorderWidth ? parseFloat(dd.labelBorderWidth) : 1;
+                if (lblBorderStyle !== 'none' && lblBorderW > 0) {
                     ctx.strokeStyle = dd.labelBorderColor || theme.nodeBorder;
-                    ctx.lineWidth = 1;
+                    ctx.lineWidth = lblBorderW;
                     if (lblBorderStyle === 'dashed') {
                         ctx.setLineDash([4, 3]);
                     } else if (lblBorderStyle === 'dotted') {
@@ -7102,6 +7108,10 @@ define([
                 {value: 'solid', label: 'Solid'}, {value: 'dashed', label: 'Dashed'},
                 {value: 'dotted', label: 'Dotted'}, {value: 'none', label: 'None'}
             ], conn.labelBorderStyle || 'solid', makeConnChange('labelBorderStyle')));
+
+            labelBody.appendChild(createTextRow('Border Width', conn.labelBorderWidth || '', makeConnChange('labelBorderWidth'), { numeric: true, min: 0, max: 6, step: 0.5 }));
+
+            labelBody.appendChild(createTextRow('Border Radius', conn.labelBorderRadius || '', makeConnChange('labelBorderRadius'), { numeric: true, min: 0, max: 20, step: 1 }));
 
             body.appendChild(labelSec);
 
