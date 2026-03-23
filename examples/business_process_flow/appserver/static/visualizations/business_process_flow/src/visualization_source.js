@@ -6656,8 +6656,35 @@ define([
             addRuleBtn.addEventListener('click', function() {
                 if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
                 if (!es.nodes[nodeId].conditions) es.nodes[nodeId].conditions = [];
-                var nextColor = ruleColors[es.nodes[nodeId].conditions.length % ruleColors.length];
-                es.nodes[nodeId].conditions.push({op: '>', val: '0', color: nextColor});
+                var existingConds = es.nodes[nodeId].conditions;
+                var nextColor = ruleColors[existingConds.length % ruleColors.length];
+                // Auto-calculate value based on node value and existing rules
+                var computedNode = self._computedNodeMap ? self._computedNodeMap[nodeId] : null;
+                var nv = computedNode ? parseFloat(computedNode.value) || 0 : 0;
+                var nextVal = '0';
+                var nextOp = '>';
+                if (existingConds.length === 0) {
+                    // First rule: "at most" half the value
+                    nextOp = '<=';
+                    nextVal = String(Math.round(nv * 0.5));
+                } else {
+                    // Find the highest numeric val in existing rules
+                    var maxExisting = 0;
+                    for (var eci = 0; eci < existingConds.length; eci++) {
+                        var ev = parseFloat(existingConds[eci].val);
+                        if (!isNaN(ev) && ev > maxExisting) maxExisting = ev;
+                    }
+                    if (maxExisting > 0) {
+                        // Next step: increment by ~50% of max or by the node value step
+                        var step = Math.round(maxExisting * 0.5) || Math.round(nv * 0.25) || 100;
+                        nextVal = String(Math.round(maxExisting + step));
+                        nextOp = '<=';
+                    } else {
+                        nextVal = String(Math.round(nv * 0.5));
+                        nextOp = '<=';
+                    }
+                }
+                existingConds.push({op: nextOp, val: nextVal, color: nextColor});
                 self._pushUndo();
                 self.invalidateUpdateView();
                 self._refreshPanel();
