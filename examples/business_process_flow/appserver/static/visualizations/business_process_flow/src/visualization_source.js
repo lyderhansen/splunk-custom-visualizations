@@ -2980,6 +2980,11 @@ define([
             // Panel container (dark default — themed in updateView)
             this._panelEl = document.createElement('div');
             this._panelEl.style.cssText = 'position:absolute;right:0;top:36px;bottom:0;width:280px;background:rgba(15,23,42,0.97);border-left:1px solid #334155;display:none;flex-direction:column;z-index:4;';
+            // Stop ALL mouse events from reaching the canvas handlers
+            this._panelEl.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+            this._panelEl.addEventListener('mouseup', function(e) { e.stopPropagation(); });
+            this._panelEl.addEventListener('click', function(e) { e.stopPropagation(); });
+            this._panelEl.addEventListener('dblclick', function(e) { e.stopPropagation(); });
 
             // Panel header
             var panelHeader = document.createElement('div');
