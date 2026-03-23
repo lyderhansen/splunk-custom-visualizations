@@ -1234,7 +1234,7 @@ define([
         return { x: cx, y: cy }; // center or auto
     }
 
-    function drawConnection(ctx, fromNode, toNode, conn, theme, isSelected, editMode, isHovered) {
+    function drawConnection(ctx, fromNode, toNode, conn, theme, isSelected, editMode, isHovered, animOffset) {
         var fromCx = fromNode.x + fromNode.w / 2;
         var fromCy = fromNode.y + fromNode.h / 2;
         var toCx = toNode.x + toNode.w / 2;
@@ -1411,6 +1411,91 @@ define([
             conn._deferredDraw.labelY = midY + lblOffY;
             conn._deferredDraw.midX = midX;
             conn._deferredDraw.midY = midY;
+        }
+
+        // Animation overlay (marching-ants or pulse)
+        var animType = conn.animationType || 'none';
+        var animTrigger = conn.animationTrigger || 'always';
+        var animSpeed = conn.animationSpeed || 'medium';
+
+        var speedMap = { slow: 0.5, medium: 1.5, fast: 3.0 };
+        var pulseFreqMap = { slow: 0.02, medium: 0.04, fast: 0.08 };
+
+        var isAnimActive = false;
+        if (animType !== 'none') {
+            if (animTrigger === 'always') {
+                isAnimActive = true;
+            } else if (animTrigger === 'hover' && conn._animActive) {
+                isAnimActive = true;
+            } else if (animTrigger === 'click' && conn._animActive) {
+                isAnimActive = true;
+            }
+        }
+
+        var animOff = animOffset || 0;
+        if (isAnimActive && animType === 'marching-ants') {
+            var marchSpeed = speedMap[animSpeed] || 1.5;
+            ctx.strokeStyle = lineColor;
+            ctx.lineWidth = isSelected ? lineWidth + 1.5 : lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.setLineDash([8, 4]);
+            ctx.lineDashOffset = -(animOff * marchSpeed);
+            // Re-draw path with animated dash
+            ctx.beginPath();
+            if (conn.style === 'curved' && points.length === 2) {
+                var amx = (points[0].x + points[points.length - 1].x) / 2;
+                var amy = (points[0].y + points[points.length - 1].y) / 2;
+                var adx = points[points.length - 1].x - points[0].x;
+                var ady = points[points.length - 1].y - points[0].y;
+                var alen = Math.sqrt(adx * adx + ady * ady);
+                var aoff = Math.min(40, alen * 0.2);
+                var anx = alen > 0 ? -ady / alen : 0;
+                var any = alen > 0 ? adx / alen : 0;
+                var acpx = amx + anx * aoff;
+                var acpy = amy + any * aoff;
+                ctx.moveTo(points[0].x, points[0].y);
+                ctx.quadraticCurveTo(acpx, acpy, points[points.length - 1].x, points[points.length - 1].y);
+            } else {
+                ctx.moveTo(points[0].x, points[0].y);
+                for (var alpi = 1; alpi < points.length; alpi++) {
+                    ctx.lineTo(points[alpi].x, points[alpi].y);
+                }
+            }
+            ctx.stroke();
+            ctx.lineDashOffset = 0;
+            ctx.setLineDash([]);
+        } else if (isAnimActive && animType === 'pulse') {
+            var freq = pulseFreqMap[animSpeed] || 0.04;
+            var pulseAlpha = 0.4 + 0.6 * Math.abs(Math.sin(animOff * freq));
+            ctx.globalAlpha = pulseAlpha;
+            ctx.strokeStyle = lineColor;
+            ctx.lineWidth = (conn.width || 2) + 1;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            if (conn.style === 'curved' && points.length === 2) {
+                var pmx = (points[0].x + points[points.length - 1].x) / 2;
+                var pmy = (points[0].y + points[points.length - 1].y) / 2;
+                var pdx = points[points.length - 1].x - points[0].x;
+                var pdy = points[points.length - 1].y - points[0].y;
+                var plen = Math.sqrt(pdx * pdx + pdy * pdy);
+                var poff = Math.min(40, plen * 0.2);
+                var pnx = plen > 0 ? -pdy / plen : 0;
+                var pny = plen > 0 ? pdx / plen : 0;
+                var pcpx = pmx + pnx * poff;
+                var pcpy = pmy + pny * poff;
+                ctx.moveTo(points[0].x, points[0].y);
+                ctx.quadraticCurveTo(pcpx, pcpy, points[points.length - 1].x, points[points.length - 1].y);
+            } else {
+                ctx.moveTo(points[0].x, points[0].y);
+                for (var plpi = 1; plpi < points.length; plpi++) {
+                    ctx.lineTo(points[plpi].x, points[plpi].y);
+                }
+            }
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = conn.width || 2;
         }
     }
 
@@ -2715,6 +2800,10 @@ define([
             this._panY = 0;
             this._isPanning = false;
             this._spaceHeld = false;
+            this._animationFrame = null;
+            this._animationOffset = 0;
+            this._lastAnimTime = 0;
+            this._hasActiveAnimations = false;
 
             var self = this;
 
@@ -3745,6 +3834,11 @@ define([
                                     });
                                     edConnIdx = self._editorState.connections.length - 1;
                                 }
+                                // Toggle click-triggered animation active state
+                                var edCSClick = self._editorState.connections || [];
+                                if (edConnIdx >= 0 && edCSClick[edConnIdx] && edCSClick[edConnIdx].animationTrigger === 'click') {
+                                    edCSClick[edConnIdx]._animActive = !edCSClick[edConnIdx]._animActive;
+                                }
                                 self._showConnPopup = true;
                                 self._connPopupIdx = edConnIdx;
                                 self._connPopupPos = { x: mx, y: my };
@@ -3785,6 +3879,43 @@ define([
                                 self._editorState.nodes[vnd.id].x !== undefined;
                             self._snapBackPos = { x: vnd.x, y: vnd.y, hadPosition: hadPos };
                             return;
+                        }
+                    }
+                    // View mode: handle click-trigger animation toggle for connections
+                    var edConnsVM = self._editorState.connections || [];
+                    for (var vmci = 0; vmci < self._computedConnections.length; vmci++) {
+                        var vmConn = self._computedConnections[vmci];
+                        var vmFrom = null;
+                        var vmTo = null;
+                        for (var vmni = 0; vmni < self._computedNodes.length; vmni++) {
+                            if (self._computedNodes[vmni].id === vmConn.from) vmFrom = self._computedNodes[vmni];
+                            if (self._computedNodes[vmni].id === vmConn.to) vmTo = self._computedNodes[vmni];
+                        }
+                        if (vmFrom && vmTo) {
+                            var vmPts = [{ x: vmFrom.x + vmFrom.w / 2, y: vmFrom.y + vmFrom.h / 2 }];
+                            var vmWps = vmConn.waypoints || [];
+                            for (var vmwi = 0; vmwi < vmWps.length; vmwi++) vmPts.push(vmWps[vmwi]);
+                            vmPts.push({ x: vmTo.x + vmTo.w / 2, y: vmTo.y + vmTo.h / 2 });
+                            var vmHit = false;
+                            for (var vmsi = 0; vmsi < vmPts.length - 1; vmsi++) {
+                                if (pointNearLine(mx, my, vmPts[vmsi].x, vmPts[vmsi].y, vmPts[vmsi + 1].x, vmPts[vmsi + 1].y, 16)) {
+                                    vmHit = true;
+                                    break;
+                                }
+                            }
+                            if (vmHit) {
+                                // Find editorState connection and toggle click animation
+                                for (var vmei = 0; vmei < edConnsVM.length; vmei++) {
+                                    if (edConnsVM[vmei].from === vmConn.from && edConnsVM[vmei].to === vmConn.to) {
+                                        if (edConnsVM[vmei].animationTrigger === 'click') {
+                                            edConnsVM[vmei]._animActive = !edConnsVM[vmei]._animActive;
+                                            self.invalidateUpdateView();
+                                        }
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
                         }
                     }
                 }
@@ -3983,6 +4114,14 @@ define([
                 var oldHover = self._hoverItem;
                 self._hoverItem = null;
 
+                // Clear hover-triggered animation active state (will be re-set if still hovering)
+                var edConnsClr = self._editorState.connections || [];
+                for (var haci = 0; haci < edConnsClr.length; haci++) {
+                    if (edConnsClr[haci].animationTrigger === 'hover') {
+                        edConnsClr[haci]._animActive = false;
+                    }
+                }
+
                 // Check toolbar buttons (use raw coordinates — toolbar is not panned)
                 if (self._editMode && self._toolbarButtons) {
                     for (var bi = 0; bi < self._toolbarButtons.length; bi++) {
@@ -4057,6 +4196,13 @@ define([
                             }
                             if (hvHit) {
                                 self._hoverItem = { type: 'connection', index: cci };
+                                // Set _animActive for hover-triggered animations
+                                var edConnsHv = self._editorState.connections || [];
+                                for (var hvei = 0; hvei < edConnsHv.length; hvei++) {
+                                    if (edConnsHv[hvei].animationTrigger === 'hover') {
+                                        edConnsHv[hvei]._animActive = (hvei === cci);
+                                    }
+                                }
                                 break;
                             }
                         }
@@ -5002,6 +5148,32 @@ define([
             body.appendChild(condSec);
         },
 
+        _startAnimationLoop: function() {
+            if (this._animationFrame) return;
+            var self = this;
+            var targetInterval = 1000 / 30; // 30fps
+            function tick(timestamp) {
+                if (!self._hasActiveAnimations) {
+                    self._animationFrame = null;
+                    return;
+                }
+                if (timestamp - self._lastAnimTime >= targetInterval) {
+                    self._animationOffset += 1;
+                    self._lastAnimTime = timestamp;
+                    self.invalidateUpdateView();
+                }
+                self._animationFrame = requestAnimationFrame(tick);
+            }
+            this._animationFrame = requestAnimationFrame(tick);
+        },
+
+        _stopAnimationLoop: function() {
+            if (this._animationFrame) {
+                cancelAnimationFrame(this._animationFrame);
+                this._animationFrame = null;
+            }
+        },
+
         _buildConnectionPanel: function(body) {
             var idx = this._connPopupIdx;
             var conns = this._editorState.connections || [];
@@ -5180,6 +5352,33 @@ define([
             labelBody.appendChild(createTextRow('Label Text', conn.label || '', makeConnChange('label')));
 
             body.appendChild(labelSec);
+
+            // ── Animation Section ──
+            var animSec = createPanelSection('Animation', '', false);
+            var animBody = animSec._body;
+
+            // Animation Type
+            animBody.appendChild(createToggleRow('Type', [
+                {value: 'none', label: 'None'},
+                {value: 'marching-ants', label: 'March'},
+                {value: 'pulse', label: 'Pulse'}
+            ], conn.animationType || 'none', makeConnChange('animationType')));
+
+            // Animation Trigger
+            animBody.appendChild(createToggleRow('Trigger', [
+                {value: 'always', label: 'Always'},
+                {value: 'hover', label: 'Hover'},
+                {value: 'click', label: 'Click'}
+            ], conn.animationTrigger || 'always', makeConnChange('animationTrigger')));
+
+            // Animation Speed
+            animBody.appendChild(createToggleRow('Speed', [
+                {value: 'slow', label: 'Slow'},
+                {value: 'medium', label: 'Med'},
+                {value: 'fast', label: 'Fast'}
+            ], conn.animationSpeed || 'medium', makeConnChange('animationSpeed')));
+
+            body.appendChild(animSec);
         },
 
         getInitialDataParams: function() {
@@ -5536,7 +5735,7 @@ define([
                     var connHovered = this._hoverItem && this._hoverItem.type === 'connection' && this._hoverItem.index === ci;
                     conn._mouseX = this._mouseX - this._panX;
                     conn._mouseY = this._mouseY - this._panY;
-                    drawConnection(ctx, fromNd, toNd, conn, theme, connSelected, this._editMode, connHovered);
+                    drawConnection(ctx, fromNd, toNd, conn, theme, connSelected, this._editMode, connHovered, this._animationOffset);
                 }
             }
 
@@ -5552,6 +5751,26 @@ define([
 
             // Draw connection overlays (endpoints, waypoints) ON TOP of nodes
             drawConnectionOverlays(ctx, connections, theme);
+
+            // Check for active animations and start/stop the animation loop
+            var edConns = this._editorState.connections || [];
+            this._hasActiveAnimations = false;
+            for (var ai = 0; ai < edConns.length; ai++) {
+                var ac = edConns[ai];
+                var at = ac.animationType || 'none';
+                if (at !== 'none') {
+                    var atr = ac.animationTrigger || 'always';
+                    if (atr === 'always' || ac._animActive) {
+                        this._hasActiveAnimations = true;
+                        break;
+                    }
+                }
+            }
+            if (this._hasActiveAnimations) {
+                this._startAnimationLoop();
+            } else {
+                this._stopAnimationLoop();
+            }
 
             // Edit mode UI extras
             if (this._editMode) {
