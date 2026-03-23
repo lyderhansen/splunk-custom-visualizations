@@ -80,81 +80,6 @@ define([
     }
 
     /**
-     * Evaluate conditional formatting rules against a value.
-     * Returns an object keyed by target with first-match-per-target colors.
-     * e.g. { background: '#ef4444', border: '#22c55e' }
-     * target 'all' expands to fill all unset targets.
-     */
-    function evalConditionsAll(conditions, rawValue) {
-        if (!conditions || conditions.length === 0) return {};
-        var numVal = parseFloat(rawValue);
-        var strVal = String(rawValue !== null && rawValue !== undefined ? rawValue : '').toLowerCase();
-        var result = {};
-
-        for (var ci = 0; ci < conditions.length; ci++) {
-            var rule = conditions[ci];
-            if (!rule.op || !rule.color) continue;
-            var target = rule.target || 'background';
-
-            // If this target is already set, skip (first match per target wins)
-            // For 'all' target, we check below
-            if (target !== 'all' && result[target]) continue;
-
-            var ruleVal = String(rule.val || '');
-            var ruleNum = parseFloat(ruleVal);
-            var ruleStr = ruleVal.toLowerCase();
-            var match = false;
-
-            if (rule.op === '<' && !isNaN(numVal) && !isNaN(ruleNum)) {
-                match = numVal < ruleNum;
-            } else if (rule.op === '<=' && !isNaN(numVal) && !isNaN(ruleNum)) {
-                match = numVal <= ruleNum;
-            } else if (rule.op === '>' && !isNaN(numVal) && !isNaN(ruleNum)) {
-                match = numVal > ruleNum;
-            } else if (rule.op === '>=' && !isNaN(numVal) && !isNaN(ruleNum)) {
-                match = numVal >= ruleNum;
-            } else if (rule.op === '=') {
-                match = (!isNaN(numVal) && !isNaN(ruleNum)) ? numVal === ruleNum : strVal === ruleStr;
-            } else if (rule.op === '!=') {
-                match = (!isNaN(numVal) && !isNaN(ruleNum)) ? numVal !== ruleNum : strVal !== ruleStr;
-            } else if (rule.op === 'contains') {
-                match = strVal.indexOf(ruleStr) !== -1;
-            }
-
-            if (match) {
-                if (target === 'all') {
-                    // Fill all unset targets
-                    if (!result.background) result.background = rule.color;
-                    if (!result.border) result.border = rule.color;
-                    if (!result.value) result.value = rule.color;
-                    if (!result.label) result.label = rule.color;
-                    if (!result.sparkline) result.sparkline = rule.color;
-                    if (!result.trend) result.trend = rule.color;
-                } else {
-                    result[target] = rule.color;
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Linear interpolation between two hex colors.
-     */
-    function lerpColor(a, b, t) {
-        var ar = parseInt(a.slice(1, 3), 16);
-        var ag = parseInt(a.slice(3, 5), 16);
-        var ab = parseInt(a.slice(5, 7), 16);
-        var br = parseInt(b.slice(1, 3), 16);
-        var bg = parseInt(b.slice(3, 5), 16);
-        var bb = parseInt(b.slice(5, 7), 16);
-        var rr = Math.round(ar + (br - ar) * t);
-        var rg = Math.round(ag + (bg - ag) * t);
-        var rb = Math.round(ab + (bb - ab) * t);
-        return '#' + ((1 << 24) + (rr << 16) + (rg << 8) + rb).toString(16).slice(1);
-    }
-
-    /**
      * Convert hex to rgba string.
      */
     function hexToRgba(hex, alpha) {
@@ -268,11 +193,6 @@ define([
         'dash-dot': [8, 4, 2, 4],
         'long-dash': [16, 6]
     };
-
-    function applyStrokePattern(ctx, pattern) {
-        ctx.setLineDash(STROKE_PATTERNS[pattern] || []);
-    }
-
     /**
      * Rounded rectangle path (does not fill or stroke).
      */
@@ -420,15 +340,6 @@ define([
         ctx.arc(x + r, y + r, r, Math.PI / 2, -Math.PI / 2);
         ctx.closePath();
     }
-
-    /**
-     * Draw arrowhead at a point with given angle.
-     */
-    // Legacy wrapper
-    function drawArrowhead(ctx, x, y, angle, size, color) {
-        drawEndpoint(ctx, x, y, angle, 'filledArrow', size, color);
-    }
-
     /**
      * Draw a connection endpoint shape at a point with given angle.
      * Types: none, filledArrow, openArrow, filledBall, ball, filledDiamond, diamond, bar
@@ -546,19 +457,6 @@ define([
         var ny = Math.abs(py - cy) / hh;
         return nx + ny <= 1;
     }
-
-    function pointNearLine(px, py, x1, y1, x2, y2, threshold) {
-        var dx = x2 - x1;
-        var dy = y2 - y1;
-        var lenSq = dx * dx + dy * dy;
-        if (lenSq === 0) return Math.sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1)) <= threshold;
-        var t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lenSq));
-        var projX = x1 + t * dx;
-        var projY = y1 + t * dy;
-        var dist = Math.sqrt((px - projX) * (px - projX) + (py - projY) * (py - projY));
-        return dist <= threshold;
-    }
-
     // Returns the minimum distance from point (px,py) to the segment (x1,y1)-(x2,y2)
     function distToLine(px, py, x1, y1, x2, y2) {
         var dx = x2 - x1;
@@ -570,21 +468,6 @@ define([
         var projY = y1 + t * dy;
         return Math.sqrt((px - projX) * (px - projX) + (py - projY) * (py - projY));
     }
-
-    function pointNearBezier(px, py, x1, y1, cpx, cpy, x2, y2, threshold, steps) {
-        var numSteps = steps || 20;
-        for (var i = 0; i <= numSteps; i++) {
-            var t = i / numSteps;
-            var it = 1 - t;
-            var bx = it * it * x1 + 2 * it * t * cpx + t * t * x2;
-            var by = it * it * y1 + 2 * it * t * cpy + t * t * y2;
-            var dx = px - bx;
-            var dy = py - by;
-            if (dx * dx + dy * dy <= threshold * threshold) return true;
-        }
-        return false;
-    }
-
     /**
      * Get the actual start/end points for a connection, matching drawConnection logic.
      * Returns { points: [{x,y},...], startPt: {x,y}, endPt: {x,y} }
@@ -1431,7 +1314,7 @@ define([
         // Conditional formatting — single color from first matching rule, applied per conditionTarget
         var condColor = evalConditions(node.conditions, node.value);
         var condTarget = node.conditionTarget || 'background';
-        // condResults is kept for backward compat (evalConditionsAll still exists but unused in drawNode)
+        // condResults provides per-target conditional colors for backward compat
         var condResults = {
             background: (condColor && (condTarget === 'background' || condTarget === 'all')) ? condColor : null,
             border:     (condColor && (condTarget === 'border'     || condTarget === 'all')) ? condColor : null,
@@ -2699,305 +2582,6 @@ define([
             ctx.strokeRect(hd.x, hd.y, hd.w, hd.h);
         }
     }
-
-    // ── Node Property Popup ──────────────────────────────────────
-
-    function drawNodePopup(ctx, node, editorNode, palette, theme, w, h) {
-        var popW = 240;
-        var rowH = 20;
-        var pad = 12;
-        var labelColW = 52;
-        var contentX;
-        var hits = [];
-
-        // Count rows to calculate height
-        // Label, Shape, Value, Chart, Font Size, Chart Height, Opacity, Color (2 rows)
-        var numFixedRows = 11; // Label, Shape, Value, Prefix, Suffix, Chart, SparkPos, Font, GraphH, Opacity, Border
-        var colorRows = Math.ceil(palette.length / Math.floor(((popW - pad * 2 - labelColW) + 3) / (18 + 3))); // palette swatch rows
-        var condCount = (editorNode && editorNode.conditions) ? editorNode.conditions.length : 0;
-        var popH = pad * 2 + numFixedRows * rowH + colorRows * (18 + 3) + rowH + 30 + (condCount + 2) * rowH; // +conditions rows +add button
-
-        var px = node.x + node.w + 10;
-        var py = node.y;
-        if (px + popW > w) px = node.x - popW - 10;
-        if (py + popH > h) py = h - popH - 10;
-        if (px < 4) px = 4;
-        if (py < 4) py = 4;
-
-        // Background
-        ctx.save();
-        ctx.shadowColor = 'rgba(0,0,0,0.3)';
-        ctx.shadowBlur = 12;
-        ctx.shadowOffsetY = 4;
-        roundRect(ctx, px, py, popW, popH, 8);
-        ctx.fillStyle = theme.toolbarBg;
-        ctx.fill();
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = theme.toolbarBorder;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.restore();
-
-        var rowY = py + pad;
-        var leftX = px + pad;
-        contentX = leftX + labelColW;
-        var contentW = popW - pad * 2 - labelColW;
-
-        // Helper: draw a row label
-        function drawLabel(text) {
-            ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = theme.textMuted;
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(text, leftX, rowY + rowH / 2);
-        }
-
-        // Helper: draw toggle buttons
-        function drawToggleRow(options, currentVal, hitType) {
-            var tX = contentX;
-            var tW = Math.floor(contentW / options.length) - 3;
-            for (var ti = 0; ti < options.length; ti++) {
-                var isAct = currentVal === options[ti].value;
-                roundRect(ctx, tX, rowY + 2, tW, rowH - 4, 3);
-                ctx.fillStyle = isAct ? (options[ti].activeColor || node.color) : theme.nodeBg;
-                ctx.fill();
-                ctx.strokeStyle = isAct ? 'transparent' : theme.nodeBorder;
-                ctx.lineWidth = 1;
-                ctx.stroke();
-                ctx.fillStyle = isAct ? '#fff' : theme.text;
-                ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(options[ti].label, tX + tW / 2, rowY + rowH / 2);
-                hits.push({ type: hitType, value: options[ti].value, x: tX, y: rowY + 2, w: tW, h: rowH - 4 });
-                tX += tW + 3;
-            }
-            ctx.textAlign = 'left';
-        }
-
-        // ── 1. Label ──
-        drawLabel('Label');
-        var labelText = (editorNode && editorNode.label) ? editorNode.label : (node.label || '');
-        var isManual = editorNode && editorNode.manual;
-        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = theme.text;
-        ctx.textBaseline = 'middle';
-        ctx.fillText(truncateText(labelText, 20) + (isManual ? '  \u270E' : ''), contentX, rowY + rowH / 2);
-        hits.push({ type: 'label', x: contentX, y: rowY, w: contentW, h: rowH });
-        rowY += rowH;
-
-        // ── 2. Shape ──
-        drawLabel('Shape');
-        var currentShape = (editorNode && editorNode.shape) ? editorNode.shape : (node.shape || 'rect');
-        drawToggleRow([
-            { value: 'rect', label: '\u25AD Rect', activeColor: node.color },
-            { value: 'circle', label: '\u25CB Circle', activeColor: node.color },
-            { value: 'diamond', label: '\u25C7 Diamond', activeColor: node.color }
-        ], currentShape, 'shape');
-        rowY += rowH;
-
-        // ── 3. Value ──
-        drawLabel('Value');
-        var isHidden = (editorNode && editorNode.hideValue) ? true : false;
-        drawToggleRow([
-            { value: false, label: 'Show', activeColor: '#10b981' },
-            { value: true, label: 'Hide', activeColor: '#ef4444' }
-        ], isHidden, 'hideValue');
-        rowY += rowH;
-
-        // ── 4. Prefix / Suffix ──
-        drawLabel('Prefix');
-        var prefix = (editorNode && editorNode.prefix) ? editorNode.prefix : '';
-        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = theme.text;
-        ctx.textBaseline = 'middle';
-        ctx.fillText(prefix || '(none)', contentX, rowY + rowH / 2);
-        hits.push({ type: 'prefix', x: contentX, y: rowY, w: contentW, h: rowH });
-        rowY += rowH;
-
-        drawLabel('Suffix');
-        var suffix = (editorNode && editorNode.suffix) ? editorNode.suffix : '';
-        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = theme.text;
-        ctx.textBaseline = 'middle';
-        ctx.fillText(suffix || '(none)', contentX, rowY + rowH / 2);
-        hits.push({ type: 'suffix', x: contentX, y: rowY, w: contentW, h: rowH });
-        rowY += rowH;
-
-        // ── 5. Chart Type ──
-        drawLabel('Chart');
-        var nodeChart = (editorNode && editorNode.sparklineType) ? editorNode.sparklineType : '';
-        drawToggleRow([
-            { value: '', label: 'Auto', activeColor: '#6366f1' },
-            { value: 'line', label: 'Line', activeColor: '#6366f1' },
-            { value: 'area', label: 'Area', activeColor: '#6366f1' },
-            { value: 'bar', label: 'Bar', activeColor: '#6366f1' },
-            { value: 'none', label: 'Off', activeColor: '#64748b' }
-        ], nodeChart, 'sparklineType');
-        rowY += rowH;
-
-        // ── 5b. Sparkline Position ──
-        drawLabel('Spark');
-        var sparkPos = (editorNode && editorNode.sparkPosition) ? editorNode.sparkPosition : 'default';
-        drawToggleRow([
-            { value: 'default', label: 'Below', activeColor: '#0ea5e9' },
-            { value: 'above', label: 'Above', activeColor: '#0ea5e9' },
-            { value: 'behind', label: 'Behind', activeColor: '#0ea5e9' },
-            { value: 'left', label: 'Left', activeColor: '#0ea5e9' }
-        ], sparkPos, 'sparkPosition');
-        rowY += rowH;
-
-        // ── 6. Font Size ──
-        drawLabel('Font');
-        var fontSize = (editorNode && editorNode.fontSize) ? editorNode.fontSize : 'default';
-        drawToggleRow([
-            { value: 'default', label: 'Auto', activeColor: '#8b5cf6' },
-            { value: 'small', label: 'S', activeColor: '#8b5cf6' },
-            { value: 'medium', label: 'M', activeColor: '#8b5cf6' },
-            { value: 'large', label: 'L', activeColor: '#8b5cf6' },
-            { value: 'xlarge', label: 'XL', activeColor: '#8b5cf6' }
-        ], fontSize, 'fontSize');
-        rowY += rowH;
-
-        // ── 6. Chart Height ──
-        drawLabel('Graph H');
-        var chartH = (editorNode && editorNode.chartHeight) ? editorNode.chartHeight : 'default';
-        drawToggleRow([
-            { value: 'default', label: 'Auto', activeColor: '#0ea5e9' },
-            { value: 'small', label: 'S', activeColor: '#0ea5e9' },
-            { value: 'medium', label: 'M', activeColor: '#0ea5e9' },
-            { value: 'large', label: 'L', activeColor: '#0ea5e9' }
-        ], chartH, 'chartHeight');
-        rowY += rowH;
-
-        // ── 7. Opacity ──
-        drawLabel('Opacity');
-        var opacity = (editorNode && editorNode.opacity) ? editorNode.opacity : 'default';
-        drawToggleRow([
-            { value: 'default', label: '100%', activeColor: '#14b8a6' },
-            { value: '0.8', label: '80%', activeColor: '#14b8a6' },
-            { value: '0.6', label: '60%', activeColor: '#14b8a6' },
-            { value: '0.4', label: '40%', activeColor: '#14b8a6' }
-        ], opacity, 'opacity');
-        rowY += rowH;
-
-        // ── 8. Border ──
-        drawLabel('Border');
-        var border = (editorNode && editorNode.borderWidth) ? editorNode.borderWidth : 'default';
-        drawToggleRow([
-            { value: 'default', label: 'Auto', activeColor: '#f59e0b' },
-            { value: '0', label: 'None', activeColor: '#f59e0b' },
-            { value: '1', label: 'Thin', activeColor: '#f59e0b' },
-            { value: '2', label: 'Med', activeColor: '#f59e0b' },
-            { value: '3', label: 'Thick', activeColor: '#f59e0b' }
-        ], border, 'borderWidth');
-        rowY += rowH;
-
-        // ── 9. Color (palette swatches) ──
-        drawLabel('Color');
-        var swatchS = 18;
-        var swatchGap = 3;
-        var currentColor = (editorNode && editorNode.color) ? editorNode.color : '';
-        var swatchPerRow = Math.floor((contentW + swatchGap) / (swatchS + swatchGap));
-        var swatchX = contentX;
-        for (var ci = 0; ci < palette.length; ci++) {
-            if (ci > 0 && ci % swatchPerRow === 0) {
-                swatchX = contentX;
-                rowY += swatchS + swatchGap;
-            }
-            roundRect(ctx, swatchX, rowY + 1, swatchS, swatchS, 3);
-            ctx.fillStyle = palette[ci];
-            ctx.fill();
-            if (currentColor === palette[ci]) {
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            } else {
-                ctx.strokeStyle = theme.nodeBorder;
-                ctx.lineWidth = 0.5;
-                ctx.stroke();
-            }
-            hits.push({ type: 'color', value: palette[ci], x: swatchX, y: rowY + 1, w: swatchS, h: swatchS });
-            swatchX += swatchS + swatchGap;
-        }
-        rowY += swatchS + swatchGap + 2;
-
-        // ── 10. Custom color hex input ──
-        drawLabel('Hex');
-        // Color preview swatch
-        roundRect(ctx, contentX, rowY + 1, swatchS, swatchS, 3);
-        ctx.fillStyle = currentColor || node.color || '#3b82f6';
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        // Hex text (clickable)
-        var hexDispX = contentX + swatchS + 6;
-        ctx.font = '11px monospace';
-        ctx.fillStyle = theme.text;
-        ctx.textBaseline = 'middle';
-        ctx.fillText(currentColor || '(click to set)', hexDispX, rowY + swatchS / 2);
-        hits.push({ type: 'colorHex', x: hexDispX, y: rowY, w: contentW - swatchS - 6, h: swatchS });
-
-        ctx.textBaseline = 'alphabetic';
-        ctx.lineWidth = 1;
-        rowY += swatchS + 6;
-
-        // ── 11. Conditional Formatting ──
-        drawLabel('Rules');
-        var conds = (editorNode && editorNode.conditions) ? editorNode.conditions : [];
-        if (conds.length === 0) {
-            ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = theme.textMuted;
-            ctx.textBaseline = 'middle';
-            ctx.fillText('(none — click + to add)', contentX, rowY + rowH / 2);
-        } else {
-            for (var ri = 0; ri < conds.length; ri++) {
-                var rule = conds[ri];
-                // Color swatch
-                roundRect(ctx, contentX, rowY + 3, 14, 14, 2);
-                ctx.fillStyle = rule.color || '#888';
-                ctx.fill();
-                // Rule text
-                ctx.font = '10px monospace';
-                ctx.fillStyle = theme.text;
-                ctx.textBaseline = 'middle';
-                ctx.fillText((rule.op || '?') + ' ' + (rule.val || ''), contentX + 18, rowY + rowH / 2);
-                // Edit hit
-                hits.push({ type: 'editCondition', value: ri, x: contentX, y: rowY + 1, w: contentW - 22, h: rowH - 2 });
-                // Delete × button
-                var delCX = contentX + contentW - 16;
-                ctx.font = 'bold 10px sans-serif';
-                ctx.fillStyle = '#ef4444';
-                ctx.textAlign = 'center';
-                ctx.fillText('\u00D7', delCX + 6, rowY + rowH / 2);
-                ctx.textAlign = 'left';
-                hits.push({ type: 'deleteCondition', value: ri, x: delCX, y: rowY + 1, w: 14, h: rowH - 2 });
-                rowY += rowH;
-            }
-        }
-        // Add rule button
-        rowY += 2;
-        var addRuleX = contentX;
-        roundRect(ctx, addRuleX, rowY, 60, rowH - 2, 3);
-        ctx.fillStyle = '#3b82f6';
-        ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 10px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('+ Rule', addRuleX + 30, rowY + (rowH - 2) / 2);
-        ctx.textAlign = 'left';
-        hits.push({ type: 'addCondition', value: true, x: addRuleX, y: rowY, w: 60, h: rowH - 2 });
-
-        ctx.textBaseline = 'alphabetic';
-
-        // Compute actual popup height from final rowY
-        var actualH = rowY + rowH + pad - py;
-        return { x: px, y: py, w: popW, h: actualH, hits: hits };
-    }
-
     /**
      * Draw deferred connection overlays (endpoints, waypoints, labels).
      * Called AFTER nodes are drawn so they appear on top.
@@ -3134,291 +2718,6 @@ define([
             }
         }
     }
-
-    // ── Connection Formatting Popup ──────────────────────────────
-
-    function drawConnectionPopup(ctx, conn, connIdx, palette, theme, mouseX, mouseY, w, h) {
-        var popW = 260;
-        var rowH = 20;
-        var pad = 10;
-        var labelColW = 52;
-        var numRows = 12; // Style, Width, Dash, StartEp, EndEp, SrcAnchor, TgtAnchor, EpSize, SrcOff, TgtOff, Color, Label
-        var popH = pad * 2 + numRows * rowH + 4;
-        var px = mouseX + 10;
-        var py = mouseY + 10;
-        if (px + popW > w) px = w - popW - 10;
-        if (py + popH > h) py = h - popH - 10;
-        if (px < 4) px = 4;
-        if (py < 4) py = 4;
-
-        var hits = [];
-
-        // Background
-        ctx.save();
-        ctx.shadowColor = 'rgba(0,0,0,0.3)';
-        ctx.shadowBlur = 12;
-        ctx.shadowOffsetY = 4;
-        roundRect(ctx, px, py, popW, popH, 8);
-        ctx.fillStyle = theme.toolbarBg;
-        ctx.fill();
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = theme.toolbarBorder;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.restore();
-
-        var rowY = py + pad;
-        var leftX = px + pad;
-        var contentX = leftX + labelColW;
-        var contentW = popW - pad * 2 - labelColW;
-
-        function drawCLabel(text) {
-            ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = theme.textMuted;
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(text, leftX, rowY + rowH / 2);
-        }
-
-        function drawCToggleRow(options, currentVal, hitType) {
-            var tX = contentX;
-            var tW = Math.floor(contentW / options.length) - 2;
-            for (var ti = 0; ti < options.length; ti++) {
-                var isAct = currentVal === options[ti].value;
-                roundRect(ctx, tX, rowY + 2, tW, rowH - 4, 3);
-                ctx.fillStyle = isAct ? '#3b82f6' : theme.nodeBg;
-                ctx.fill();
-                ctx.strokeStyle = isAct ? 'transparent' : theme.nodeBorder;
-                ctx.lineWidth = 1;
-                ctx.stroke();
-                ctx.fillStyle = isAct ? '#fff' : theme.text;
-                ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(options[ti].label, tX + tW / 2, rowY + rowH / 2);
-                hits.push({ type: hitType, value: options[ti].value, x: tX, y: rowY + 2, w: tW, h: rowH - 4 });
-                tX += tW + 2;
-            }
-            ctx.textAlign = 'left';
-        }
-
-        // Migrate old arrow field for display
-        var startEp = conn.startEndpoint || 'none';
-        var endEp = conn.endEndpoint || 'filledArrow';
-        if (conn.arrow && !conn.startEndpoint && !conn.endEndpoint) {
-            if (conn.arrow === 'forward') { startEp = 'none'; endEp = 'filledArrow'; }
-            else if (conn.arrow === 'backward') { startEp = 'filledArrow'; endEp = 'none'; }
-            else if (conn.arrow === 'both') { startEp = 'filledArrow'; endEp = 'filledArrow'; }
-            else { startEp = 'none'; endEp = 'none'; }
-        }
-
-        // Start endpoints point LEFT (toward source node)
-        var startEpOpts = [
-            { value: 'none', label: '\u2014' },
-            { value: 'filledArrow', label: '\u25C0' },
-            { value: 'openArrow', label: '\u25C1' },
-            { value: 'filledBall', label: '\u25CF' },
-            { value: 'ball', label: '\u25CB' },
-            { value: 'filledDiamond', label: '\u25C6' },
-            { value: 'diamond', label: '\u25C7' },
-            { value: 'bar', label: '|' }
-        ];
-        // End endpoints point RIGHT (toward target node)
-        var endEpOpts = [
-            { value: 'none', label: '\u2014' },
-            { value: 'filledArrow', label: '\u25B6' },
-            { value: 'openArrow', label: '\u25B7' },
-            { value: 'filledBall', label: '\u25CF' },
-            { value: 'ball', label: '\u25CB' },
-            { value: 'filledDiamond', label: '\u25C6' },
-            { value: 'diamond', label: '\u25C7' },
-            { value: 'bar', label: '|' }
-        ];
-
-        var anchorOpts = [
-            { value: 'auto', label: 'Auto' },
-            { value: 'top', label: '\u25B2' },
-            { value: 'bottom', label: '\u25BC' },
-            { value: 'left', label: '\u25C0' },
-            { value: 'right', label: '\u25B6' }
-        ];
-
-        // Row 1: Style
-        drawCLabel('Style');
-        drawCToggleRow([
-            { value: 'straight', label: 'Straight' },
-            { value: 'curved', label: 'Curved' }
-        ], conn.style || 'straight', 'style');
-        rowY += rowH;
-
-        // Row 2: Width
-        drawCLabel('Width');
-        drawCToggleRow([
-            { value: 1, label: '1' }, { value: 2, label: '2' },
-            { value: 3, label: '3' }, { value: 4, label: '4' }
-        ], conn.width || 2, 'width');
-        rowY += rowH;
-
-        // Row 3: Dash
-        drawCLabel('Dash');
-        drawCToggleRow([
-            { value: false, label: 'Solid' },
-            { value: true, label: 'Dashed' }
-        ], !!conn.dash, 'dash');
-        rowY += rowH;
-
-        // Row 4: Start Endpoint + direction
-        drawCLabel('Start');
-        var startFlip = conn.startFlipped ? true : false;
-        // Show type options (fewer to make room for flip button)
-        var startTypeW = contentW - 32;
-        var stX = contentX;
-        var stBtnW = Math.floor(startTypeW / startEpOpts.length) - 2;
-        for (var sti = 0; sti < startEpOpts.length; sti++) {
-            var stAct = startEp === startEpOpts[sti].value;
-            roundRect(ctx, stX, rowY + 2, stBtnW, rowH - 4, 3);
-            ctx.fillStyle = stAct ? '#3b82f6' : theme.nodeBg;
-            ctx.fill();
-            ctx.strokeStyle = stAct ? 'transparent' : theme.nodeBorder;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            ctx.fillStyle = stAct ? '#fff' : theme.text;
-            ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(startFlip ? endEpOpts[sti].label : startEpOpts[sti].label, stX + stBtnW / 2, rowY + rowH / 2);
-            hits.push({ type: 'startEndpoint', value: startEpOpts[sti].value, x: stX, y: rowY + 2, w: stBtnW, h: rowH - 4 });
-            stX += stBtnW + 2;
-        }
-        // Flip direction button
-        var flipBtnX = contentX + startTypeW + 4;
-        roundRect(ctx, flipBtnX, rowY + 2, 26, rowH - 4, 3);
-        ctx.fillStyle = startFlip ? '#f59e0b' : theme.nodeBg;
-        ctx.fill();
-        ctx.strokeStyle = theme.nodeBorder;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.fillStyle = startFlip ? '#fff' : theme.text;
-        ctx.font = '10px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(startFlip ? '\u27F2' : '\u27F3', flipBtnX + 13, rowY + rowH / 2);
-        hits.push({ type: 'startFlipped', value: !startFlip, x: flipBtnX, y: rowY + 2, w: 26, h: rowH - 4 });
-        ctx.textAlign = 'left';
-        rowY += rowH;
-
-        // Row 5: End Endpoint + direction
-        drawCLabel('End');
-        var endFlip = conn.endFlipped ? true : false;
-        var etX = contentX;
-        var etBtnW = Math.floor(startTypeW / endEpOpts.length) - 2;
-        for (var eti = 0; eti < endEpOpts.length; eti++) {
-            var etAct = endEp === endEpOpts[eti].value;
-            roundRect(ctx, etX, rowY + 2, etBtnW, rowH - 4, 3);
-            ctx.fillStyle = etAct ? '#3b82f6' : theme.nodeBg;
-            ctx.fill();
-            ctx.strokeStyle = etAct ? 'transparent' : theme.nodeBorder;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            ctx.fillStyle = etAct ? '#fff' : theme.text;
-            ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(endFlip ? startEpOpts[eti].label : endEpOpts[eti].label, etX + etBtnW / 2, rowY + rowH / 2);
-            hits.push({ type: 'endEndpoint', value: endEpOpts[eti].value, x: etX, y: rowY + 2, w: etBtnW, h: rowH - 4 });
-            etX += etBtnW + 2;
-        }
-        // Flip direction button
-        var flipBtnX2 = contentX + startTypeW + 4;
-        roundRect(ctx, flipBtnX2, rowY + 2, 26, rowH - 4, 3);
-        ctx.fillStyle = endFlip ? '#f59e0b' : theme.nodeBg;
-        ctx.fill();
-        ctx.strokeStyle = theme.nodeBorder;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.fillStyle = endFlip ? '#fff' : theme.text;
-        ctx.font = '10px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(endFlip ? '\u27F2' : '\u27F3', flipBtnX2 + 13, rowY + rowH / 2);
-        hits.push({ type: 'endFlipped', value: !endFlip, x: flipBtnX2, y: rowY + 2, w: 26, h: rowH - 4 });
-        ctx.textAlign = 'left';
-        rowY += rowH;
-
-        // Row 6: Source Anchor
-        drawCLabel('Src \u2693');
-        drawCToggleRow(anchorOpts, conn.sourceAnchor || 'auto', 'sourceAnchor');
-        rowY += rowH;
-
-        // Row 7: Target Anchor
-        drawCLabel('Tgt \u2693');
-        drawCToggleRow(anchorOpts, conn.targetAnchor || 'auto', 'targetAnchor');
-        rowY += rowH;
-
-        // Row 8: Endpoint Size
-        drawCLabel('Ep Size');
-        var epSizeVal = conn.endpointSize || '';
-        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = theme.text;
-        ctx.textBaseline = 'middle';
-        ctx.fillText(epSizeVal || 'Auto (' + (Math.round((conn.width || 2) * 3 + 2)) + ')', contentX, rowY + rowH / 2);
-        hits.push({ type: 'endpointSize', x: contentX, y: rowY, w: contentW, h: rowH });
-        rowY += rowH;
-
-        // Row 9: Source Anchor Offset
-        drawCLabel('Src Off');
-        var srcOffVal = conn.sourceAnchorOffset || '';
-        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = theme.text;
-        ctx.textBaseline = 'middle';
-        ctx.fillText(srcOffVal ? srcOffVal + 'px' : '0px', contentX, rowY + rowH / 2);
-        hits.push({ type: 'sourceAnchorOffset', x: contentX, y: rowY, w: contentW, h: rowH });
-        rowY += rowH;
-
-        // Row 10: Target Anchor Offset
-        drawCLabel('Tgt Off');
-        var tgtOffVal = conn.targetAnchorOffset || '';
-        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = theme.text;
-        ctx.textBaseline = 'middle';
-        ctx.fillText(tgtOffVal ? tgtOffVal + 'px' : '0px', contentX, rowY + rowH / 2);
-        hits.push({ type: 'targetAnchorOffset', x: contentX, y: rowY, w: contentW, h: rowH });
-        rowY += rowH;
-
-        // Row 11: Color
-        drawCLabel('Color');
-        var swatchX = contentX;
-        var swatchS = Math.min(18, Math.floor((contentW - 4) / palette.length) - 2);
-        for (var ci2 = 0; ci2 < palette.length; ci2++) {
-            roundRect(ctx, swatchX, rowY + 2, swatchS, swatchS, 2);
-            ctx.fillStyle = palette[ci2];
-            ctx.fill();
-            if (conn.color === palette[ci2]) {
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            }
-            hits.push({ type: 'connColor', value: palette[ci2], x: swatchX, y: rowY + 2, w: swatchS, h: swatchS });
-            swatchX += swatchS + 2;
-        }
-        rowY += rowH;
-
-        // Row 9: Label
-        drawCLabel('Label');
-        var connLblText = conn.label || '(click to edit)';
-        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = conn.label ? theme.text : theme.textMuted;
-        ctx.textBaseline = 'middle';
-        ctx.fillText(truncateText(connLblText, 20), contentX, rowY + rowH / 2);
-        hits.push({ type: 'connLabel', x: contentX, y: rowY, w: contentW, h: rowH });
-
-        ctx.textBaseline = 'alphabetic';
-        ctx.lineWidth = 1;
-
-        return { x: px, y: py, w: popW, h: popH, hits: hits };
-    }
-
     // ── Tooltip Drawing ─────────────────────────────────────────────
 
     function drawTooltip(ctx, text, x, y, w, h, isDark) {
@@ -5942,13 +5241,14 @@ define([
             this.canvas.addEventListener('mouseup', this._onMouseUp, true);
             this.canvas.addEventListener('dblclick', this._onDblClick);
             this.canvas.addEventListener('contextmenu', this._onContextMenu);
-            this.canvas.addEventListener('mouseleave', function() {
+            this._onMouseLeave = function() {
                 if (self._sparkHoverNode) {
                     self._sparkHoverNode = null;
                     self._sparkHoverIdx = -1;
                     self.invalidateUpdateView();
                 }
-            });
+            };
+            this.canvas.addEventListener('mouseleave', this._onMouseLeave);
             // (overlay removed — modal editor handles edit mode events)
             document.addEventListener('keydown', this._onKeyDown);
 
@@ -6199,12 +5499,12 @@ define([
 
             function makeMultiOnChange(prop) {
                 return function(val) {
+                    self._pushUndo();
                     for (var si = 0; si < self._selectedNodeIds.length; si++) {
                         var sid = self._selectedNodeIds[si];
                         if (!es.nodes[sid]) es.nodes[sid] = {};
                         es.nodes[sid][prop] = val;
                     }
-                    self._pushUndo();
                     self.invalidateUpdateView();
                     self._updatePanel();
                 };
@@ -7782,6 +7082,19 @@ define([
         },
 
         destroy: function() {
+            // Clear editor-state sync interval
+            clearInterval(this._syncInterval);
+
+            // Remove canvas event listeners
+            if (this.canvas) {
+                this.canvas.removeEventListener('mousedown', this._onMouseDown);
+                this.canvas.removeEventListener('mousemove', this._onMouseMove);
+                this.canvas.removeEventListener('mouseup', this._onMouseUp);
+                this.canvas.removeEventListener('dblclick', this._onDblClick);
+                this.canvas.removeEventListener('contextmenu', this._onContextMenu);
+                this.canvas.removeEventListener('mouseleave', this._onMouseLeave);
+            }
+
             // Stop animation loop
             this._stopAnimationLoop();
 
