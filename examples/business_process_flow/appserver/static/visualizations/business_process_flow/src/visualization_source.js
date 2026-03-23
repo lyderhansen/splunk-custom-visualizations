@@ -6422,6 +6422,30 @@ define([
             }
             condBody.appendChild(presetRow);
 
+            // Reverse button — flips the order of existing conditions (high→low becomes low→high)
+            if (conds.length > 1) {
+                var reverseBtn = document.createElement('button');
+                reverseBtn.textContent = '\u21C5 Reverse Order';
+                reverseBtn.style.cssText = 'display:block;width:100%;padding:4px;border-radius:3px;font-size:9px;cursor:pointer;border:1px solid #334155;background:#1e293b;color:#94a3b8;margin-bottom:8px;transition:all 0.15s;';
+                reverseBtn.addEventListener('mouseenter', function() { reverseBtn.style.borderColor = '#6366f1'; reverseBtn.style.color = '#a5b4fc'; });
+                reverseBtn.addEventListener('mouseleave', function() { reverseBtn.style.borderColor = '#334155'; reverseBtn.style.color = '#94a3b8'; });
+                reverseBtn.addEventListener('click', function() {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    var reversed = [];
+                    for (var rvi = conds.length - 1; rvi >= 0; rvi--) {
+                        reversed.push(conds[rvi]);
+                    }
+                    es.nodes[nodeId].conditions = reversed;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                    var scrollPos = self._panelBody ? self._panelBody.scrollTop : 0;
+                    self._updatePanel();
+                    if (self._panelBody) self._panelBody.scrollTop = scrollPos;
+                });
+                reverseBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                condBody.appendChild(reverseBtn);
+            }
+
             // ── Rules list ──
             if (conds.length > 0) {
                 var rulesLabel = document.createElement('div');
