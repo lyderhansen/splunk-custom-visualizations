@@ -1663,7 +1663,9 @@ define([
             ctx.lineWidth = isSelected ? lineWidth + 1.5 : lineWidth;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            ctx.setLineDash([8, 4]);
+            // Use custom dash/gap if set, otherwise fall back to [8,4] marching ants default
+            var marchDash = connDashPattern.length > 0 ? connDashPattern : [8, 4];
+            ctx.setLineDash(marchDash);
             ctx.lineDashOffset = -(animOff * marchSpeed);
             // Re-draw path with animated dash
             ctx.beginPath();
@@ -3187,6 +3189,9 @@ define([
                     self._editorState = JSON.parse(prev);
                 } catch(e) { /* ignore */ }
                 self.invalidateUpdateView();
+                // Rebuild panel so closures capture the restored _editorState,
+                // otherwise changes made after undo write to the stale object.
+                self._updatePanel();
                 self._showStatus('Undo');
             };
 
@@ -3201,6 +3206,8 @@ define([
                     self._editorState = JSON.parse(next);
                 } catch(e) { /* ignore */ }
                 self.invalidateUpdateView();
+                // Rebuild panel so closures capture the restored _editorState.
+                self._updatePanel();
                 self._showStatus('Redo');
             };
 
@@ -3489,6 +3496,9 @@ define([
                                     // Do NOT reset _editorStateLoaded — that would
                                     // cause updateView to reload old state from config
                                     self.invalidateUpdateView();
+                                    // Rebuild panel so closures capture the new _editorState;
+                                    // otherwise changes made after Apply write to the stale object.
+                                    self._updatePanel();
                                     hdrLabel.textContent = 'Layout JSON \u2714 Applied';
                                     hdrLabel.style.color = '#10b981';
                                     setTimeout(function() {
@@ -5185,9 +5195,9 @@ define([
             // (safe for color pickers and non-structural changes)
             function makeOnChange(prop) {
                 return function(val) {
+                    self._pushUndo(); // capture pre-mutation state for correct undo
                     if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
                     es.nodes[nodeId][prop] = val;
-                    self._pushUndo();
                     self.invalidateUpdateView();
                 };
             }
@@ -5195,9 +5205,9 @@ define([
             // Helper for properties that change panel structure (shows/hides sub-controls)
             function makeOnChangeAndRefresh(prop) {
                 return function(val) {
+                    self._pushUndo(); // capture pre-mutation state for correct undo
                     if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
                     es.nodes[nodeId][prop] = val;
-                    self._pushUndo();
                     self.invalidateUpdateView();
                     self._updatePanel();
                 };
@@ -5543,8 +5553,8 @@ define([
 
             function makeConnChange(prop) {
                 return function(val) {
+                    self._pushUndo(); // capture pre-mutation state for correct undo
                     conns[idx][prop] = val;
-                    self._pushUndo();
                     self.invalidateUpdateView();
                 };
             }
