@@ -160,6 +160,74 @@ define([
         ctx.closePath();
     }
 
+    /**
+     * Parse a markdown string into an array of line descriptor objects.
+     * Supports: ## heading, - bullet, blank lines, plain text.
+     */
+    function parseMarkdown(text) {
+        if (!text) return [];
+        var lines = text.split('\n');
+        var result = [];
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i];
+            if (line.indexOf('## ') === 0) {
+                result.push({ type: 'heading', text: line.substring(3) });
+            } else if (line.indexOf('- ') === 0) {
+                result.push({ type: 'bullet', text: line.substring(2) });
+            } else if (line.trim() === '') {
+                result.push({ type: 'blank' });
+            } else {
+                result.push({ type: 'text', text: line });
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Split a text line into bold/italic/normal segments.
+     * Returns array of { text, bold, italic }.
+     */
+    function parseInlineMarkdown(text) {
+        var segments = [];
+        var remaining = text;
+        while (remaining.length > 0) {
+            var boldIdx = remaining.indexOf('**');
+            var italicIdx = remaining.indexOf('*');
+            // Determine which marker comes first
+            if (boldIdx !== -1 && (italicIdx === boldIdx || boldIdx < italicIdx)) {
+                // Bold segment
+                if (boldIdx > 0) {
+                    segments.push({ text: remaining.substring(0, boldIdx), bold: false, italic: false });
+                }
+                var endBold = remaining.indexOf('**', boldIdx + 2);
+                if (endBold !== -1) {
+                    segments.push({ text: remaining.substring(boldIdx + 2, endBold), bold: true, italic: false });
+                    remaining = remaining.substring(endBold + 2);
+                } else {
+                    segments.push({ text: remaining.substring(boldIdx), bold: false, italic: false });
+                    remaining = '';
+                }
+            } else if (italicIdx !== -1) {
+                // Italic segment
+                if (italicIdx > 0) {
+                    segments.push({ text: remaining.substring(0, italicIdx), bold: false, italic: false });
+                }
+                var endItalic = remaining.indexOf('*', italicIdx + 1);
+                if (endItalic !== -1) {
+                    segments.push({ text: remaining.substring(italicIdx + 1, endItalic), bold: false, italic: true });
+                    remaining = remaining.substring(endItalic + 1);
+                } else {
+                    segments.push({ text: remaining.substring(italicIdx), bold: false, italic: false });
+                    remaining = '';
+                }
+            } else {
+                segments.push({ text: remaining, bold: false, italic: false });
+                remaining = '';
+            }
+        }
+        return segments;
+    }
+
     function drawHexagonPath(ctx, x, y, w, h) {
         var cx = x + w / 2, cy = y + h / 2;
         var rx = w / 2, ry = h / 2;
@@ -602,7 +670,8 @@ define([
                 textAlign: edState ? edState.textAlign : undefined,
                 labelColor: edState ? edState.labelColor : undefined,
                 valueColor: edState ? edState.valueColor : undefined,
-                padding: edState ? edState.padding : undefined
+                padding: edState ? edState.padding : undefined,
+                markdownContent: edState ? edState.markdownContent : undefined
             };
 
             if (edState && edState.x !== undefined && edState.y !== undefined) {
@@ -1057,6 +1126,70 @@ define([
             ctx.fillStyle = node.color;
             ctx.fillRect(x, y, w, 3);
             ctx.restore();
+        }
+
+        // ── Textbox shape: render markdown content and early-return ──
+        if (shape === 'textbox') {
+            var mdContent = node.markdownContent || '## Title\n\nText here';
+            var mdLines = parseMarkdown(mdContent);
+            var mdPad = 10;
+            var mdY = y + mdPad;
+            var mdX = x + mdPad;
+            var baseFontSize = 12;
+
+            ctx.save();
+            // Clip to rounded rect bounds
+            roundRect(ctx, x, y, w, h, radius);
+            ctx.clip();
+
+            ctx.textBaseline = 'top';
+            ctx.textAlign = 'left';
+
+            for (var mdI = 0; mdI < mdLines.length; mdI++) {
+                var mdLine = mdLines[mdI];
+                if (mdY > y + h) break; // clip overflow
+
+                if (mdLine.type === 'heading') {
+                    ctx.font = 'bold ' + Math.round(baseFontSize * 1.4) + 'px sans-serif';
+                    ctx.fillStyle = theme.text;
+                    ctx.fillText(mdLine.text, mdX, mdY);
+                    mdY += Math.round(baseFontSize * 1.4) + 6;
+                } else if (mdLine.type === 'bullet') {
+                    ctx.font = baseFontSize + 'px sans-serif';
+                    ctx.fillStyle = theme.textMuted;
+                    ctx.fillText('\u2022  ' + mdLine.text, mdX + 4, mdY);
+                    mdY += baseFontSize + 4;
+                } else if (mdLine.type === 'blank') {
+                    mdY += baseFontSize * 0.5;
+                } else {
+                    // Render with inline bold/italic segments
+                    var segments = parseInlineMarkdown(mdLine.text);
+                    var segX = mdX;
+                    for (var si2 = 0; si2 < segments.length; si2++) {
+                        var seg = segments[si2];
+                        var fontStr = baseFontSize + 'px sans-serif';
+                        if (seg.bold && seg.italic) {
+                            fontStr = 'bold italic ' + baseFontSize + 'px sans-serif';
+                        } else if (seg.bold) {
+                            fontStr = 'bold ' + baseFontSize + 'px sans-serif';
+                        } else if (seg.italic) {
+                            fontStr = 'italic ' + baseFontSize + 'px sans-serif';
+                        }
+                        ctx.font = fontStr;
+                        ctx.fillStyle = theme.textMuted;
+                        ctx.fillText(seg.text, segX, mdY);
+                        segX += ctx.measureText(seg.text).width;
+                    }
+                    mdY += baseFontSize + 4;
+                }
+            }
+
+            ctx.restore();
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = 1;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+            return; // Skip rest of drawNode
         }
 
         // Clip ALL text and sparkline to shape
@@ -1525,6 +1658,7 @@ define([
         var btnDefs = [
             { label: 'Copy Layout', icon: '', action: 'save',       w: 90 },
             { label: '+',     icon: '+',     action: 'addNode',        w: 36 },
+            { label: 'T',     icon: 'T',     action: 'addText',         w: 36 },
             { label: '\u2192', icon: '', action: 'addConnection',  w: 36 },
             { label: '\u2715', icon: '', action: 'deleteSelected',  w: 36, tint: 'red' },
             { label: '\u229E', icon: '', action: 'fit',            w: 36 },
@@ -3017,6 +3151,23 @@ define([
                         manual: true,
                         color: ''
                     };
+                    self.invalidateUpdateView();
+                } else if (action === 'addText') {
+                    // Create a new textbox (markdown) node at center of visible canvas
+                    var textNodeId = '_text_' + Date.now();
+                    var tRect = self.canvas.getBoundingClientRect();
+                    var tCx = (tRect.width / 2 - 100) - self._panX;
+                    var tCy = (tRect.height / 2 - 60) - self._panY;
+                    if (!self._editorState.nodes[textNodeId]) self._editorState.nodes[textNodeId] = {};
+                    self._editorState.nodes[textNodeId].manual = true;
+                    self._editorState.nodes[textNodeId].shape = 'textbox';
+                    self._editorState.nodes[textNodeId].label = textNodeId;
+                    self._editorState.nodes[textNodeId].markdownContent = '## Title\n\nDescription text here';
+                    self._editorState.nodes[textNodeId].x = tCx;
+                    self._editorState.nodes[textNodeId].y = tCy;
+                    self._editorState.nodes[textNodeId].w = 200;
+                    self._editorState.nodes[textNodeId].h = 120;
+                    self._pushUndo();
                     self.invalidateUpdateView();
                 } else if (action === 'addConnection') {
                     // Start connection mode — user picks from/to nodes
@@ -4932,56 +5083,77 @@ define([
 
             body.appendChild(appearSec);
 
-            // ── Text & Value Section ──
-            var textSec = createPanelSection('Text & Value', '', true);
-            var textBody = textSec._body;
+            // ── Text & Value or Content Section ──
+            if (currentShape === 'textbox') {
+                // Textbox: show markdown content textarea
+                var contentSection = createPanelSection('Content', '', true);
+                var ta = document.createElement('textarea');
+                ta.value = ns.markdownContent || '## Title\n\nText here';
+                ta.style.cssText = 'width:100%;box-sizing:border-box;height:120px;padding:8px;' +
+                    'border-radius:4px;border:1px solid #334155;background:#0f172a;color:#cbd5e1;' +
+                    'font:11px monospace;resize:vertical;';
+                ta.addEventListener('input', function() {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].markdownContent = ta.value;
+                    self.invalidateUpdateView();
+                });
+                ta.addEventListener('blur', function() {
+                    self._pushUndo();
+                });
+                ta.addEventListener('keydown', function(e) { e.stopPropagation(); });
+                contentSection._body.appendChild(ta);
+                body.appendChild(contentSection);
+            } else {
+                var textSec = createPanelSection('Text & Value', '', true);
+                var textBody = textSec._body;
 
-            // Label
-            textBody.appendChild(createTextRow('Label', ns.label || '', makeOnChange('label')));
+                // Label
+                textBody.appendChild(createTextRow('Label', ns.label || '', makeOnChange('label')));
 
-            // Value show/hide
-            var isHidden = ns.hideValue ? true : false;
-            textBody.appendChild(createToggleRow('Value', [
-                {value: false, label: 'Show'}, {value: true, label: 'Hide'}
-            ], isHidden, makeOnChange('hideValue')));
+                // Value show/hide
+                var isHidden = ns.hideValue ? true : false;
+                textBody.appendChild(createToggleRow('Value', [
+                    {value: false, label: 'Show'}, {value: true, label: 'Hide'}
+                ], isHidden, makeOnChange('hideValue')));
 
-            // Raw Value
-            textBody.appendChild(createToggleRow('Raw Value', [
-                {value: 'truncated', label: 'Truncated'}, {value: 'full', label: 'Full'}
-            ], ns.rawValue || 'truncated', makeOnChange('rawValue')));
+                // Raw Value
+                textBody.appendChild(createToggleRow('Raw Value', [
+                    {value: 'truncated', label: 'Truncated'}, {value: 'full', label: 'Full'}
+                ], ns.rawValue || 'truncated', makeOnChange('rawValue')));
 
-            // Prefix
-            textBody.appendChild(createTextRow('Prefix', ns.prefix || '', makeOnChange('prefix')));
+                // Prefix
+                textBody.appendChild(createTextRow('Prefix', ns.prefix || '', makeOnChange('prefix')));
 
-            // Suffix
-            textBody.appendChild(createTextRow('Suffix', ns.suffix || '', makeOnChange('suffix')));
+                // Suffix
+                textBody.appendChild(createTextRow('Suffix', ns.suffix || '', makeOnChange('suffix')));
 
-            // Font Size
-            textBody.appendChild(createToggleRow('Font Size', [
-                {value: 'default', label: 'Auto'}, {value: 'small', label: 'S'},
-                {value: 'medium', label: 'M'}, {value: 'large', label: 'L'},
-                {value: 'xlarge', label: 'XL'}
-            ], ns.fontSize || 'default', makeOnChange('fontSize')));
+                // Font Size
+                textBody.appendChild(createToggleRow('Font Size', [
+                    {value: 'default', label: 'Auto'}, {value: 'small', label: 'S'},
+                    {value: 'medium', label: 'M'}, {value: 'large', label: 'L'},
+                    {value: 'xlarge', label: 'XL'}
+                ], ns.fontSize || 'default', makeOnChange('fontSize')));
 
-            // Text Align
-            textBody.appendChild(createToggleRow('Text Align', [
-                {value: 'left', label: 'Left'}, {value: 'center', label: 'Center'},
-                {value: 'right', label: 'Right'}
-            ], ns.textAlign || 'center', makeOnChange('textAlign')));
+                // Text Align
+                textBody.appendChild(createToggleRow('Text Align', [
+                    {value: 'left', label: 'Left'}, {value: 'center', label: 'Center'},
+                    {value: 'right', label: 'Right'}
+                ], ns.textAlign || 'center', makeOnChange('textAlign')));
 
-            // Label Color (hex + picker only, no swatches)
-            textBody.appendChild(createColorRow('Label Color', [], ns.labelColor || '', makeOnChange('labelColor')));
+                // Label Color (hex + picker only, no swatches)
+                textBody.appendChild(createColorRow('Label Color', [], ns.labelColor || '', makeOnChange('labelColor')));
 
-            // Value Color (hex + picker only, no swatches)
-            textBody.appendChild(createColorRow('Value Color', [], ns.valueColor || '', makeOnChange('valueColor')));
+                // Value Color (hex + picker only, no swatches)
+                textBody.appendChild(createColorRow('Value Color', [], ns.valueColor || '', makeOnChange('valueColor')));
 
-            // Padding
-            textBody.appendChild(createToggleRow('Padding', [
-                {value: 'compact', label: 'Compact'}, {value: 'normal', label: 'Normal'},
-                {value: 'spacious', label: 'Spacious'}
-            ], ns.padding || 'normal', makeOnChange('padding')));
+                // Padding
+                textBody.appendChild(createToggleRow('Padding', [
+                    {value: 'compact', label: 'Compact'}, {value: 'normal', label: 'Normal'},
+                    {value: 'spacious', label: 'Spacious'}
+                ], ns.padding || 'normal', makeOnChange('padding')));
 
-            body.appendChild(textSec);
+                body.appendChild(textSec);
+            }
 
             // ── Sparkline Section ──
             var sparkType = ns.sparklineType || '';
