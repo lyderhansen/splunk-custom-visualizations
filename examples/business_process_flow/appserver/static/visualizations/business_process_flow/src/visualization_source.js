@@ -106,6 +106,67 @@ define([
     }
 
     /**
+     * Lighten a hex color by a fraction (0–1). Returns hex string.
+     */
+    function lightenColor(hex, amount) {
+        var r = parseInt(hex.slice(1, 3), 16);
+        var g = parseInt(hex.slice(3, 5), 16);
+        var b = parseInt(hex.slice(5, 7), 16);
+        r = Math.min(255, Math.round(r + (255 - r) * amount));
+        g = Math.min(255, Math.round(g + (255 - g) * amount));
+        b = Math.min(255, Math.round(b + (255 - b) * amount));
+        return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    /**
+     * Darken a hex color by a fraction (0–1). Returns hex string.
+     */
+    function darkenColor(hex, amount) {
+        var r = parseInt(hex.slice(1, 3), 16);
+        var g = parseInt(hex.slice(3, 5), 16);
+        var b = parseInt(hex.slice(5, 7), 16);
+        r = Math.max(0, Math.round(r * (1 - amount)));
+        g = Math.max(0, Math.round(g * (1 - amount)));
+        b = Math.max(0, Math.round(b * (1 - amount)));
+        return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    /**
+     * Normalize a color value to a 7-char hex string.
+     * Handles hex (#abc, #aabbcc), rgb(), rgba(), and named colors via canvas fallback.
+     */
+    function normalizeToHex(color) {
+        if (!color) return '#3b82f6';
+        var s = String(color).trim();
+        // Already 7-char hex
+        if (/^#[0-9a-fA-F]{6}$/.test(s)) return s;
+        // 4-char shorthand hex
+        if (/^#[0-9a-fA-F]{3}$/.test(s)) {
+            return '#' + s[1] + s[1] + s[2] + s[2] + s[3] + s[3];
+        }
+        // rgb()/rgba() — extract numeric components
+        var rgbMatch = s.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+        if (rgbMatch) {
+            var rr = Math.min(255, parseInt(rgbMatch[1], 10));
+            var gg = Math.min(255, parseInt(rgbMatch[2], 10));
+            var bb = Math.min(255, parseInt(rgbMatch[3], 10));
+            return '#' + ((1 << 24) + (rr << 16) + (gg << 8) + bb).toString(16).slice(1);
+        }
+        // Fallback: use a temporary canvas to resolve named/any CSS color
+        try {
+            var tc = document.createElement('canvas');
+            tc.width = 1; tc.height = 1;
+            var tctx = tc.getContext('2d');
+            tctx.fillStyle = s;
+            tctx.fillRect(0, 0, 1, 1);
+            var d = tctx.getImageData(0, 0, 1, 1).data;
+            return '#' + ((1 << 24) + (d[0] << 16) + (d[1] << 8) + d[2]).toString(16).slice(1);
+        } catch (e) {
+            return '#3b82f6';
+        }
+    }
+
+    /**
      * Check if array contains a value (ES5-safe).
      */
     function arrContains(arr, val) {
@@ -825,7 +886,19 @@ define([
                 trendColor: edState ? edState.trendColor : undefined,
                 trendUseConditions: edState ? edState.trendUseConditions : undefined,
                 trendCompareBack: edState ? edState.trendCompareBack : undefined,
-                sparkHover: edState ? edState.sparkHover : undefined
+                sparkHover: edState ? edState.sparkHover : undefined,
+                // Effects
+                shadowEnabled: edState ? edState.shadowEnabled : undefined,
+                shadowBlur: edState ? edState.shadowBlur : undefined,
+                shadowOffsetX: edState ? edState.shadowOffsetX : undefined,
+                shadowOffsetY: edState ? edState.shadowOffsetY : undefined,
+                shadowColor: edState ? edState.shadowColor : undefined,
+                glowEnabled: edState ? edState.glowEnabled : undefined,
+                glowBlur: edState ? edState.glowBlur : undefined,
+                glowColor: edState ? edState.glowColor : undefined,
+                innerShadow: edState ? edState.innerShadow : undefined,
+                gradientFill: edState ? edState.gradientFill : undefined,
+                frostedGlass: edState ? edState.frostedGlass : undefined
             };
 
             if (edState && edState.x !== undefined && edState.y !== undefined) {
@@ -1290,10 +1363,28 @@ define([
             ctx.shadowColor = node.shadowColor || ge.shadowColor || '#000000';
         }
 
+        // Frosted glass: reduce opacity for translucent look
+        var frostedOn = node.frostedGlass === 'on' || (node.frostedGlass === undefined && ge.frostedGlass === 'on');
+        if (frostedOn) {
+            ctx.globalAlpha = (nodeAlpha < 1 ? nodeAlpha : 1) * 0.7;
+        }
+
         // Draw shape fill — conditional color tints the background subtly; per-node/global bgColor override
         var nodeBgColor = node.bgColor || ge.defaultBgColor || '';
+        var baseFillColor = condColor ? hexToRgba(condColor, 0.15) : (nodeBgColor || theme.nodeBg);
         shapePath();
-        ctx.fillStyle = condColor ? hexToRgba(condColor, 0.15) : (nodeBgColor || theme.nodeBg);
+
+        // Gradient fill: linear gradient top-to-bottom instead of flat color
+        var gradientOn = node.gradientFill === 'on' || (node.gradientFill === undefined && ge.gradientFill === 'on');
+        if (gradientOn) {
+            var hexFill = normalizeToHex(baseFillColor);
+            var grad = ctx.createLinearGradient(x, y, x, y + h);
+            grad.addColorStop(0, lightenColor(hexFill, 0.15));
+            grad.addColorStop(1, darkenColor(hexFill, 0.15));
+            ctx.fillStyle = grad;
+        } else {
+            ctx.fillStyle = baseFillColor;
+        }
         ctx.fill();
 
         // Reset shadow after fill
@@ -1301,6 +1392,11 @@ define([
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
         ctx.shadowColor = 'transparent';
+
+        // Restore alpha if frosted glass was applied
+        if (frostedOn) {
+            ctx.globalAlpha = nodeAlpha < 1 ? nodeAlpha : 1;
+        }
 
         // Draw border — conditional color replaces border color; per-node/global borderColor override
         var nodeBorderColor = node.borderColor || ge.defaultBorderColor || '';
@@ -1348,13 +1444,42 @@ define([
         // Glow effect — re-stroke with shadow to create outer glow
         var glowOn = node.glowEnabled !== undefined ? (node.glowEnabled === true || node.glowEnabled === 'on') : ge.glowEnabled;
         if (glowOn) {
+            ctx.save();
             shapePath();
             ctx.shadowBlur = node.glowBlur !== undefined ? parseInt(node.glowBlur, 10) : (ge.glowBlur || 12);
             ctx.shadowColor = node.glowColor || ge.glowColor || '#3b82f6';
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
+            ctx.strokeStyle = node.glowColor || ge.glowColor || '#3b82f6';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([]);
             ctx.stroke();
+            ctx.restore();
             ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.shadowColor = 'transparent';
+        }
+
+        // Inner shadow (inset) — clip to shape, then cast shadow from edges
+        var innerShadowOn = node.innerShadow === 'on' || (node.innerShadow === undefined && ge.innerShadow === 'on');
+        if (innerShadowOn) {
+            ctx.save();
+            shapePath();
+            ctx.clip();
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = 'rgba(0,0,0,0.4)';
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            ctx.fillStyle = 'rgba(0,0,0,0)';
+            // Cast shadow from top edge
+            ctx.fillRect(x - 20, y - 20, w + 40, 20);
+            // Cast shadow from left edge
+            ctx.fillRect(x - 20, y - 20, 20, h + 40);
+            ctx.restore();
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
             ctx.shadowColor = 'transparent';
         }
 
@@ -6005,15 +6130,24 @@ define([
             body.appendChild(sparkSec);
 
             // ── Effects Section ──
-            var shadowOn = ns.shadowEnable === 'on';
-            var glowOn = ns.glowEnable === 'on';
-            var effectsSummary = (shadowOn && glowOn) ? 'Shadow + Glow' : shadowOn ? 'Shadow' : glowOn ? 'Glow' : 'None';
+            var shadowOn = ns.shadowEnabled === 'on';
+            var glowOn = ns.glowEnabled === 'on';
+            var innerShadowOn = ns.innerShadow === 'on';
+            var gradientOn = ns.gradientFill === 'on';
+            var frostedOn = ns.frostedGlass === 'on';
+            var effectsParts = [];
+            if (shadowOn) effectsParts.push('Shadow');
+            if (glowOn) effectsParts.push('Glow');
+            if (innerShadowOn) effectsParts.push('Inner Shadow');
+            if (gradientOn) effectsParts.push('Gradient');
+            if (frostedOn) effectsParts.push('Frosted');
+            var effectsSummary = effectsParts.length > 0 ? effectsParts.join(' + ') : 'None';
             var effectsSec = createPanelSection('Effects', effectsSummary, false);
             var effectsBody = effectsSec._body;
 
             effectsBody.appendChild(createToggleRow('Shadow', [
                 {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
-            ], ns.shadowEnable || 'off', makeOnChangeAndRefresh('shadowEnable')));
+            ], ns.shadowEnabled || 'off', makeOnChangeAndRefresh('shadowEnabled')));
 
             if (shadowOn) {
                 effectsBody.appendChild(createTextRow('Shadow Blur', ns.shadowBlur || '8', makeOnChange('shadowBlur'), { numeric: true, min: 0, max: 50, step: 1 }));
@@ -6024,12 +6158,24 @@ define([
 
             effectsBody.appendChild(createToggleRow('Glow', [
                 {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
-            ], ns.glowEnable || 'off', makeOnChangeAndRefresh('glowEnable')));
+            ], ns.glowEnabled || 'off', makeOnChangeAndRefresh('glowEnabled')));
 
             if (glowOn) {
                 effectsBody.appendChild(createTextRow('Glow Blur', ns.glowBlur || '12', makeOnChange('glowBlur'), { numeric: true, min: 0, max: 50, step: 1 }));
                 effectsBody.appendChild(createColorRow('Glow Color', [], ns.glowColor || '#3b82f6', makeOnChange('glowColor')));
             }
+
+            effectsBody.appendChild(createToggleRow('Inner Shadow', [
+                {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
+            ], ns.innerShadow || 'off', makeOnChangeAndRefresh('innerShadow')));
+
+            effectsBody.appendChild(createToggleRow('Gradient Fill', [
+                {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
+            ], ns.gradientFill || 'off', makeOnChangeAndRefresh('gradientFill')));
+
+            effectsBody.appendChild(createToggleRow('Frosted Glass', [
+                {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
+            ], ns.frostedGlass || 'off', makeOnChangeAndRefresh('frostedGlass')));
 
             body.appendChild(effectsSec);
 
