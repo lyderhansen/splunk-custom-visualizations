@@ -2137,15 +2137,27 @@ define([
     function interpolateConnectionPath(points, style, t) {
         if (!points || points.length < 2) return { x: 0, y: 0 };
 
-        // Orthogonal with 2 points: expand to 4-point right-angle path then walk segments
-        if (style === 'orthogonal' && points.length === 2) {
-            var oMidX = (points[0].x + points[1].x) / 2;
-            var orthoPoints = [
-                points[0],
-                { x: oMidX, y: points[0].y },
-                { x: oMidX, y: points[1].y },
-                points[1]
-            ];
+        // Orthogonal: expand to L-turn corners then walk segments by total length
+        if (style === 'orthogonal') {
+            var orthoPoints;
+            if (points.length === 2) {
+                var oMidX = (points[0].x + points[1].x) / 2;
+                orthoPoints = [
+                    points[0],
+                    { x: oMidX, y: points[0].y },
+                    { x: oMidX, y: points[1].y },
+                    points[1]
+                ];
+            } else {
+                // Expand waypoints to include L-turn corners
+                orthoPoints = [points[0]];
+                for (var ioi = 1; ioi < points.length; ioi++) {
+                    var ioPrev = points[ioi - 1];
+                    var ioCur = points[ioi];
+                    orthoPoints.push({ x: ioCur.x, y: ioPrev.y }); // L-turn corner
+                    orthoPoints.push(ioCur);
+                }
+            }
             return interpolateConnectionPath(orthoPoints, 'straight', t);
         }
 
@@ -2344,8 +2356,21 @@ define([
             }
         }
 
-        // Store rendered points for hop detection by other connections
-        conn._renderedPoints = points;
+        // Store rendered points for hop detection by other connections.
+        // For orthogonal connections with waypoints, expand to include all L-turn corners
+        // so that hop detection and intersection tests use the actual rendered path segments.
+        if (conn.style === 'orthogonal' && points.length > 2) {
+            var orthoRendered = [points[0]];
+            for (var ori = 1; ori < points.length; ori++) {
+                var oprev = points[ori - 1];
+                var ocur = points[ori];
+                orthoRendered.push({ x: ocur.x, y: oprev.y }); // L-turn corner
+                orthoRendered.push(ocur);
+            }
+            conn._renderedPoints = orthoRendered;
+        } else {
+            conn._renderedPoints = points;
+        }
 
         // Draw the path
         ctx.strokeStyle = lineColor;
