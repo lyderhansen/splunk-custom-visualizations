@@ -1245,11 +1245,45 @@ define([
         }
         var valueText = showValue ? (node.prefix || '') + displayValue + (node.suffix || '') : '';
 
+        // Calculate shape-specific text insets so text stays inside visible area
+        var textInsetTop = 0;
+        var textInsetBottom = 0;
+        var textInsetLeft = 0;
+        var textInsetRight = 0;
+
+        if (shape === 'triangle') {
+            textInsetTop = h * 0.3;
+            textInsetLeft = w * 0.15;
+            textInsetRight = w * 0.15;
+        } else if (shape === 'cloud') {
+            textInsetTop = h * 0.15;
+            textInsetBottom = h * 0.1;
+            textInsetLeft = w * 0.1;
+            textInsetRight = w * 0.1;
+        } else if (shape === 'hexagon') {
+            textInsetLeft = w * 0.12;
+            textInsetRight = w * 0.12;
+        } else if (shape === 'diamond') {
+            textInsetTop = h * 0.2;
+            textInsetBottom = h * 0.2;
+            textInsetLeft = w * 0.2;
+            textInsetRight = w * 0.2;
+        } else if (shape === 'cylinder') {
+            textInsetTop = h * 0.15;
+            textInsetBottom = h * 0.15;
+        }
+
+        // Effective text area after shape insets
+        var tx0 = x + textInsetLeft;
+        var ty0 = y + textInsetTop;
+        var tw0 = w - textInsetLeft - textInsetRight;
+        var th0 = h - textInsetTop - textInsetBottom;
+
         // Compute text X based on alignment (used in default/behind/above branches)
         var textX;
-        if (tAlign === 'left') textX = x + pad;
-        else if (tAlign === 'right') textX = x + w - pad;
-        else textX = x + w / 2;
+        if (tAlign === 'left') textX = tx0 + pad;
+        else if (tAlign === 'right') textX = tx0 + tw0 - pad;
+        else textX = tx0 + tw0 / 2;
 
         if (sparkPos === 'behind' && hasSpark) {
             // BEHIND: sparkline fills entire node background, text overlaps on top
@@ -1259,38 +1293,38 @@ define([
             ctx.fillStyle = node.labelColor || theme.textMuted;
             ctx.textAlign = tAlign;
             ctx.textBaseline = 'top';
-            ctx.fillText(truncateText(node.label, 18), textX, y + textPadY);
+            ctx.fillText(truncateText(node.label, 18), textX, ty0 + textPadY);
             // Value
             if (showValue) {
                 ctx.fillStyle = node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
-                drawFitText(ctx, valueText, textX, y + h * 0.5, w - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
+                drawFitText(ctx, valueText, textX, ty0 + th0 * 0.5, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else if (sparkPos === 'above' && hasSpark) {
             // ABOVE: sparkline in top portion, text below
-            var abSparkH = Math.round(h * 0.5);
-            drawSparkline(ctx, node.series, x + 4, y + 4, w - 8, abSparkH - 4, nodeSparkType, node.color);
+            var abSparkH = Math.round(th0 * 0.5);
+            drawSparkline(ctx, node.series, tx0 + 4, ty0 + 4, tw0 - 8, abSparkH - 4, nodeSparkType, node.color);
             // Label below spark
             ctx.font = labelFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
             ctx.fillStyle = node.labelColor || theme.textMuted;
             ctx.textAlign = tAlign;
             ctx.textBaseline = 'top';
-            ctx.fillText(truncateText(node.label, 18), textX, y + abSparkH + 2);
+            ctx.fillText(truncateText(node.label, 18), textX, ty0 + abSparkH + 2);
             // Value
             if (showValue) {
                 ctx.fillStyle = node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
-                drawFitText(ctx, valueText, textX, y + abSparkH + labelFontSize + (h - abSparkH) * 0.35, w - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
+                drawFitText(ctx, valueText, textX, ty0 + abSparkH + labelFontSize + (th0 - abSparkH) * 0.35, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else if (sparkPos === 'left' && hasSpark) {
             // LEFT: sparkline on left, text on right
-            var leftSparkW = Math.round(w * 0.45);
-            drawSparkline(ctx, node.series, x + 4, y + textPadY, leftSparkW - 8, h - textPadY * 2, nodeSparkType, node.color);
+            var leftSparkW = Math.round(tw0 * 0.45);
+            drawSparkline(ctx, node.series, tx0 + 4, ty0 + textPadY, leftSparkW - 8, th0 - textPadY * 2, nodeSparkType, node.color);
             // Label on right (tAlign applies within right panel)
-            var rightX = x + leftSparkW + 4;
-            var rightW = w - leftSparkW - 8;
+            var rightX = tx0 + leftSparkW + 4;
+            var rightW = tw0 - leftSparkW - 8;
             var rightTextX;
             if (tAlign === 'left') rightTextX = rightX + pad;
             else if (tAlign === 'right') rightTextX = rightX + rightW - pad;
@@ -1299,13 +1333,13 @@ define([
             ctx.fillStyle = node.labelColor || theme.textMuted;
             ctx.textAlign = tAlign;
             ctx.textBaseline = 'top';
-            ctx.fillText(truncateText(node.label, 12), rightTextX, y + textPadY);
+            ctx.fillText(truncateText(node.label, 12), rightTextX, ty0 + textPadY);
             // Value on right
             if (showValue) {
                 ctx.fillStyle = node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
-                drawFitText(ctx, valueText, rightTextX, y + h * 0.55, rightW - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
+                drawFitText(ctx, valueText, rightTextX, ty0 + th0 * 0.55, rightW - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else {
             // DEFAULT (below): label top, value middle, sparkline bottom
@@ -1314,18 +1348,18 @@ define([
             ctx.fillStyle = node.labelColor || theme.textMuted;
             ctx.textAlign = tAlign;
             ctx.textBaseline = 'top';
-            var labelY = y + textPadY;
-            if (shape === 'circle' || shape === 'diamond') labelY = y + h * 0.18;
+            var labelY = ty0 + textPadY;
+            if (shape === 'circle') labelY = y + h * 0.18;
             ctx.fillText(truncateText(node.label, 18), textX, labelY);
             // Value
-            var valueY = y + h * 0.48;
+            var valueY = ty0 + th0 * 0.48;
             if (showValue) {
                 ctx.fillStyle = node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
-                if (hasSpark) valueY = y + h * 0.38;
-                if (node.subtitle) valueY = y + h * 0.35;
-                drawFitText(ctx, valueText, textX, valueY, w - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
+                if (hasSpark) valueY = ty0 + th0 * 0.38;
+                if (node.subtitle) valueY = ty0 + th0 * 0.35;
+                drawFitText(ctx, valueText, textX, valueY, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
             // Subtitle
             if (node.subtitle) {
