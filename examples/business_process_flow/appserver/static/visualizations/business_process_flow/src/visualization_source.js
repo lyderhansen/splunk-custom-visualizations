@@ -2422,13 +2422,17 @@ define([
         var animOff = animOffset || 0;
         if (isAnimActive && animType === 'marching-ants') {
             var marchSpeed = speedMap[animSpeed] || 1.5;
-            // Draw contrasting animated dashes on top of the base line
-            // Use white/bright color that stands out against the line
-            ctx.strokeStyle = '#ffffff';
+            // Animated dashes using a lighter version of the line color
+            ctx.strokeStyle = lightenColor(lineColor, 0.5);
             ctx.lineWidth = Math.max(lineWidth + 1, 3);
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            ctx.globalAlpha = 0.8;
+            ctx.globalAlpha = 0.9;
+            // Add subtle glow in the line color
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = lineColor;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
             var marchDash = [12, 8];
             ctx.setLineDash(marchDash);
             ctx.lineDashOffset = -(animOff * marchSpeed);
@@ -2455,6 +2459,8 @@ define([
             }
             ctx.stroke();
             ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
             ctx.lineDashOffset = 0;
             ctx.setLineDash([]);
         } else if (isAnimActive && animType === 'pulse') {
