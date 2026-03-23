@@ -80,6 +80,65 @@ define([
     }
 
     /**
+     * Evaluate conditional formatting rules against a value.
+     * Returns an object keyed by target with first-match-per-target colors.
+     * e.g. { background: '#ef4444', border: '#22c55e' }
+     * target 'all' expands to fill all unset targets.
+     */
+    function evalConditionsAll(conditions, rawValue) {
+        if (!conditions || conditions.length === 0) return {};
+        var numVal = parseFloat(rawValue);
+        var strVal = String(rawValue !== null && rawValue !== undefined ? rawValue : '').toLowerCase();
+        var result = {};
+
+        for (var ci = 0; ci < conditions.length; ci++) {
+            var rule = conditions[ci];
+            if (!rule.op || !rule.color) continue;
+            var target = rule.target || 'background';
+
+            // If this target is already set, skip (first match per target wins)
+            // For 'all' target, we check below
+            if (target !== 'all' && result[target]) continue;
+
+            var ruleVal = String(rule.val || '');
+            var ruleNum = parseFloat(ruleVal);
+            var ruleStr = ruleVal.toLowerCase();
+            var match = false;
+
+            if (rule.op === '<' && !isNaN(numVal) && !isNaN(ruleNum)) {
+                match = numVal < ruleNum;
+            } else if (rule.op === '<=' && !isNaN(numVal) && !isNaN(ruleNum)) {
+                match = numVal <= ruleNum;
+            } else if (rule.op === '>' && !isNaN(numVal) && !isNaN(ruleNum)) {
+                match = numVal > ruleNum;
+            } else if (rule.op === '>=' && !isNaN(numVal) && !isNaN(ruleNum)) {
+                match = numVal >= ruleNum;
+            } else if (rule.op === '=') {
+                match = (!isNaN(numVal) && !isNaN(ruleNum)) ? numVal === ruleNum : strVal === ruleStr;
+            } else if (rule.op === '!=') {
+                match = (!isNaN(numVal) && !isNaN(ruleNum)) ? numVal !== ruleNum : strVal !== ruleStr;
+            } else if (rule.op === 'contains') {
+                match = strVal.indexOf(ruleStr) !== -1;
+            }
+
+            if (match) {
+                if (target === 'all') {
+                    // Fill all unset targets
+                    if (!result.background) result.background = rule.color;
+                    if (!result.border) result.border = rule.color;
+                    if (!result.value) result.value = rule.color;
+                    if (!result.label) result.label = rule.color;
+                    if (!result.sparkline) result.sparkline = rule.color;
+                    if (!result.trend) result.trend = rule.color;
+                } else {
+                    result[target] = rule.color;
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
      * Linear interpolation between two hex colors.
      */
     function lerpColor(a, b, t) {
@@ -1361,8 +1420,10 @@ define([
             }
         }
 
-        // Conditional formatting — evaluate rules to get override color
-        var condColor = evalConditions(node.conditions, node.value);
+        // Conditional formatting — evaluate rules per target
+        var condResults = evalConditionsAll(node.conditions, node.value);
+        // Backward-compat alias: condColor is the background override (or any old-style rule)
+        var condColor = condResults.background || null;
 
         // Apply shadow (per-node or global) before fill
         var shadowOn = node.shadowEnabled !== undefined ? (node.shadowEnabled === true || node.shadowEnabled === 'on') : ge.shadowEnabled;
@@ -1457,7 +1518,9 @@ define([
             } else {
                 dashPattern = basePattern;
             }
-            var actualBorderWidth = condColor ? Math.max(borderWidth, 2) : borderWidth;
+            // condBorderColor: explicit border target overrides background-based fallback
+            var condBorderColor = condResults.border || null;
+            var actualBorderWidth = (condColor || condBorderColor) ? Math.max(borderWidth, 2) : borderWidth;
             if (dashPattern.length > 0 && actualBorderWidth < 1.5) {
                 actualBorderWidth = 1.5;
             }
@@ -1465,7 +1528,7 @@ define([
             if (dashPattern.length > 0 && !node.borderColor && !ge.defaultBorderColor) {
                 borderColor = isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
             }
-            ctx.strokeStyle = isSelected ? node.color : (condColor || borderColor);
+            ctx.strokeStyle = isSelected ? node.color : (condBorderColor || condColor || borderColor);
             ctx.lineWidth = actualBorderWidth;
             ctx.setLineDash(dashPattern);
             ctx.stroke();
@@ -1681,7 +1744,7 @@ define([
 
         if (sparkPos === 'behind' && hasSpark) {
             // BEHIND: sparkline fills entire node background, text overlaps on top
-            drawSparkline(ctx, node.series, x, y, w, h, nodeSparkType, node.color);
+            drawSparkline(ctx, node.series, x, y, w, h, nodeSparkType, condResults.sparkline || node.color);
             node._sparkBounds = { x: x, y: y, w: w, h: h };
             node._sparkDataRef = node.series;
             // Compute vertical position for label + value block
@@ -1696,7 +1759,7 @@ define([
             }
             // Label
             ctx.font = labelFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = node.labelColor || theme.textMuted;
+            ctx.fillStyle = condResults.label || node.labelColor || theme.textMuted;
             ctx.textAlign = tAlign;
             ctx.textBaseline = 'top';
             ctx.fillText(truncateText(node.label, 18), textX, bhStartY);
@@ -1705,7 +1768,7 @@ define([
                 _valDrawnY = bhStartY + labelFontSize + 4 + valueFontSize / 2;
                 _valDrawnX = textX;
                 _valDrawnAlign = tAlign;
-                ctx.fillStyle = node.valueColor || theme.text;
+                ctx.fillStyle = condResults.value || node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
                 drawFitText(ctx, valueText, textX, _valDrawnY, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
@@ -1713,7 +1776,7 @@ define([
         } else if (sparkPos === 'above' && hasSpark) {
             // ABOVE: sparkline in top portion, text below
             var abSparkH = Math.min(sparkH, Math.round(th0 * 0.5));
-            drawSparkline(ctx, node.series, tx0 + pad, ty0 + pad, tw0 - pad * 2, abSparkH - pad, nodeSparkType, node.color);
+            drawSparkline(ctx, node.series, tx0 + pad, ty0 + pad, tw0 - pad * 2, abSparkH - pad, nodeSparkType, condResults.sparkline || node.color);
             node._sparkBounds = { x: tx0 + pad, y: ty0 + pad, w: tw0 - pad * 2, h: abSparkH - pad };
             node._sparkDataRef = node.series;
             // Text area below sparkline
@@ -1730,7 +1793,7 @@ define([
             }
             // Label below spark
             ctx.font = labelFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = node.labelColor || theme.textMuted;
+            ctx.fillStyle = condResults.label || node.labelColor || theme.textMuted;
             ctx.textAlign = tAlign;
             ctx.textBaseline = 'top';
             ctx.fillText(truncateText(node.label, 18), textX, abStartY);
@@ -1739,7 +1802,7 @@ define([
                 _valDrawnY = abStartY + labelFontSize + 4 + valueFontSize / 2;
                 _valDrawnX = textX;
                 _valDrawnAlign = tAlign;
-                ctx.fillStyle = node.valueColor || theme.text;
+                ctx.fillStyle = condResults.value || node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
                 drawFitText(ctx, valueText, textX, _valDrawnY, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
@@ -1750,7 +1813,7 @@ define([
             var leftSparkActualH = th0 - pad * 2;
             var leftSparkAreaX = tx0;
             var leftSparkAreaY = ty0 + pad;
-            drawSparkline(ctx, node.series, leftSparkAreaX, leftSparkAreaY, leftSparkW, leftSparkActualH, nodeSparkType, node.color);
+            drawSparkline(ctx, node.series, leftSparkAreaX, leftSparkAreaY, leftSparkW, leftSparkActualH, nodeSparkType, condResults.sparkline || node.color);
             node._sparkBounds = { x: leftSparkAreaX, y: leftSparkAreaY, w: leftSparkW, h: leftSparkActualH };
             node._sparkDataRef = node.series;
             // Label on right (tAlign applies within right panel)
@@ -1771,7 +1834,7 @@ define([
                 ltStartY = ty0 + (th0 - ltTextBlockH) / 2;
             }
             ctx.font = labelFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = node.labelColor || theme.textMuted;
+            ctx.fillStyle = condResults.label || node.labelColor || theme.textMuted;
             ctx.textAlign = tAlign;
             ctx.textBaseline = 'top';
             ctx.fillText(truncateText(node.label, 12), rightTextX, ltStartY);
@@ -1781,7 +1844,7 @@ define([
                 _valDrawnX = rightTextX;
                 _valDrawnAlign = tAlign;
                 _valMaxW = rightW - pad * 2;
-                ctx.fillStyle = node.valueColor || theme.text;
+                ctx.fillStyle = condResults.value || node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
                 drawFitText(ctx, valueText, rightTextX, _valDrawnY, rightW - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
@@ -1792,7 +1855,7 @@ define([
             var rightSparkX = tx0 + tw0 - rightSparkW;
             var rightSparkActualH = th0 - pad * 2;
             var rightSparkAreaY = ty0 + pad;
-            drawSparkline(ctx, node.series, rightSparkX, rightSparkAreaY, rightSparkW, rightSparkActualH, nodeSparkType, node.color);
+            drawSparkline(ctx, node.series, rightSparkX, rightSparkAreaY, rightSparkW, rightSparkActualH, nodeSparkType, condResults.sparkline || node.color);
             node._sparkBounds = { x: rightSparkX, y: rightSparkAreaY, w: rightSparkW, h: rightSparkActualH };
             node._sparkDataRef = node.series;
             // Label on left panel
@@ -1812,7 +1875,7 @@ define([
                 rtStartY = ty0 + (th0 - rtTextBlockH) / 2;
             }
             ctx.font = labelFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = node.labelColor || theme.textMuted;
+            ctx.fillStyle = condResults.label || node.labelColor || theme.textMuted;
             ctx.textAlign = tAlign;
             ctx.textBaseline = 'top';
             ctx.fillText(truncateText(node.label, 12), leftTextX, rtStartY);
@@ -1822,7 +1885,7 @@ define([
                 _valDrawnX = leftTextX;
                 _valDrawnAlign = tAlign;
                 _valMaxW = leftTextW - pad * 2;
-                ctx.fillStyle = node.valueColor || theme.text;
+                ctx.fillStyle = condResults.value || node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
                 drawFitText(ctx, valueText, leftTextX, _valDrawnY, leftTextW - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
@@ -1875,7 +1938,7 @@ define([
             }
             // Label
             ctx.font = labelFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = node.labelColor || theme.textMuted;
+            ctx.fillStyle = condResults.label || node.labelColor || theme.textMuted;
             ctx.textAlign = tAlign;
             ctx.textBaseline = 'top';
             ctx.fillText(truncateText(node.label, 18), textX, dfLabelY);
@@ -1884,7 +1947,7 @@ define([
                 _valDrawnY = dfValueY + valueFontSize / 2;
                 _valDrawnX = textX;
                 _valDrawnAlign = tAlign;
-                ctx.fillStyle = node.valueColor || theme.text;
+                ctx.fillStyle = condResults.value || node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
                 drawFitText(ctx, valueText, textX, _valDrawnY, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
@@ -1892,7 +1955,7 @@ define([
             // Subtitle
             if (node.subtitle) {
                 ctx.font = Math.max(9, labelFontSize - 1) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-                ctx.fillStyle = node.labelColor || theme.textMuted;
+                ctx.fillStyle = condResults.label || node.labelColor || theme.textMuted;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'top';
                 ctx.fillText(truncateText(node.subtitle, 22), textX, dfValueY + valueFontSize + 4);
@@ -1915,7 +1978,7 @@ define([
                     sparkW = dHalfW * 2 - pad * 2;
                 }
                 if (sparkW > 20) {
-                    drawSparkline(ctx, node.series, sparkX, sparkY, sparkW, sparkH, nodeSparkType, node.color);
+                    drawSparkline(ctx, node.series, sparkX, sparkY, sparkW, sparkH, nodeSparkType, condResults.sparkline || node.color);
                     node._sparkBounds = { x: sparkX, y: sparkY, w: sparkW, h: sparkH };
                     node._sparkDataRef = node.series;
                 }
@@ -1962,8 +2025,10 @@ define([
                 trendColor = '#ef4444';
             }
 
-            // Condition-based trend coloring
-            if (node.trendUseConditions === 'on' && node.conditions) {
+            // Condition-based trend coloring — explicit 'trend' target wins, then trendUseConditions fallback
+            if (condResults.trend) {
+                trendColor = condResults.trend;
+            } else if (node.trendUseConditions === 'on' && node.conditions) {
                 var trendTestVal = trendDisplay === 'percent' ? trendPct : trendVal;
                 var trendCondColor = evalConditions(node.conditions, trendTestVal);
                 if (trendCondColor) trendColor = trendCondColor;
@@ -6350,9 +6415,9 @@ define([
                         var lo = Math.round(v * 0.5);
                         var hi = Math.round(v * 1.5);
                         return [
-                            {op: '<=', val: String(lo), color: '#22c55e'},
-                            {op: '<=', val: String(hi), color: '#eab308'},
-                            {op: '>', val: String(hi), color: '#ef4444'}
+                            {op: '<=', val: String(lo), color: '#22c55e', target: 'background'},
+                            {op: '<=', val: String(hi), color: '#eab308', target: 'background'},
+                            {op: '>', val: String(hi), color: '#ef4444', target: 'background'}
                         ];
                     }
                 },
@@ -6362,8 +6427,8 @@ define([
                         var v = nodeValueNum || 100;
                         var mid = Math.round(v);
                         return [
-                            {op: '<=', val: String(mid), color: '#22c55e'},
-                            {op: '>', val: String(mid), color: '#ef4444'}
+                            {op: '<=', val: String(mid), color: '#22c55e', target: 'background'},
+                            {op: '>', val: String(mid), color: '#ef4444', target: 'background'}
                         ];
                     }
                 },
@@ -6372,10 +6437,10 @@ define([
                     create: function() {
                         var v = nodeValueNum || 100;
                         return [
-                            {op: '<=', val: String(Math.round(v * 0.25)), color: '#3b82f6'},
-                            {op: '<=', val: String(Math.round(v * 0.5)), color: '#22c55e'},
-                            {op: '<=', val: String(Math.round(v * 1.5)), color: '#f97316'},
-                            {op: '>', val: String(Math.round(v * 1.5)), color: '#ef4444'}
+                            {op: '<=', val: String(Math.round(v * 0.25)), color: '#3b82f6', target: 'background'},
+                            {op: '<=', val: String(Math.round(v * 0.5)), color: '#22c55e', target: 'background'},
+                            {op: '<=', val: String(Math.round(v * 1.5)), color: '#f97316', target: 'background'},
+                            {op: '>', val: String(Math.round(v * 1.5)), color: '#ef4444', target: 'background'}
                         ];
                     }
                 },
@@ -6383,10 +6448,10 @@ define([
                     label: 'Status Text',
                     create: function() {
                         return [
-                            {op: 'contains', val: 'ok', color: '#22c55e'},
-                            {op: 'contains', val: 'warn', color: '#eab308'},
-                            {op: 'contains', val: 'error', color: '#ef4444'},
-                            {op: 'contains', val: 'critical', color: '#dc2626'}
+                            {op: 'contains', val: 'ok', color: '#22c55e', target: 'label'},
+                            {op: 'contains', val: 'warn', color: '#eab308', target: 'label'},
+                            {op: 'contains', val: 'error', color: '#ef4444', target: 'label'},
+                            {op: 'contains', val: 'critical', color: '#dc2626', target: 'label'}
                         ];
                     }
                 }
@@ -6528,6 +6593,37 @@ define([
                     valInput.addEventListener('keyup', function(e) { e.stopPropagation(); });
                     valInput.addEventListener('keypress', function(e) { e.stopPropagation(); });
                     ruleRow.appendChild(valInput);
+
+                    // Target dropdown (what part of the node to color)
+                    var targetSelect = document.createElement('select');
+                    targetSelect.style.cssText = 'background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:3px;font-size:9px;padding:2px;flex-shrink:0;outline:none;';
+                    var targets = [
+                        {value: 'background', label: 'BG'},
+                        {value: 'border', label: 'Border'},
+                        {value: 'value', label: 'Value'},
+                        {value: 'label', label: 'Label'},
+                        {value: 'sparkline', label: 'Spark'},
+                        {value: 'trend', label: 'Trend'},
+                        {value: 'all', label: 'All'}
+                    ];
+                    for (var ti = 0; ti < targets.length; ti++) {
+                        var topt = document.createElement('option');
+                        topt.value = targets[ti].value;
+                        topt.textContent = targets[ti].label;
+                        if (targets[ti].value === (rule.target || 'background')) topt.selected = true;
+                        targetSelect.appendChild(topt);
+                    }
+                    targetSelect.addEventListener('change', function() {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        if (!es.nodes[nodeId].conditions) es.nodes[nodeId].conditions = [];
+                        if (es.nodes[nodeId].conditions[ruleIdx]) {
+                            es.nodes[nodeId].conditions[ruleIdx].target = targetSelect.value;
+                        }
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                    });
+                    targetSelect.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                    ruleRow.appendChild(targetSelect);
 
                     // Delete button
                     var delBtn = document.createElement('button');
