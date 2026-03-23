@@ -4074,41 +4074,47 @@ define([
                         return;
                     }
 
-                    // Check anchor handles for dragging on selected connection
-                    for (var ahi = 0; ahi < self._computedConnections.length; ahi++) {
-                        var ahc = self._computedConnections[ahi];
-                        if (ahc._startAnchorHit && pointInCircle(mx, my, ahc._startAnchorHit.x, ahc._startAnchorHit.y, 8)) {
+                    // Check anchor handles — ONLY on the selected connection
+                    if (self._connPopupIdx !== null && self._connPopupIdx !== undefined) {
+                        var selCci = self._connPopupIdx;
+                        var ahc = self._computedConnections[selCci];
+                        if (ahc) {
+                            // Find matching editorState connection by from+to+sameCount
                             var edcAh = self._editorState.connections || [];
+                            var ahSameCount = 0;
+                            var ahEdIdx = -1;
                             for (var aeci = 0; aeci < edcAh.length; aeci++) {
                                 if (edcAh[aeci].from === ahc.from && edcAh[aeci].to === ahc.to) {
-                                    self._isDraggingAnchor = true;
-                                    self._dragAnchorConnIdx = aeci;
-                                    self._dragAnchorEnd = 'start';
-                                    // Find the source node
-                                    for (var ani = 0; ani < self._computedNodes.length; ani++) {
-                                        if (self._computedNodes[ani].id === ahc.from) {
-                                            self._dragAnchorNode = self._computedNodes[ani];
-                                            break;
-                                        }
+                                    if (ahSameCount === (ahc._sameIdx || 0)) {
+                                        ahEdIdx = aeci;
+                                        break;
                                     }
+                                    ahSameCount++;
+                                }
+                            }
+                            if (ahEdIdx < 0) {
+                                // Fallback: simple from+to match
+                                for (var aeci2 = 0; aeci2 < edcAh.length; aeci2++) {
+                                    if (edcAh[aeci2].from === ahc.from && edcAh[aeci2].to === ahc.to) {
+                                        ahEdIdx = aeci2;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (ahEdIdx >= 0) {
+                                if (ahc._startAnchorHit && pointInCircle(mx, my, ahc._startAnchorHit.x, ahc._startAnchorHit.y, 8)) {
+                                    self._isDraggingAnchor = true;
+                                    self._dragAnchorConnIdx = ahEdIdx;
+                                    self._dragAnchorEnd = 'start';
+                                    self._dragAnchorNode = self._computedNodeMap[ahc.from] || null;
                                     self.canvas.style.cursor = 'crosshair';
                                     return;
                                 }
-                            }
-                        }
-                        if (ahc._endAnchorHit && pointInCircle(mx, my, ahc._endAnchorHit.x, ahc._endAnchorHit.y, 8)) {
-                            var edcAh2 = self._editorState.connections || [];
-                            for (var aeci2 = 0; aeci2 < edcAh2.length; aeci2++) {
-                                if (edcAh2[aeci2].from === ahc.from && edcAh2[aeci2].to === ahc.to) {
+                                if (ahc._endAnchorHit && pointInCircle(mx, my, ahc._endAnchorHit.x, ahc._endAnchorHit.y, 8)) {
                                     self._isDraggingAnchor = true;
-                                    self._dragAnchorConnIdx = aeci2;
+                                    self._dragAnchorConnIdx = ahEdIdx;
                                     self._dragAnchorEnd = 'end';
-                                    for (var ani2 = 0; ani2 < self._computedNodes.length; ani2++) {
-                                        if (self._computedNodes[ani2].id === ahc.to) {
-                                            self._dragAnchorNode = self._computedNodes[ani2];
-                                            break;
-                                        }
-                                    }
+                                    self._dragAnchorNode = self._computedNodeMap[ahc.to] || null;
                                     self.canvas.style.cursor = 'crosshair';
                                     return;
                                 }
