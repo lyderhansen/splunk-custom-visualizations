@@ -2566,11 +2566,25 @@ define([
     function drawConnectionHops(ctx, connections) {
         var hopRadius = 8;
 
+        // Pre-compute sampled points for curved connections (for intersection testing)
+        for (var sci = 0; sci < connections.length; sci++) {
+            var sc = connections[sci];
+            if (sc._renderedPoints && sc._renderedPoints.length >= 2 && sc.style === 'curved') {
+                // Sample the curve into ~20 straight segments for intersection testing
+                var sampled = [];
+                for (var st = 0; st <= 20; st++) {
+                    sampled.push(interpolateConnectionPath(sc._renderedPoints, sc.style, st / 20));
+                }
+                sc._sampledPoints = sampled;
+            } else {
+                sc._sampledPoints = sc._renderedPoints;
+            }
+        }
+
         for (var ci = 0; ci < connections.length; ci++) {
             var conn = connections[ci];
             if (!conn.lineHop || conn.lineHop === '') continue;
-            if (conn.style === 'curved') continue;
-            var points = conn._renderedPoints;
+            var points = conn._sampledPoints || conn._renderedPoints;
             if (!points || points.length < 2) continue;
 
             // Collect all intersection points across all segments of this connection
@@ -2581,10 +2595,11 @@ define([
                 for (var oci = 0; oci < connections.length; oci++) {
                     if (oci === ci) continue;
                     var oc = connections[oci];
-                    if (!oc._renderedPoints) continue;
-                    for (var oseg = 0; oseg < oc._renderedPoints.length - 1; oseg++) {
-                        var op1 = oc._renderedPoints[oseg];
-                        var op2 = oc._renderedPoints[oseg + 1];
+                    var ocPts = oc._sampledPoints || oc._renderedPoints;
+                    if (!ocPts) continue;
+                    for (var oseg = 0; oseg < ocPts.length - 1; oseg++) {
+                        var op1 = ocPts[oseg];
+                        var op2 = ocPts[oseg + 1];
                         var isect = segmentIntersection(p1.x, p1.y, p2.x, p2.y, op1.x, op1.y, op2.x, op2.y);
                         if (isect) {
                             intersections.push({ x: isect.x, y: isect.y, seg: si, t: isect.t });
