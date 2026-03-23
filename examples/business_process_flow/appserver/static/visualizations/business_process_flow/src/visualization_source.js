@@ -454,6 +454,121 @@ define([
     }
 
     /**
+     * Get the actual start/end points for a connection, matching drawConnection logic.
+     * Returns { points: [{x,y},...], startPt: {x,y}, endPt: {x,y} }
+     */
+    function getConnectionPoints(conn, fromNode, toNode) {
+        var fromCx = fromNode.x + fromNode.w / 2;
+        var fromCy = fromNode.y + fromNode.h / 2;
+        var toCx = toNode.x + toNode.w / 2;
+        var toCy = toNode.y + toNode.h / 2;
+
+        var srcAnchor = conn.sourceAnchor || 'auto';
+        var tgtAnchor = conn.targetAnchor || 'auto';
+        var srcOff = parseInt(conn.sourceAnchorOffset, 10) || 0;
+        var tgtOff = parseInt(conn.targetAnchorOffset, 10) || 0;
+        var startPt, endPt;
+        if (srcAnchor !== 'auto') {
+            startPt = getAnchorPoint(fromNode, srcAnchor, srcOff);
+        } else {
+            startPt = getEdgeConnectionPoint(fromNode, toCx, toCy);
+        }
+        if (tgtAnchor !== 'auto') {
+            endPt = getAnchorPoint(toNode, tgtAnchor, tgtOff);
+        } else {
+            endPt = getEdgeConnectionPoint(toNode, fromCx, fromCy);
+        }
+
+        var waypoints = conn.waypoints || [];
+        var points = [startPt];
+        for (var wpi = 0; wpi < waypoints.length; wpi++) {
+            points.push({ x: waypoints[wpi].x, y: waypoints[wpi].y });
+        }
+        points.push(endPt);
+
+        return { points: points, startPt: startPt, endPt: endPt };
+    }
+
+    /**
+     * Compute minimum distance from point (px,py) to a connection path.
+     * Handles straight polylines and curved connections with waypoints.
+     * Also returns the closest segment index for waypoint insertion.
+     */
+    function distToConnection(px, py, conn, fromNode, toNode) {
+        var cp = getConnectionPoints(conn, fromNode, toNode);
+        var points = cp.points;
+        var minDist = Infinity;
+        var closestSeg = -1;
+
+        if (conn.style === 'curved' && points.length === 2) {
+            // Simple curve (no waypoints): quadratic bezier — matches drawConnection
+            var sx = cp.startPt.x, sy = cp.startPt.y;
+            var ex = cp.endPt.x, ey = cp.endPt.y;
+            var bmx = (sx + ex) / 2, bmy = (sy + ey) / 2;
+            var bdx = ex - sx, bdy = ey - sy;
+            var blen = Math.sqrt(bdx * bdx + bdy * bdy);
+            var boff = Math.min(40, blen * 0.2);
+            var bnx = blen > 0 ? -bdy / blen : 0;
+            var bny = blen > 0 ? bdx / blen : 0;
+            var bcpx = bmx + bnx * boff, bcpy = bmy + bny * boff;
+            var prevX = sx, prevY = sy;
+            for (var bi = 1; bi <= 20; bi++) {
+                var bt = bi / 20;
+                var bpx = (1 - bt) * (1 - bt) * sx + 2 * (1 - bt) * bt * bcpx + bt * bt * ex;
+                var bpy = (1 - bt) * (1 - bt) * sy + 2 * (1 - bt) * bt * bcpy + bt * bt * ey;
+                var segDist = distToLine(px, py, prevX, prevY, bpx, bpy);
+                if (segDist < minDist) {
+                    minDist = segDist;
+                    closestSeg = 0;
+                }
+                prevX = bpx;
+                prevY = bpy;
+            }
+        } else if (conn.style === 'curved' && points.length > 2) {
+            // Multi-point smooth curve — matches drawConnection quadratic bezier through waypoints
+            // Sample the curve to get line segments for distance testing
+            var segIdx = 0;
+            for (var cpi = 1; cpi < points.length - 1; cpi++) {
+                var p0x = (cpi === 1) ? points[0].x : (points[cpi - 1].x + points[cpi].x) / 2;
+                var p0y = (cpi === 1) ? points[0].y : (points[cpi - 1].y + points[cpi].y) / 2;
+                var cpx2 = points[cpi].x;
+                var cpy2 = points[cpi].y;
+                var p2x = (cpi < points.length - 2) ? (points[cpi].x + points[cpi + 1].x) / 2 : points[points.length - 1].x;
+                var p2y = (cpi < points.length - 2) ? (points[cpi].y + points[cpi + 1].y) / 2 : points[points.length - 1].y;
+                var prevCx = p0x, prevCy = p0y;
+                for (var si = 1; si <= 10; si++) {
+                    var ct = si / 10;
+                    var cit = 1 - ct;
+                    var cx = cit * cit * p0x + 2 * cit * ct * cpx2 + ct * ct * p2x;
+                    var cy = cit * cit * p0y + 2 * cit * ct * cpy2 + ct * ct * p2y;
+                    var csd = distToLine(px, py, prevCx, prevCy, cx, cy);
+                    if (csd < minDist) {
+                        minDist = csd;
+                        closestSeg = cpi - 1;
+                    }
+                    prevCx = cx;
+                    prevCy = cy;
+                }
+            }
+            // Also test the first straight segment (start to first midpoint) if needed
+            if (points.length === 3) {
+                // Already handled above
+            }
+        } else {
+            // Straight polyline — test each segment
+            for (var si2 = 0; si2 < points.length - 1; si2++) {
+                var sd = distToLine(px, py, points[si2].x, points[si2].y, points[si2 + 1].x, points[si2 + 1].y);
+                if (sd < minDist) {
+                    minDist = sd;
+                    closestSeg = si2;
+                }
+            }
+        }
+
+        return { dist: minDist, segment: closestSeg };
+    }
+
+    /**
      * Get the point where a line from inside a node exits the node boundary.
      * node must have: x, y, w, h, shape
      */
@@ -4497,59 +4612,18 @@ define([
                     }
 
                     // Check connection hits for selection — find the CLOSEST connection
-                    // within threshold rather than returning on the first match, so that
-                    // when two connections share a node the correct one is chosen.
-                    var hitThreshold = 16;
+                    // within threshold using robust distToConnection (edge points + curves)
+                    var hitThreshold = 12;
                     var closestCci = -1;
                     var closestDist = Infinity;
                     for (var cci = 0; cci < self._computedConnections.length; cci++) {
                         var cc = self._computedConnections[cci];
-                        var fromNd = null;
-                        var toNd = null;
-                        for (var fni = 0; fni < self._computedNodes.length; fni++) {
-                            if (self._computedNodes[fni].id === cc.from) fromNd = self._computedNodes[fni];
-                            if (self._computedNodes[fni].id === cc.to) toNd = self._computedNodes[fni];
-                        }
+                        var fromNd = self._computedNodeMap[cc.from];
+                        var toNd = self._computedNodeMap[cc.to];
                         if (fromNd && toNd) {
-                            var fCx = fromNd.x + fromNd.w / 2;
-                            var fCy = fromNd.y + fromNd.h / 2;
-                            var tCx = toNd.x + toNd.w / 2;
-                            var tCy = toNd.y + toNd.h / 2;
-                            // Compute minimum distance to this connection
-                            var ccWps = cc.waypoints || [];
-                            var ccPts = [{ x: fCx, y: fCy }];
-                            for (var cwi = 0; cwi < ccWps.length; cwi++) ccPts.push(ccWps[cwi]);
-                            ccPts.push({ x: tCx, y: tCy });
-                            var ccMinDist = Infinity;
-                            if ((cc.style === 'curved') && ccPts.length === 2) {
-                                // Sample bezier to get minimum distance along curve
-                                var bx0 = ccPts[0].x, by0 = ccPts[0].y;
-                                var bx2 = ccPts[1].x, by2 = ccPts[1].y;
-                                var bmx = (bx0 + bx2) / 2, bmy = (by0 + by2) / 2;
-                                var bdx = bx2 - bx0, bdy = by2 - by0;
-                                var blen = Math.sqrt(bdx * bdx + bdy * bdy);
-                                var boff = Math.min(40, blen * 0.2);
-                                var bnx = blen > 0 ? -bdy / blen : 0;
-                                var bny = blen > 0 ? bdx / blen : 0;
-                                var bcpx = bmx + bnx * boff, bcpy = bmy + bny * boff;
-                                var prevBx = bx0, prevBy = by0;
-                                for (var bsi = 1; bsi <= 10; bsi++) {
-                                    var bt = bsi / 10;
-                                    var bpx = (1 - bt) * (1 - bt) * bx0 + 2 * (1 - bt) * bt * bcpx + bt * bt * bx2;
-                                    var bpy = (1 - bt) * (1 - bt) * by0 + 2 * (1 - bt) * bt * bcpy + bt * bt * by2;
-                                    var segDist = distToLine(mx, my, prevBx, prevBy, bpx, bpy);
-                                    if (segDist < ccMinDist) ccMinDist = segDist;
-                                    prevBx = bpx;
-                                    prevBy = bpy;
-                                }
-                            } else {
-                                for (var csi = 0; csi < ccPts.length - 1; csi++) {
-                                    var segDist = distToLine(mx, my, ccPts[csi].x, ccPts[csi].y, ccPts[csi + 1].x, ccPts[csi + 1].y);
-                                    if (segDist < ccMinDist) ccMinDist = segDist;
-                                }
-                            }
-                            if (ccMinDist <= hitThreshold && ccMinDist < closestDist) {
-                                closestDist = ccMinDist;
+                            var ccResult = distToConnection(mx, my, cc, fromNd, toNd);
+                            if (ccResult.dist <= hitThreshold && ccResult.dist < closestDist) {
+                                closestDist = ccResult.dist;
                                 closestCci = cci;
                             }
                         }
@@ -4641,40 +4715,28 @@ define([
                         }
                     }
                     // View mode: handle click-trigger animation toggle for connections
-                    // Find the CLOSEST connection within threshold, not just the first match
+                    // Find the CLOSEST connection using robust distToConnection
                     var edConnsVM = self._editorState.connections || [];
-                    var vmHitThreshold = 16;
+                    var vmHitThreshold = 12;
                     var vmClosestCi = -1;
                     var vmClosestDist = Infinity;
                     for (var vmci = 0; vmci < self._computedConnections.length; vmci++) {
                         var vmConn = self._computedConnections[vmci];
-                        var vmFrom = null;
-                        var vmTo = null;
-                        for (var vmni = 0; vmni < self._computedNodes.length; vmni++) {
-                            if (self._computedNodes[vmni].id === vmConn.from) vmFrom = self._computedNodes[vmni];
-                            if (self._computedNodes[vmni].id === vmConn.to) vmTo = self._computedNodes[vmni];
-                        }
+                        var vmFrom = self._computedNodeMap[vmConn.from];
+                        var vmTo = self._computedNodeMap[vmConn.to];
                         if (vmFrom && vmTo) {
-                            var vmPts = [{ x: vmFrom.x + vmFrom.w / 2, y: vmFrom.y + vmFrom.h / 2 }];
-                            var vmWps = vmConn.waypoints || [];
-                            for (var vmwi = 0; vmwi < vmWps.length; vmwi++) vmPts.push(vmWps[vmwi]);
-                            vmPts.push({ x: vmTo.x + vmTo.w / 2, y: vmTo.y + vmTo.h / 2 });
-                            var vmMinDist = Infinity;
-                            for (var vmsi = 0; vmsi < vmPts.length - 1; vmsi++) {
-                                var vmSegDist = distToLine(mx, my, vmPts[vmsi].x, vmPts[vmsi].y, vmPts[vmsi + 1].x, vmPts[vmsi + 1].y);
-                                if (vmSegDist < vmMinDist) vmMinDist = vmSegDist;
-                            }
-                            if (vmMinDist <= vmHitThreshold && vmMinDist < vmClosestDist) {
-                                vmClosestDist = vmMinDist;
+                            var vmResult = distToConnection(mx, my, vmConn, vmFrom, vmTo);
+                            if (vmResult.dist <= vmHitThreshold && vmResult.dist < vmClosestDist) {
+                                vmClosestDist = vmResult.dist;
                                 vmClosestCi = vmci;
                             }
                         }
                     }
                     if (vmClosestCi >= 0) {
-                        var vmConn = self._computedConnections[vmClosestCi];
+                        var vmConn2 = self._computedConnections[vmClosestCi];
                         // Find editorState connection and toggle click animation
                         for (var vmei = 0; vmei < edConnsVM.length; vmei++) {
-                            if (edConnsVM[vmei].from === vmConn.from && edConnsVM[vmei].to === vmConn.to) {
+                            if (edConnsVM[vmei].from === vmConn2.from && edConnsVM[vmei].to === vmConn2.to) {
                                 if (edConnsVM[vmei].animationTrigger === 'click') {
                                     edConnsVM[vmei]._animActive = !edConnsVM[vmei]._animActive;
                                     self.invalidateUpdateView();
@@ -4912,57 +4974,19 @@ define([
                     }
                 }
 
-                // Check connections — find closest within threshold, not first match
+                // Check connections — find closest within threshold using distToConnection
                 if (!self._hoverItem) {
-                    var hvThreshold = 16;
+                    var hvThreshold = 12;
                     var hvClosestCci = -1;
                     var hvClosestDist = Infinity;
                     for (var cci = 0; cci < self._computedConnections.length; cci++) {
                         var cc = self._computedConnections[cci];
-                        var fromNd = null;
-                        var toNd = null;
-                        for (var fni = 0; fni < self._computedNodes.length; fni++) {
-                            if (self._computedNodes[fni].id === cc.from) fromNd = self._computedNodes[fni];
-                            if (self._computedNodes[fni].id === cc.to) toNd = self._computedNodes[fni];
-                        }
+                        var fromNd = self._computedNodeMap[cc.from];
+                        var toNd = self._computedNodeMap[cc.to];
                         if (fromNd && toNd) {
-                            var fCx = fromNd.x + fromNd.w / 2;
-                            var fCy = fromNd.y + fromNd.h / 2;
-                            var tCx = toNd.x + toNd.w / 2;
-                            var tCy = toNd.y + toNd.h / 2;
-                            var hvWps = cc.waypoints || [];
-                            var hvPts = [{ x: fCx, y: fCy }];
-                            for (var hwi = 0; hwi < hvWps.length; hwi++) hvPts.push(hvWps[hwi]);
-                            hvPts.push({ x: tCx, y: tCy });
-                            var hvMinDist = Infinity;
-                            if ((cc.style === 'curved') && hvPts.length === 2) {
-                                var hbx0 = hvPts[0].x, hby0 = hvPts[0].y;
-                                var hbx2 = hvPts[1].x, hby2 = hvPts[1].y;
-                                var hbmx = (hbx0 + hbx2) / 2, hbmy = (hby0 + hby2) / 2;
-                                var hbdx = hbx2 - hbx0, hbdy = hby2 - hby0;
-                                var hblen = Math.sqrt(hbdx * hbdx + hbdy * hbdy);
-                                var hboff = Math.min(40, hblen * 0.2);
-                                var hbnx = hblen > 0 ? -hbdy / hblen : 0;
-                                var hbny = hblen > 0 ? hbdx / hblen : 0;
-                                var hbcpx = hbmx + hbnx * hboff, hbcpy = hbmy + hbny * hboff;
-                                var hprevX = hbx0, hprevY = hby0;
-                                for (var hbi = 1; hbi <= 10; hbi++) {
-                                    var hbt = hbi / 10;
-                                    var hbpx = (1 - hbt) * (1 - hbt) * hbx0 + 2 * (1 - hbt) * hbt * hbcpx + hbt * hbt * hbx2;
-                                    var hbpy = (1 - hbt) * (1 - hbt) * hby0 + 2 * (1 - hbt) * hbt * hbcpy + hbt * hbt * hby2;
-                                    var hvSegDist = distToLine(mx, my, hprevX, hprevY, hbpx, hbpy);
-                                    if (hvSegDist < hvMinDist) hvMinDist = hvSegDist;
-                                    hprevX = hbpx;
-                                    hprevY = hbpy;
-                                }
-                            } else {
-                                for (var hsi = 0; hsi < hvPts.length - 1; hsi++) {
-                                    var hvSegDist = distToLine(mx, my, hvPts[hsi].x, hvPts[hsi].y, hvPts[hsi + 1].x, hvPts[hsi + 1].y);
-                                    if (hvSegDist < hvMinDist) hvMinDist = hvSegDist;
-                                }
-                            }
-                            if (hvMinDist <= hvThreshold && hvMinDist < hvClosestDist) {
-                                hvClosestDist = hvMinDist;
+                            var hvResult = distToConnection(mx, my, cc, fromNd, toNd);
+                            if (hvResult.dist <= hvThreshold && hvResult.dist < hvClosestDist) {
+                                hvClosestDist = hvResult.dist;
                                 hvClosestCci = cci;
                             }
                         }
@@ -5363,66 +5387,64 @@ define([
                 }
 
                 // Double-click on connection → add waypoint
-                // Find the closest connection segment to the click, then insert there
+                // Find the closest connection using robust distToConnection
                 var conns = self._computedConnections;
-                var nodes = self._computedNodes;
-                var nodeMap2 = {};
-                for (var nmi = 0; nmi < nodes.length; nmi++) {
-                    nodeMap2[nodes[nmi].id] = nodes[nmi];
-                }
-                var dcHitThreshold = 20;
+                var dcHitThreshold = 12;
                 var dcClosestIdx = -1;
                 var dcClosestSeg = -1;
                 var dcClosestDist = Infinity;
                 for (var dci = 0; dci < conns.length; dci++) {
                     var dc = conns[dci];
-                    var dcFrom = nodeMap2[dc.from];
-                    var dcTo = nodeMap2[dc.to];
+                    var dcFrom = self._computedNodeMap[dc.from];
+                    var dcTo = self._computedNodeMap[dc.to];
                     if (!dcFrom || !dcTo) continue;
-                    var dcFcx = dcFrom.x + dcFrom.w / 2;
-                    var dcFcy = dcFrom.y + dcFrom.h / 2;
-                    var dcTcx = dcTo.x + dcTo.w / 2;
-                    var dcTcy = dcTo.y + dcTo.h / 2;
-                    var dcWps = dc.waypoints || [];
-                    var dcPts = [{ x: dcFcx, y: dcFcy }];
-                    for (var dwi = 0; dwi < dcWps.length; dwi++) {
-                        dcPts.push(dcWps[dwi]);
-                    }
-                    dcPts.push({ x: dcTcx, y: dcTcy });
-                    for (var dsi = 0; dsi < dcPts.length - 1; dsi++) {
-                        var dcSegDist = distToLine(mx, my, dcPts[dsi].x, dcPts[dsi].y, dcPts[dsi + 1].x, dcPts[dsi + 1].y);
-                        if (dcSegDist <= dcHitThreshold && dcSegDist < dcClosestDist) {
-                            dcClosestDist = dcSegDist;
-                            dcClosestIdx = dci;
-                            dcClosestSeg = dsi;
-                        }
+                    var dcResult = distToConnection(mx, my, dc, dcFrom, dcTo);
+                    if (dcResult.dist <= dcHitThreshold && dcResult.dist < dcClosestDist) {
+                        dcClosestDist = dcResult.dist;
+                        dcClosestIdx = dci;
+                        dcClosestSeg = dcResult.segment;
                     }
                 }
                 if (dcClosestIdx >= 0) {
-                    var dc = conns[dcClosestIdx];
-                    // Find matching editorState connection
-                    var edConns3 = self._editorState.connections || [];
-                    for (var eci2 = 0; eci2 < edConns3.length; eci2++) {
-                        if (edConns3[eci2].from === dc.from && edConns3[eci2].to === dc.to) {
-                            if (!edConns3[eci2].waypoints) edConns3[eci2].waypoints = [];
-                            // Insert waypoint at click position, in correct segment position
-                            edConns3[eci2].waypoints.splice(dcClosestSeg, 0, { x: mx, y: my });
-                            self.invalidateUpdateView();
-                            return;
+                    var dc2 = conns[dcClosestIdx];
+                    // Find matching editorState connection by from+to+index
+                    var sameCount2 = 0;
+                    for (var scj2 = 0; scj2 < dcClosestIdx; scj2++) {
+                        if (conns[scj2].from === dc2.from && conns[scj2].to === dc2.to) {
+                            sameCount2++;
                         }
+                    }
+                    var edConns3 = self._editorState.connections || [];
+                    var edConnIdx3 = -1;
+                    var matchCount3 = 0;
+                    for (var eci2 = 0; eci2 < edConns3.length; eci2++) {
+                        if (edConns3[eci2].from === dc2.from && edConns3[eci2].to === dc2.to) {
+                            if (matchCount3 === sameCount2) {
+                                edConnIdx3 = eci2;
+                                break;
+                            }
+                            matchCount3++;
+                        }
+                    }
+                    if (edConnIdx3 >= 0) {
+                        if (!edConns3[edConnIdx3].waypoints) edConns3[edConnIdx3].waypoints = [];
+                        // Insert waypoint at click position, in correct segment position
+                        edConns3[edConnIdx3].waypoints.splice(dcClosestSeg, 0, { x: mx, y: my });
+                        self.invalidateUpdateView();
+                        return;
                     }
                     // If not in editorState yet, promote it
                     if (!self._editorState.connections) self._editorState.connections = [];
                     self._editorState.connections.push({
-                        from: dc.from, to: dc.to,
-                        style: dc.style || 'straight',
-                        color: dc.color || '',
-                        width: dc.width || 2,
-                        dash: dc.dash || false,
-                        startEndpoint: dc.startEndpoint || 'none',
-                        endEndpoint: dc.endEndpoint || 'filledArrow',
-                        label: dc.label || '',
-                        manual: dc.manual || false,
+                        from: dc2.from, to: dc2.to,
+                        style: dc2.style || 'straight',
+                        color: dc2.color || '',
+                        width: dc2.width || 2,
+                        dash: dc2.dash || false,
+                        startEndpoint: dc2.startEndpoint || 'none',
+                        endEndpoint: dc2.endEndpoint || 'filledArrow',
+                        label: dc2.label || '',
+                        manual: dc2.manual || false,
                         waypoints: [{ x: mx, y: my }]
                     });
                     self.invalidateUpdateView();
