@@ -1026,8 +1026,8 @@ define([
         var ge = globalEffects || {};
         var showRaw = node.rawValue !== undefined ? (node.rawValue === true || node.rawValue === 'on' || node.rawValue === 'full') : ge.rawValue;
         var tAlign = node.textAlign || 'center';
-        var vAlign = node.verticalAlign || 'middle';
-        var padMap = { compact: 4, normal: 12, spacious: 24 };
+        var vAlign = node.verticalAlign || 'center';
+        var padMap = { compact: 2, normal: 10, spacious: 28 };
         var pad = node.customPadding ? parseInt(node.customPadding, 10) : (padMap[node.padding] || padMap.normal);
 
         // Responsive base sizes — scale with node dimensions
@@ -1323,91 +1323,149 @@ define([
         if (sparkPos === 'behind' && hasSpark) {
             // BEHIND: sparkline fills entire node background, text overlaps on top
             drawSparkline(ctx, node.series, x, y, w, h, nodeSparkType, node.color);
+            // Compute vertical position for label + value block
+            var bhTextBlockH = labelFontSize + valueFontSize + 4;
+            var bhStartY;
+            if (vAlign === 'top') {
+                bhStartY = ty0 + pad;
+            } else if (vAlign === 'bottom') {
+                bhStartY = ty0 + th0 - bhTextBlockH - pad;
+            } else {
+                bhStartY = ty0 + (th0 - bhTextBlockH) / 2;
+            }
             // Label
             ctx.font = labelFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
             ctx.fillStyle = node.labelColor || theme.textMuted;
             ctx.textAlign = tAlign;
             ctx.textBaseline = 'top';
-            ctx.fillText(truncateText(node.label, 18), textX, ty0 + textPadY);
+            ctx.fillText(truncateText(node.label, 18), textX, bhStartY);
             // Value
             if (showValue) {
                 ctx.fillStyle = node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
-                drawFitText(ctx, valueText, textX, ty0 + th0 * 0.5, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
+                drawFitText(ctx, valueText, textX, bhStartY + labelFontSize + 4 + valueFontSize / 2, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else if (sparkPos === 'above' && hasSpark) {
             // ABOVE: sparkline in top portion, text below
             var abSparkH = Math.round(th0 * 0.5);
-            drawSparkline(ctx, node.series, tx0 + 4, ty0 + 4, tw0 - 8, abSparkH - 4, nodeSparkType, node.color);
+            drawSparkline(ctx, node.series, tx0 + pad, ty0 + pad, tw0 - pad * 2, abSparkH - pad, nodeSparkType, node.color);
+            // Text area below sparkline
+            var abTextAreaY = ty0 + abSparkH;
+            var abTextAreaH = th0 - abSparkH;
+            var abTextBlockH = labelFontSize + valueFontSize + 4;
+            var abStartY;
+            if (vAlign === 'top') {
+                abStartY = abTextAreaY + pad;
+            } else if (vAlign === 'bottom') {
+                abStartY = abTextAreaY + abTextAreaH - abTextBlockH - pad;
+            } else {
+                abStartY = abTextAreaY + (abTextAreaH - abTextBlockH) / 2;
+            }
             // Label below spark
             ctx.font = labelFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
             ctx.fillStyle = node.labelColor || theme.textMuted;
             ctx.textAlign = tAlign;
             ctx.textBaseline = 'top';
-            ctx.fillText(truncateText(node.label, 18), textX, ty0 + abSparkH + 2);
+            ctx.fillText(truncateText(node.label, 18), textX, abStartY);
             // Value
             if (showValue) {
                 ctx.fillStyle = node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
-                drawFitText(ctx, valueText, textX, ty0 + abSparkH + labelFontSize + (th0 - abSparkH) * 0.35, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
+                drawFitText(ctx, valueText, textX, abStartY + labelFontSize + 4 + valueFontSize / 2, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else if (sparkPos === 'left' && hasSpark) {
             // LEFT: sparkline on left, text on right
             var leftSparkW = Math.round(tw0 * 0.45);
-            drawSparkline(ctx, node.series, tx0 + 4, ty0 + textPadY, leftSparkW - 8, th0 - textPadY * 2, nodeSparkType, node.color);
+            drawSparkline(ctx, node.series, tx0 + pad, ty0 + pad, leftSparkW - pad * 2, th0 - pad * 2, nodeSparkType, node.color);
             // Label on right (tAlign applies within right panel)
-            var rightX = tx0 + leftSparkW + 4;
-            var rightW = tw0 - leftSparkW - 8;
+            var rightX = tx0 + leftSparkW + pad;
+            var rightW = tw0 - leftSparkW - pad * 2;
             var rightTextX;
             if (tAlign === 'left') rightTextX = rightX + pad;
             else if (tAlign === 'right') rightTextX = rightX + rightW - pad;
             else rightTextX = rightX + rightW / 2;
+            // Compute vertical position in the right panel
+            var ltTextBlockH = labelFontSize + valueFontSize + 4;
+            var ltStartY;
+            if (vAlign === 'top') {
+                ltStartY = ty0 + pad;
+            } else if (vAlign === 'bottom') {
+                ltStartY = ty0 + th0 - ltTextBlockH - pad;
+            } else {
+                ltStartY = ty0 + (th0 - ltTextBlockH) / 2;
+            }
             ctx.font = labelFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
             ctx.fillStyle = node.labelColor || theme.textMuted;
             ctx.textAlign = tAlign;
             ctx.textBaseline = 'top';
-            ctx.fillText(truncateText(node.label, 12), rightTextX, ty0 + textPadY);
+            ctx.fillText(truncateText(node.label, 12), rightTextX, ltStartY);
             // Value on right
             if (showValue) {
                 ctx.fillStyle = node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
-                drawFitText(ctx, valueText, rightTextX, ty0 + th0 * 0.55, rightW - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
+                drawFitText(ctx, valueText, rightTextX, ltStartY + labelFontSize + 4 + valueFontSize / 2, rightW - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else {
             // DEFAULT (below): label top, value middle, sparkline bottom
-            // Compute vertical offsets based on vAlign
-            var vOffsetLabel, vOffsetValue;
+            // Compute text block height
+            var textBlockH = labelFontSize + valueFontSize + 4;
+            if (node.subtitle) textBlockH += Math.max(9, labelFontSize - 1) + 4;
+            // Compute vertical start based on vAlign
+            var startY;
             if (vAlign === 'top') {
-                vOffsetLabel = textPadY;
-                vOffsetValue = labelFontSize + textPadY * 2;
+                startY = ty0 + pad;
             } else if (vAlign === 'bottom') {
-                vOffsetLabel = th0 - valueFontSize - labelFontSize - textPadY * 3;
-                vOffsetValue = th0 - valueFontSize - textPadY;
+                startY = ty0 + th0 - textBlockH - pad;
             } else {
-                // middle (default)
-                vOffsetLabel = textPadY;
-                vOffsetValue = th0 * 0.48;
+                // center (default)
+                startY = ty0 + (th0 - textBlockH) / 2;
+            }
+            var dfLabelY = startY;
+            var dfValueY = startY + labelFontSize + 4;
+            if (shape === 'circle') dfLabelY = y + h * 0.18;
+            // Adjust for sparkline at bottom — move text block up
+            if (hasSpark) {
+                dfValueY = ty0 + th0 * 0.38;
+                if (vAlign === 'top') {
+                    dfLabelY = ty0 + pad;
+                    dfValueY = ty0 + pad + labelFontSize + 4;
+                } else if (vAlign === 'bottom') {
+                    dfValueY = ty0 + th0 - sparkH - pad * 2 - valueFontSize;
+                    dfLabelY = dfValueY - labelFontSize - 4;
+                } else {
+                    dfLabelY = ty0 + pad;
+                    dfValueY = ty0 + th0 * 0.38;
+                }
+            }
+            // Adjust for subtitle
+            if (node.subtitle && !hasSpark) {
+                if (vAlign === 'top') {
+                    dfLabelY = ty0 + pad;
+                    dfValueY = ty0 + pad + labelFontSize + 4;
+                } else if (vAlign === 'bottom') {
+                    var subH = Math.max(9, labelFontSize - 1);
+                    dfValueY = ty0 + th0 - subH - valueFontSize * 0.6 - 4 - valueFontSize - pad;
+                    dfLabelY = dfValueY - labelFontSize - 4;
+                } else {
+                    dfLabelY = ty0 + (th0 - textBlockH) / 2;
+                    dfValueY = dfLabelY + labelFontSize + 4;
+                }
             }
             // Label
             ctx.font = labelFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
             ctx.fillStyle = node.labelColor || theme.textMuted;
             ctx.textAlign = tAlign;
             ctx.textBaseline = 'top';
-            var labelY = ty0 + vOffsetLabel;
-            if (shape === 'circle') labelY = y + h * 0.18;
-            ctx.fillText(truncateText(node.label, 18), textX, labelY);
+            ctx.fillText(truncateText(node.label, 18), textX, dfLabelY);
             // Value
-            var valueY = ty0 + vOffsetValue;
             if (showValue) {
                 ctx.fillStyle = node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
-                if (hasSpark) valueY = ty0 + th0 * 0.38;
-                if (node.subtitle) valueY = ty0 + th0 * 0.35;
-                drawFitText(ctx, valueText, textX, valueY, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
+                drawFitText(ctx, valueText, textX, dfValueY + valueFontSize / 2, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
             // Subtitle
             if (node.subtitle) {
@@ -1415,24 +1473,24 @@ define([
                 ctx.fillStyle = node.labelColor || theme.textMuted;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'top';
-                ctx.fillText(truncateText(node.subtitle, 22), textX, valueY + valueFontSize * 0.6 + 4);
+                ctx.fillText(truncateText(node.subtitle, 22), textX, dfValueY + valueFontSize + 4);
             }
             // Sparkline at bottom
             if (hasSpark) {
-                var sparkY = y + h - sparkH - 4;
-                var sparkX = x + 4;
-                var sparkW = w - 8;
+                var sparkY = y + h - sparkH - pad;
+                var sparkX = x + pad;
+                var sparkW = w - pad * 2;
                 if (shape === 'circle') {
                     var cr2 = Math.min(w, h) / 2;
                     var sparkYOff = sparkY + sparkH / 2 - (y + h / 2);
                     var sparkHalfW = Math.sqrt(Math.max(0, cr2 * cr2 - sparkYOff * sparkYOff));
-                    sparkX = x + w / 2 - sparkHalfW + 4;
-                    sparkW = sparkHalfW * 2 - 8;
+                    sparkX = x + w / 2 - sparkHalfW + pad;
+                    sparkW = sparkHalfW * 2 - pad * 2;
                 } else if (shape === 'diamond') {
                     var relY2 = (sparkY + sparkH / 2 - y) / h;
                     var dHalfW = w / 2 * (relY2 > 0.5 ? 2 * (1 - relY2) : 2 * relY2);
-                    sparkX = x + w / 2 - dHalfW + 8;
-                    sparkW = dHalfW * 2 - 16;
+                    sparkX = x + w / 2 - dHalfW + pad;
+                    sparkW = dHalfW * 2 - pad * 2;
                 }
                 if (sparkW > 20) {
                     drawSparkline(ctx, node.series, sparkX, sparkY, sparkW, sparkH, nodeSparkType, node.color);
@@ -5387,9 +5445,9 @@ define([
 
                 // V. Align
                 textBody.appendChild(createToggleRow('V. Align', [
-                    {value: 'top', label: 'Top'}, {value: 'middle', label: 'Middle'},
+                    {value: 'top', label: 'Top'}, {value: 'center', label: 'Center'},
                     {value: 'bottom', label: 'Bottom'}
-                ], ns.verticalAlign || 'middle', makeOnChange('verticalAlign')));
+                ], ns.verticalAlign || 'center', makeOnChange('verticalAlign')));
 
                 // Label Color (hex + picker only, no swatches)
                 textBody.appendChild(createColorRow('Label Color', [], ns.labelColor || '', makeOnChange('labelColor')));
