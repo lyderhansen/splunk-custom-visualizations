@@ -4209,66 +4209,40 @@ define([
                     if (!self._codeEditorEl) {
                         // Create code editor container
                         var wrap = document.createElement('div');
-                        wrap.style.cssText = 'position:absolute;bottom:0;left:0;right:0;height:40%;background:#0f172a;border-top:2px solid #3b82f6;display:flex;flex-direction:column;z-index:5;font-family:monospace;min-height:36px;';
-
-                        // Drag handle for resizing
-                        var dragHandle = document.createElement('div');
-                        dragHandle.style.cssText = 'height:6px;cursor:ns-resize;background:transparent;flex-shrink:0;position:relative;';
-                        dragHandle.addEventListener('mousedown', function(de) {
-                            de.preventDefault();
-                            de.stopPropagation();
-                            var startY = de.clientY;
-                            var startH = wrap.offsetHeight;
-                            var parentH = self.el.getBoundingClientRect().height;
-                            function onDragMove(me) {
-                                var dy = startY - me.clientY;
-                                var newH = Math.max(36, Math.min(parentH * 0.85, startH + dy));
-                                wrap.style.height = newH + 'px';
-                            }
-                            function onDragEnd() {
-                                document.removeEventListener('mousemove', onDragMove);
-                                document.removeEventListener('mouseup', onDragEnd);
-                            }
-                            document.addEventListener('mousemove', onDragMove);
-                            document.addEventListener('mouseup', onDragEnd);
-                        });
-                        wrap.appendChild(dragHandle);
+                        wrap.style.cssText = 'position:absolute;bottom:0;left:0;right:0;height:40%;background:#0f172a;border-top:2px solid #3b82f6;display:flex;flex-direction:column;z-index:5;font-family:monospace;';
 
                         // Header
                         var hdr = document.createElement('div');
-                        hdr.style.cssText = 'padding:4px 12px;background:#1e293b;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid #334155;gap:8px;';
+                        hdr.style.cssText = 'padding:4px 12px;background:#1e293b;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid #334155;gap:6px;';
                         var hdrLabel = document.createElement('span');
                         hdrLabel.textContent = 'Layout JSON';
                         hdrLabel.style.cssText = 'color:#94a3b8;font-size:11px;font-weight:bold;font-family:sans-serif;';
 
                         var hdrBtns = document.createElement('div');
-                        hdrBtns.style.cssText = 'display:flex;gap:6px;align-items:center;';
+                        hdrBtns.style.cssText = 'display:flex;gap:4px;align-items:center;';
 
-                        // Minimize/maximize button
-                        var minMaxBtn = document.createElement('button');
-                        minMaxBtn.textContent = '\u2594'; // minimize icon
-                        minMaxBtn.style.cssText = 'padding:2px 8px;background:#334155;color:#94a3b8;border:none;border-radius:3px;font-size:11px;cursor:pointer;font-family:sans-serif;';
-                        var editorMinimized = false;
-                        var savedHeight = '40%';
-                        minMaxBtn.addEventListener('click', function() {
-                            if (editorMinimized) {
-                                wrap.style.height = savedHeight;
-                                minMaxBtn.textContent = '\u2594';
-                                editorMinimized = false;
-                            } else {
-                                savedHeight = wrap.style.height || '40%';
-                                wrap.style.height = '36px';
-                                minMaxBtn.textContent = '\u25A1';
-                                editorMinimized = true;
-                            }
-                        });
-                        minMaxBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                        // Size preset buttons: S / M / L / Max
+                        var sizeDefs = [
+                            {label: 'S', height: '20%'},
+                            {label: 'M', height: '40%'},
+                            {label: 'L', height: '60%'},
+                            {label: 'Max', height: '85%'}
+                        ];
+                        for (var szi = 0; szi < sizeDefs.length; szi++) {
+                            (function(sd) {
+                                var sBtn = document.createElement('button');
+                                sBtn.textContent = sd.label;
+                                sBtn.style.cssText = 'padding:2px 6px;background:#334155;color:#94a3b8;border:none;border-radius:3px;font-size:9px;cursor:pointer;font-family:sans-serif;';
+                                sBtn.addEventListener('click', function() { wrap.style.height = sd.height; });
+                                sBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                                hdrBtns.appendChild(sBtn);
+                            })(sizeDefs[szi]);
+                        }
 
                         var applyBtn = document.createElement('button');
                         applyBtn.textContent = 'Apply';
                         applyBtn.style.cssText = 'padding:2px 12px;background:#3b82f6;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;font-family:sans-serif;';
 
-                        hdrBtns.appendChild(minMaxBtn);
                         hdrBtns.appendChild(applyBtn);
                         hdr.appendChild(hdrLabel);
                         hdr.appendChild(hdrBtns);
