@@ -70,14 +70,14 @@
         </splunk-text-input>
     </splunk-control-group>
 
-    <splunk-control-group label="Default Background" help="Default node background color (hex, leave empty for theme default)">
-        <splunk-text-input name="{{VIZ_NAMESPACE}}.defaultBgColor" value="">
-        </splunk-text-input>
+    <splunk-control-group label="Default Background" help="Default node background color">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.defaultBgColor" value="">
+        </splunk-color-picker>
     </splunk-control-group>
 
-    <splunk-control-group label="Default Border Color" help="Default node border color (hex, leave empty for theme default)">
-        <splunk-text-input name="{{VIZ_NAMESPACE}}.defaultBorderColor" value="">
-        </splunk-text-input>
+    <splunk-control-group label="Default Border Color" help="Default node border color">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.defaultBorderColor" value="">
+        </splunk-color-picker>
     </splunk-control-group>
 
 </form>
@@ -129,8 +129,9 @@
     <splunk-control-group label="Shadow Offset Y" help="Vertical shadow offset">
         <splunk-text-input name="{{VIZ_NAMESPACE}}.shadowOffsetY" value="2"></splunk-text-input>
     </splunk-control-group>
-    <splunk-control-group label="Shadow Color" help="Shadow color (hex)">
-        <splunk-text-input name="{{VIZ_NAMESPACE}}.shadowColor" value="#000000"></splunk-text-input>
+    <splunk-control-group label="Shadow Color" help="Shadow color">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.shadowColor" value="#000000">
+        </splunk-color-picker>
     </splunk-control-group>
     <splunk-control-group label="Glow" help="Outer glow effect on nodes">
         <splunk-radio-input name="{{VIZ_NAMESPACE}}.glowEnabled" value="false">
@@ -141,7 +142,8 @@
     <splunk-control-group label="Glow Blur" help="Glow blur radius">
         <splunk-text-input name="{{VIZ_NAMESPACE}}.glowBlur" value="12"></splunk-text-input>
     </splunk-control-group>
-    <splunk-control-group label="Glow Color" help="Glow color (hex)">
-        <splunk-text-input name="{{VIZ_NAMESPACE}}.glowColor" value="#3b82f6"></splunk-text-input>
+    <splunk-control-group label="Glow Color" help="Glow color">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.glowColor" value="#3b82f6">
+        </splunk-color-picker>
     </splunk-control-group>
 </form>
