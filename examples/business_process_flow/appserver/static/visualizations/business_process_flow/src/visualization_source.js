@@ -2203,6 +2203,44 @@ define([
         return { x: cx, y: cy }; // center or auto
     }
 
+    /**
+     * Build the connection path on ctx (beginPath + moveTo/lineTo/quadraticCurveTo).
+     * Matches the exact geometry used by drawConnection for all curve types.
+     */
+    function buildConnectionPath(ctx, conn, points) {
+        ctx.beginPath();
+        if (conn.style === 'curved' && points.length === 2) {
+            // Simple 2-point bezier curve
+            var bmx = (points[0].x + points[1].x) / 2;
+            var bmy = (points[0].y + points[1].y) / 2;
+            var bdx = points[1].x - points[0].x;
+            var bdy = points[1].y - points[0].y;
+            var blen = Math.sqrt(bdx * bdx + bdy * bdy);
+            var boff = Math.min(40, blen * 0.2);
+            var bnx = blen > 0 ? -bdy / blen : 0;
+            var bny = blen > 0 ? bdx / blen : 0;
+            var bcpx = bmx + bnx * boff;
+            var bcpy = bmy + bny * boff;
+            ctx.moveTo(points[0].x, points[0].y);
+            ctx.quadraticCurveTo(bcpx, bcpy, points[1].x, points[1].y);
+        } else if (conn.style === 'curved' && points.length > 2) {
+            // Multi-point smooth curve through waypoints
+            ctx.moveTo(points[0].x, points[0].y);
+            for (var bci = 1; bci < points.length - 1; bci++) {
+                var bxc = (points[bci].x + points[bci + 1].x) / 2;
+                var byc = (points[bci].y + points[bci + 1].y) / 2;
+                ctx.quadraticCurveTo(points[bci].x, points[bci].y, bxc, byc);
+            }
+            ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+        } else {
+            // Straight polyline
+            ctx.moveTo(points[0].x, points[0].y);
+            for (var bli = 1; bli < points.length; bli++) {
+                ctx.lineTo(points[bli].x, points[bli].y);
+            }
+        }
+    }
+
     function drawConnection(ctx, fromNode, toNode, conn, theme, isSelected, editMode, isHovered, animOffset) {
         var fromCx = fromNode.x + fromNode.w / 2;
         var fromCy = fromNode.y + fromNode.h / 2;
@@ -2433,30 +2471,12 @@ define([
             ctx.shadowColor = lineColor;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-            var marchDash = [12, 8];
+            // Use the connection's stroke pattern, or default marching pattern
+            var marchDash = connDashPattern.length > 0 ? connDashPattern : [12, 8];
             ctx.setLineDash(marchDash);
             ctx.lineDashOffset = -(animOff * marchSpeed);
-            // Re-draw path with animated dash
-            ctx.beginPath();
-            if (conn.style === 'curved' && points.length === 2) {
-                var amx = (points[0].x + points[points.length - 1].x) / 2;
-                var amy = (points[0].y + points[points.length - 1].y) / 2;
-                var adx = points[points.length - 1].x - points[0].x;
-                var ady = points[points.length - 1].y - points[0].y;
-                var alen = Math.sqrt(adx * adx + ady * ady);
-                var aoff = Math.min(40, alen * 0.2);
-                var anx = alen > 0 ? -ady / alen : 0;
-                var any = alen > 0 ? adx / alen : 0;
-                var acpx = amx + anx * aoff;
-                var acpy = amy + any * aoff;
-                ctx.moveTo(points[0].x, points[0].y);
-                ctx.quadraticCurveTo(acpx, acpy, points[points.length - 1].x, points[points.length - 1].y);
-            } else {
-                ctx.moveTo(points[0].x, points[0].y);
-                for (var alpi = 1; alpi < points.length; alpi++) {
-                    ctx.lineTo(points[alpi].x, points[alpi].y);
-                }
-            }
+            // Re-draw path matching exact curve geometry
+            buildConnectionPath(ctx, conn, points);
             ctx.stroke();
             ctx.globalAlpha = 1;
             ctx.shadowBlur = 0;
@@ -2478,26 +2498,8 @@ define([
             ctx.shadowOffsetY = 0;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            ctx.beginPath();
-            if (conn.style === 'curved' && points.length === 2) {
-                var pmx = (points[0].x + points[points.length - 1].x) / 2;
-                var pmy = (points[0].y + points[points.length - 1].y) / 2;
-                var pdx = points[points.length - 1].x - points[0].x;
-                var pdy = points[points.length - 1].y - points[0].y;
-                var plen = Math.sqrt(pdx * pdx + pdy * pdy);
-                var poff = Math.min(40, plen * 0.2);
-                var pnx = plen > 0 ? -pdy / plen : 0;
-                var pny = plen > 0 ? pdx / plen : 0;
-                var pcpx = pmx + pnx * poff;
-                var pcpy = pmy + pny * poff;
-                ctx.moveTo(points[0].x, points[0].y);
-                ctx.quadraticCurveTo(pcpx, pcpy, points[points.length - 1].x, points[points.length - 1].y);
-            } else {
-                ctx.moveTo(points[0].x, points[0].y);
-                for (var plpi = 1; plpi < points.length; plpi++) {
-                    ctx.lineTo(points[plpi].x, points[plpi].y);
-                }
-            }
+            // Re-draw path matching exact curve geometry
+            buildConnectionPath(ctx, conn, points);
             ctx.stroke();
             ctx.globalAlpha = 1;
             ctx.shadowBlur = 0;
