@@ -1,5 +1,34 @@
 # Business Process Flow — Changelog
 
+## v5.1.0 — 2026-03-23
+- **Bug fixes & cleanup** — 688 lines of dead code removed, 4 memory/undo bugs fixed
+  - Fixed memory leak: `_syncInterval` and canvas event listeners now cleaned up in `destroy()`
+  - Fixed undo bug: multi-select property changes now capture pre-mutation state
+  - Fixed `defaultOpacity` config mismatch between formatter and savedsearches.conf
+  - Removed unused functions: `drawNodePopup`, `drawConnectionPopup`, `evalConditionsAll`, `lerpColor`, `pointNearLine`, `pointNearBezier`, `drawArrowhead`, `applyStrokePattern`
+- **Connection label styling** — Font size, text/bg/border color, border style/width/radius
+- **Labels snap to line** — Drag labels along the connection path, `labelPosition` (0-1) replaces free X/Y offset
+- **Visible line animations** — Marching ants use lighter line color + glow, pulse has width oscillation + shadow
+- **Animation hover trigger fixed** — `_animActive` now passed through computed connections
+- **Condition presets** — Traffic Light, Binary, Heat Map, Status Text with auto-calculated thresholds
+- **Dynamic Elements** — Splunk-style condition target selector (None/Value/Trend/Val+Trend/BG/Border/Spark/All)
+- **Readable condition rules** — "If value at most 1600" instead of "<= 1600"
+- **Reverse Order button** — Flip condition rule order with one click
+- **Auto-populated rule values** — New rules calculate thresholds from node value
+- **Trend improvements** — Unified color system (conditions > custom up/down > auto green/red), compare marker follows sparkline path
+- **Gradient fill** — Custom start/end colors with direction (top-down, left-right, diagonal, radial)
+- **Z-order layering** — Send Back / Bring Forward to control node draw order
+- **Improved inner shadow** — Casts from all 4 edges, stronger on dark backgrounds
+- **Connection hit testing** — Robust closest-match using actual rendered geometry (curves + waypoints)
+- **Layout JSON editor** — S/M/L/Max size presets
+- **Sparkline enhancements** — Dot and Step chart types, Right position, custom chart height in all positions
+- **Sparkline hover overlay** — Crosshair + value tooltip on hover
+- **Panel stability** — Section open/close state and scroll preserved on refresh, event isolation
+- **Compact numeric spinners** — Fixed height 28px, smaller arrow buttons
+- **Color picker in formatter** — `<splunk-color-picker>` for Default Background, Border, Shadow, Glow colors
+- **Grid on by default** — Grid enabled when entering edit mode
+- **Align buttons** — Visual icons grouped by Horizontal/Vertical/Distribute
+
 ## v5.0.0 — 2026-03-22
 - **DOM Properties Panel** — Right-side inspector panel replaces all canvas popups
   - Collapsible sections: Appearance, Text & Value, Sparkline, Effects, Conditions
