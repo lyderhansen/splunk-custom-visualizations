@@ -5758,13 +5758,36 @@ define([
             // Helper for properties that change panel structure (shows/hides sub-controls)
             function makeOnChangeAndRefresh(prop) {
                 return function(val) {
-                    self._pushUndo(); // capture pre-mutation state for correct undo
+                    self._pushUndo();
                     if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
                     es.nodes[nodeId][prop] = val;
                     self.invalidateUpdateView();
+                    // Save section open/close state + scroll before rebuild
                     var scrollPos = self._panelBody ? self._panelBody.scrollTop : 0;
+                    var sectionStates = [];
+                    if (self._panelBody) {
+                        var sections = self._panelBody.children;
+                        for (var si = 0; si < sections.length; si++) {
+                            var secBody = sections[si]._body;
+                            sectionStates.push(secBody ? secBody.style.display !== 'none' : true);
+                        }
+                    }
                     self._updatePanel();
-                    if (self._panelBody) self._panelBody.scrollTop = scrollPos;
+                    // Restore section states + scroll
+                    if (self._panelBody) {
+                        var newSections = self._panelBody.children;
+                        for (var ri = 0; ri < newSections.length && ri < sectionStates.length; ri++) {
+                            var rBody = newSections[ri]._body;
+                            var rArrow = newSections[ri]._arrow;
+                            var rSummary = newSections[ri]._summary;
+                            if (rBody) {
+                                rBody.style.display = sectionStates[ri] ? '' : 'none';
+                                if (rArrow) rArrow.textContent = sectionStates[ri] ? '\u25BC' : '\u25B6';
+                                if (rSummary) rSummary.style.display = sectionStates[ri] ? 'none' : '';
+                            }
+                        }
+                        self._panelBody.scrollTop = scrollPos;
+                    }
                 };
             }
 
