@@ -6383,7 +6383,14 @@ define([
 
             // ── Conditions Section ──
             var conds = ns.conditions || [];
-            var condSummary = conds.length > 0 ? conds.length + ' rule' + (conds.length > 1 ? 's' : '') : 'None';
+            var condSummary = '';
+            if (conds.length > 0) {
+                condSummary = conds.length + ' rule' + (conds.length > 1 ? 's' : '');
+                var ct = ns.conditionTarget || 'background';
+                if (ct !== 'background') condSummary += ' \u2192 ' + ct;
+            } else {
+                condSummary = 'None';
+            }
             var condSec = createPanelSection('Conditions', condSummary, false);
             var condBody = condSec._body;
 
@@ -6542,7 +6549,7 @@ define([
                 (function(ruleIdx) {
                     var rule = conds[ruleIdx];
                     var ruleRow = document.createElement('div');
-                    ruleRow.style.cssText = 'display:flex;align-items:center;gap:4px;margin-bottom:4px;padding:4px 6px;background:#0f172a;border-radius:4px;border:1px solid #1e293b;';
+                    ruleRow.style.cssText = 'display:flex;align-items:center;gap:4px;margin-bottom:6px;padding:6px 8px;background:#0f172a;border-radius:6px;border:1px solid #1e293b;flex-wrap:wrap;';
 
                     // Color indicator (left)
                     var colorDot = document.createElement('div');
@@ -6567,14 +6574,21 @@ define([
                     colorDot.appendChild(hiddenColor);
                     ruleRow.appendChild(colorDot);
 
+                    // "If value" label
+                    var ifLabel = document.createElement('span');
+                    ifLabel.textContent = 'If value';
+                    ifLabel.style.cssText = 'color:#64748b;font-size:9px;white-space:nowrap;';
+                    ruleRow.appendChild(ifLabel);
+
                     // Operator dropdown
                     var opSelect = document.createElement('select');
-                    opSelect.style.cssText = 'background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:3px;font-size:10px;padding:2px;width:50px;outline:none;';
-                    var ops = ['<', '<=', '>', '>=', '=', '!=', 'contains'];
+                    opSelect.style.cssText = 'background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:3px;font-size:9px;padding:3px 4px;min-width:70px;outline:none;';
+                    var ops =      ['<',          '<=',      '>',           '>=',       '=',       '!=',        'contains'];
+                    var opLabels = ['less than',  'at most', 'more than',   'at least', 'equals',  'not equal', 'contains'];
                     for (var oi = 0; oi < ops.length; oi++) {
                         var opt = document.createElement('option');
                         opt.value = ops[oi];
-                        opt.textContent = ops[oi];
+                        opt.textContent = opLabels[oi];
                         if (rule.op === ops[oi]) opt.selected = true;
                         opSelect.appendChild(opt);
                     }
