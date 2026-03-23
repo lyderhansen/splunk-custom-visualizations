@@ -954,8 +954,8 @@ define([
                 customChartHeight: edState ? edState.customChartHeight : undefined,
                 markdownContent: edState ? edState.markdownContent : undefined,
                 trendDisplay: edState ? edState.trendDisplay : undefined,
-                trendColor: edState ? edState.trendColor : undefined,
-                trendUseConditions: edState ? edState.trendUseConditions : undefined,
+                trendUpColor: edState ? edState.trendUpColor : undefined,
+                trendDownColor: edState ? edState.trendDownColor : undefined,
                 trendCompareBack: edState ? edState.trendCompareBack : undefined,
                 sparkHover: edState ? edState.sparkHover : undefined,
                 conditionTarget: edState ? edState.conditionTarget : undefined,
@@ -2028,23 +2028,19 @@ define([
                 trendText = trendArrow + formatCount(Math.abs(trendVal));
             }
 
-            // Determine trend color
+            // Determine trend color — priority: conditions > custom up/down > auto
             var trendColor;
-            if (node.trendColor) {
-                trendColor = node.trendColor;
-            } else if (trendVal >= 0) {
-                trendColor = '#22c55e';
-            } else {
-                trendColor = '#ef4444';
-            }
 
-            // Condition-based trend coloring — explicit 'trend' target wins, then trendUseConditions fallback
+            // 1. Check if conditions target trend (condResults.trend is pre-computed above)
             if (condResults.trend) {
                 trendColor = condResults.trend;
-            } else if (node.trendUseConditions === 'on' && node.conditions) {
-                var trendTestVal = trendDisplay === 'percent' ? trendPct : trendVal;
-                var trendCondColor = evalConditions(node.conditions, trendTestVal);
-                if (trendCondColor) trendColor = trendCondColor;
+            } else {
+                // 2. Use custom up/down colors or auto defaults
+                if (trendVal >= 0) {
+                    trendColor = node.trendUpColor || '#22c55e';
+                } else {
+                    trendColor = node.trendDownColor || '#ef4444';
+                }
             }
 
             // Draw trend text — smaller font, positioned after value
@@ -6319,10 +6315,8 @@ define([
 
             if (ns.trendDisplay && ns.trendDisplay !== 'off') {
                 sparkBody.appendChild(createTextRow('Compare Back', ns.trendCompareBack || '1', makeOnChange('trendCompareBack'), { numeric: true, min: 1, max: 59, step: 1 }));
-                sparkBody.appendChild(createColorRow('Trend Color', colors, ns.trendColor || '', makeOnChange('trendColor')));
-                sparkBody.appendChild(createToggleRow('Color by Conditions', [
-                    {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
-                ], ns.trendUseConditions || 'off', makeOnChange('trendUseConditions')));
+                sparkBody.appendChild(createColorRow('Trend Up', colors, ns.trendUpColor || '#22c55e', makeOnChange('trendUpColor')));
+                sparkBody.appendChild(createColorRow('Trend Down', colors, ns.trendDownColor || '#ef4444', makeOnChange('trendDownColor')));
             }
 
             body.appendChild(sparkSec);
