@@ -5235,7 +5235,11 @@ define([
 
                 // Clear hover-triggered animation active state (will be re-set if still hovering)
                 var edConnsClr = self._editorState.connections || [];
+                var hadHoverAnim = false;
                 for (var haci = 0; haci < edConnsClr.length; haci++) {
+                    if (edConnsClr[haci].animationTrigger === 'hover' && edConnsClr[haci]._animActive) {
+                        hadHoverAnim = true;
+                    }
                     if (edConnsClr[haci].animationTrigger === 'hover') {
                         edConnsClr[haci]._animActive = false;
                     }
@@ -5283,12 +5287,20 @@ define([
                     if (hvClosestCci >= 0) {
                         self._hoverItem = { type: 'connection', index: hvClosestCci };
                         // Set _animActive for hover-triggered animations
+                        // Map computed connection index back to editorState connection
+                        var hoveredComp = self._computedConnections[hvClosestCci];
                         var edConnsHv = self._editorState.connections || [];
+                        var hoveredSet = false;
                         for (var hvei = 0; hvei < edConnsHv.length; hvei++) {
                             if (edConnsHv[hvei].animationTrigger === 'hover') {
-                                edConnsHv[hvei]._animActive = (hvei === hvClosestCci);
+                                // Match by from+to
+                                var isHoveredConn = hoveredComp && edConnsHv[hvei].from === hoveredComp.from && edConnsHv[hvei].to === hoveredComp.to;
+                                edConnsHv[hvei]._animActive = isHoveredConn;
+                                if (isHoveredConn) hoveredSet = true;
                             }
                         }
+                        // Trigger redraw to start/stop animation loop
+                        if (hoveredSet) self.invalidateUpdateView();
                     }
                 }
 
