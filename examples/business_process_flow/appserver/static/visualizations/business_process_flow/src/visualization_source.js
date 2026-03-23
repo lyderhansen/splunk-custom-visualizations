@@ -4907,10 +4907,8 @@ define([
                         if (!onHandle) {
                             if (self._editMode) {
                                 self.canvas.style.cursor = 'move';
-                            } else if (self._lockMode) {
-                                self.canvas.style.cursor = 'pointer';
                             } else {
-                                self.canvas.style.cursor = 'grab';
+                                self.canvas.style.cursor = 'default';
                             }
                         }
                     } else if (self._hoverItem.type === 'connection') {
@@ -5632,7 +5630,9 @@ define([
                     if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
                     es.nodes[nodeId][prop] = val;
                     self.invalidateUpdateView();
+                    var scrollPos = self._panelBody ? self._panelBody.scrollTop : 0;
                     self._updatePanel();
+                    if (self._panelBody) self._panelBody.scrollTop = scrollPos;
                 };
             }
 
