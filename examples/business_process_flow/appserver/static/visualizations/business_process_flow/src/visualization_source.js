@@ -132,6 +132,18 @@ define([
     }
 
     /**
+     * Check if a hex color is dark (luminance < 0.5).
+     */
+    function isColorDark(hex) {
+        var norm = normalizeToHex(hex);
+        var r = parseInt(norm.slice(1, 3), 16);
+        var g = parseInt(norm.slice(3, 5), 16);
+        var b = parseInt(norm.slice(5, 7), 16);
+        var luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        return luminance < 0.5;
+    }
+
+    /**
      * Normalize a color value to a 7-char hex string.
      * Handles hex (#abc, #aabbcc), rgb(), rgba(), and named colors via canvas fallback.
      */
@@ -898,6 +910,10 @@ define([
                 glowColor: edState ? edState.glowColor : undefined,
                 innerShadow: edState ? edState.innerShadow : undefined,
                 gradientFill: edState ? edState.gradientFill : undefined,
+                gradientDirection: edState ? edState.gradientDirection : undefined,
+                gradientStart: edState ? edState.gradientStart : undefined,
+                gradientEnd: edState ? edState.gradientEnd : undefined,
+                zOrder: edState ? edState.zOrder : undefined,
                 frostedGlass: edState ? edState.frostedGlass : undefined
             };
 
@@ -1378,9 +1394,24 @@ define([
         var gradientOn = node.gradientFill === 'on' || (node.gradientFill === undefined && ge.gradientFill === 'on');
         if (gradientOn) {
             var hexFill = normalizeToHex(baseFillColor);
-            var grad = ctx.createLinearGradient(x, y, x, y + h);
-            grad.addColorStop(0, lightenColor(hexFill, 0.15));
-            grad.addColorStop(1, darkenColor(hexFill, 0.15));
+            var gDir = node.gradientDirection || 'top-down';
+            var gStart = node.gradientStart || lightenColor(hexFill, 0.15);
+            var gEnd = node.gradientEnd || darkenColor(hexFill, 0.15);
+            var grad;
+            if (gDir === 'left-right') {
+                grad = ctx.createLinearGradient(x, y, x + w, y);
+            } else if (gDir === 'diagonal') {
+                grad = ctx.createLinearGradient(x, y, x + w, y + h);
+            } else if (gDir === 'radial') {
+                var gcx = x + w / 2, gcy = y + h / 2;
+                var gr = Math.max(w, h) / 2;
+                grad = ctx.createRadialGradient(gcx, gcy, 0, gcx, gcy, gr);
+            } else {
+                // top-down (default)
+                grad = ctx.createLinearGradient(x, y, x, y + h);
+            }
+            grad.addColorStop(0, gStart);
+            grad.addColorStop(1, gEnd);
             ctx.fillStyle = grad;
         } else {
             ctx.fillStyle = baseFillColor;
@@ -1467,20 +1498,35 @@ define([
             ctx.save();
             shapePath();
             ctx.clip();
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = 'rgba(0,0,0,0.4)';
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 2;
-            ctx.fillStyle = 'rgba(0,0,0,0)';
-            // Cast shadow from top edge
-            ctx.fillRect(x - 20, y - 20, w + 40, 20);
-            // Cast shadow from left edge
-            ctx.fillRect(x - 20, y - 20, 20, h + 40);
+
+            var isDarkBg = isColorDark(normalizeToHex(baseFillColor));
+            var innerShadowColor = isDarkBg ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.3)';
+
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = innerShadowColor;
+            ctx.fillStyle = 'transparent';
+
+            // Top edge
+            ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 4;
+            ctx.fillRect(x - 20, y - 24, w + 40, 20);
+
+            // Left edge
+            ctx.shadowOffsetX = 4; ctx.shadowOffsetY = 0;
+            ctx.fillRect(x - 24, y - 20, 20, h + 40);
+
+            // Bottom edge (subtle)
+            ctx.shadowOffsetX = 0; ctx.shadowOffsetY = -3;
+            ctx.fillRect(x - 20, y + h + 4, w + 40, 20);
+
+            // Right edge (subtle)
+            ctx.shadowOffsetX = -3; ctx.shadowOffsetY = 0;
+            ctx.fillRect(x + w + 4, y - 20, 20, h + 40);
+
             ctx.restore();
             ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-            ctx.shadowColor = 'transparent';
         }
 
         // Accent line at top (rect only)
@@ -5942,6 +5988,40 @@ define([
             var appearSec = createPanelSection('Appearance', '', true);
             var appearBody = appearSec._body;
 
+            // Z-Order (Layer)
+            appearBody.appendChild(createToggleRow('Layer', [
+                {value: 'back', label: 'Back'}, {value: 'default', label: 'Default'}, {value: 'front', label: 'Front'}
+            ], ns.zOrder || 'default', makeOnChange('zOrder')));
+
+            var zBtnRow = document.createElement('div');
+            zBtnRow.style.cssText = 'display:flex;gap:4px;margin-bottom:8px;';
+
+            var bringFwdBtn = document.createElement('button');
+            bringFwdBtn.textContent = 'Bring Forward';
+            bringFwdBtn.style.cssText = 'flex:1;padding:4px;border-radius:4px;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-size:10px;cursor:pointer;';
+            bringFwdBtn.addEventListener('click', function() {
+                if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                var cur = parseInt(es.nodes[nodeId].zOrder, 10) || 0;
+                es.nodes[nodeId].zOrder = String(cur + 1);
+                self._pushUndo();
+                self.invalidateUpdateView();
+            });
+
+            var sendBackBtn = document.createElement('button');
+            sendBackBtn.textContent = 'Send Back';
+            sendBackBtn.style.cssText = 'flex:1;padding:4px;border-radius:4px;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-size:10px;cursor:pointer;';
+            sendBackBtn.addEventListener('click', function() {
+                if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                var cur = parseInt(es.nodes[nodeId].zOrder, 10) || 0;
+                es.nodes[nodeId].zOrder = String(cur - 1);
+                self._pushUndo();
+                self.invalidateUpdateView();
+            });
+
+            zBtnRow.appendChild(sendBackBtn);
+            zBtnRow.appendChild(bringFwdBtn);
+            appearBody.appendChild(zBtnRow);
+
             // Shape
             var currentShape = ns.shape || 'rect';
             appearBody.appendChild(createToggleRow('Shape', [
@@ -6172,6 +6252,16 @@ define([
             effectsBody.appendChild(createToggleRow('Gradient Fill', [
                 {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
             ], ns.gradientFill || 'off', makeOnChangeAndRefresh('gradientFill')));
+
+            if (gradientOn) {
+                effectsBody.appendChild(createToggleRow('Gradient Dir.', [
+                    {value: 'top-down', label: '\u2193'}, {value: 'left-right', label: '\u2192'},
+                    {value: 'diagonal', label: '\u2198'}, {value: 'radial', label: '\u25CE'}
+                ], ns.gradientDirection || 'top-down', makeOnChange('gradientDirection')));
+
+                effectsBody.appendChild(createColorRow('Gradient Start', colors, ns.gradientStart || '', makeOnChange('gradientStart')));
+                effectsBody.appendChild(createColorRow('Gradient End', colors, ns.gradientEnd || '', makeOnChange('gradientEnd')));
+            }
 
             effectsBody.appendChild(createToggleRow('Frosted Glass', [
                 {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
@@ -6895,9 +6985,20 @@ define([
                 }
             }
 
+            // Sort nodes by zOrder before drawing (lower first = drawn underneath)
+            var drawOrder = [];
+            for (var doi = 0; doi < positioned.length; doi++) {
+                drawOrder.push(positioned[doi]);
+            }
+            drawOrder.sort(function(a, b) {
+                var za = a.zOrder === 'back' ? -100 : a.zOrder === 'front' ? 100 : (parseInt(a.zOrder, 10) || 0);
+                var zb = b.zOrder === 'back' ? -100 : b.zOrder === 'front' ? 100 : (parseInt(b.zOrder, 10) || 0);
+                return za - zb;
+            });
+
             // Draw nodes
-            for (var di = 0; di < positioned.length; di++) {
-                var pn = positioned[di];
+            for (var di = 0; di < drawOrder.length; di++) {
+                var pn = drawOrder[di];
                 var isNodeSelected = this._editMode && arrContains(this._selectedNodeIds, pn.id);
                 var isNodeHovered = this._hoverItem &&
                     this._hoverItem.type === 'node' &&
