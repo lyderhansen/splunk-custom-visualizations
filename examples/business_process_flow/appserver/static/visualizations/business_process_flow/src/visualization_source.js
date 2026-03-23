@@ -693,7 +693,10 @@ define([
                 customPadding: edState ? edState.customPadding : undefined,
                 customFontSize: edState ? edState.customFontSize : undefined,
                 customChartHeight: edState ? edState.customChartHeight : undefined,
-                markdownContent: edState ? edState.markdownContent : undefined
+                markdownContent: edState ? edState.markdownContent : undefined,
+                trendDisplay: edState ? edState.trendDisplay : undefined,
+                trendColor: edState ? edState.trendColor : undefined,
+                trendUseConditions: edState ? edState.trendUseConditions : undefined
             };
 
             if (edState && edState.x !== undefined && edState.y !== undefined) {
@@ -1370,6 +1373,12 @@ define([
         else if (tAlign === 'right') textX = tx0 + tw0 - pad;
         else textX = tx0 + tw0 / 2;
 
+        // Track where value text was drawn (used for trend indicator)
+        var _valDrawnX = textX;
+        var _valDrawnY = 0;
+        var _valDrawnAlign = tAlign;
+        var _valMaxW = tw0 - pad * 2;
+
         if (sparkPos === 'behind' && hasSpark) {
             // BEHIND: sparkline fills entire node background, text overlaps on top
             drawSparkline(ctx, node.series, x, y, w, h, nodeSparkType, node.color);
@@ -1391,10 +1400,13 @@ define([
             ctx.fillText(truncateText(node.label, 18), textX, bhStartY);
             // Value
             if (showValue) {
+                _valDrawnY = bhStartY + labelFontSize + 4 + valueFontSize / 2;
+                _valDrawnX = textX;
+                _valDrawnAlign = tAlign;
                 ctx.fillStyle = node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
-                drawFitText(ctx, valueText, textX, bhStartY + labelFontSize + 4 + valueFontSize / 2, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
+                drawFitText(ctx, valueText, textX, _valDrawnY, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else if (sparkPos === 'above' && hasSpark) {
             // ABOVE: sparkline in top portion, text below
@@ -1420,10 +1432,13 @@ define([
             ctx.fillText(truncateText(node.label, 18), textX, abStartY);
             // Value
             if (showValue) {
+                _valDrawnY = abStartY + labelFontSize + 4 + valueFontSize / 2;
+                _valDrawnX = textX;
+                _valDrawnAlign = tAlign;
                 ctx.fillStyle = node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
-                drawFitText(ctx, valueText, textX, abStartY + labelFontSize + 4 + valueFontSize / 2, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
+                drawFitText(ctx, valueText, textX, _valDrawnY, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else if (sparkPos === 'left' && hasSpark) {
             // LEFT: sparkline on left, text on right
@@ -1453,10 +1468,14 @@ define([
             ctx.fillText(truncateText(node.label, 12), rightTextX, ltStartY);
             // Value on right
             if (showValue) {
+                _valDrawnY = ltStartY + labelFontSize + 4 + valueFontSize / 2;
+                _valDrawnX = rightTextX;
+                _valDrawnAlign = tAlign;
+                _valMaxW = rightW - pad * 2;
                 ctx.fillStyle = node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
-                drawFitText(ctx, valueText, rightTextX, ltStartY + labelFontSize + 4 + valueFontSize / 2, rightW - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
+                drawFitText(ctx, valueText, rightTextX, _valDrawnY, rightW - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else if (sparkPos === 'right' && hasSpark) {
             // RIGHT: text on left 55%, sparkline on right 45% (mirror of left)
@@ -1486,10 +1505,14 @@ define([
             ctx.fillText(truncateText(node.label, 12), leftTextX, rtStartY);
             // Value on left
             if (showValue) {
+                _valDrawnY = rtStartY + labelFontSize + 4 + valueFontSize / 2;
+                _valDrawnX = leftTextX;
+                _valDrawnAlign = tAlign;
+                _valMaxW = leftTextW - pad * 2;
                 ctx.fillStyle = node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
-                drawFitText(ctx, valueText, leftTextX, rtStartY + labelFontSize + 4 + valueFontSize / 2, leftTextW - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
+                drawFitText(ctx, valueText, leftTextX, _valDrawnY, leftTextW - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else {
             // DEFAULT (below): label top, value middle, sparkline bottom
@@ -1545,10 +1568,13 @@ define([
             ctx.fillText(truncateText(node.label, 18), textX, dfLabelY);
             // Value
             if (showValue) {
+                _valDrawnY = dfValueY + valueFontSize / 2;
+                _valDrawnX = textX;
+                _valDrawnAlign = tAlign;
                 ctx.fillStyle = node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
-                drawFitText(ctx, valueText, textX, dfValueY + valueFontSize / 2, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
+                drawFitText(ctx, valueText, textX, _valDrawnY, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
             // Subtitle
             if (node.subtitle) {
@@ -1579,6 +1605,70 @@ define([
                     drawSparkline(ctx, node.series, sparkX, sparkY, sparkW, sparkH, nodeSparkType, node.color);
                 }
             }
+        }
+
+        // ── Trend Indicator ──
+        var trendDisplay = node.trendDisplay || 'off';
+        if (trendDisplay !== 'off' && showValue && node.series && node.series.length >= 2) {
+            var lastVal = node.series[node.series.length - 1];
+            var prevVal = node.series[node.series.length - 2];
+            var trendVal = lastVal - prevVal;
+            var trendPct = prevVal !== 0 ? ((lastVal - prevVal) / prevVal) * 100 : 0;
+
+            var trendArrow = trendVal >= 0 ? '\u2191' : '\u2193';
+            var trendText;
+            if (trendDisplay === 'percent') {
+                trendText = trendArrow + Math.abs(trendPct).toFixed(1) + '%';
+            } else {
+                trendText = trendArrow + formatCount(Math.abs(trendVal));
+            }
+
+            // Determine trend color
+            var trendColor;
+            if (node.trendColor) {
+                trendColor = node.trendColor;
+            } else if (trendVal >= 0) {
+                trendColor = '#22c55e';
+            } else {
+                trendColor = '#ef4444';
+            }
+
+            // Condition-based trend coloring
+            if (node.trendUseConditions === 'on' && node.conditions) {
+                var trendTestVal = trendDisplay === 'percent' ? trendPct : trendVal;
+                var trendCondColor = evalConditions(node.conditions, trendTestVal);
+                if (trendCondColor) trendColor = trendCondColor;
+            }
+
+            // Draw trend text — smaller font, positioned after value
+            var trendFontSize = Math.round(valueFontSize * 0.6);
+            ctx.font = 'bold ' + trendFontSize + 'px sans-serif';
+            ctx.fillStyle = trendColor;
+            ctx.textBaseline = 'middle';
+
+            // Measure the value text width at its drawn size
+            ctx.save();
+            ctx.font = 'bold ' + valueFontSize + 'px "SF Mono", "Fira Code", "Consolas", monospace';
+            var valTextW = ctx.measureText(valueText).width;
+            // Clamp to maxW if it was shrunk by drawFitText
+            if (valTextW > _valMaxW) valTextW = _valMaxW;
+            ctx.restore();
+
+            // Compute trend X position based on alignment
+            var trendX;
+            if (_valDrawnAlign === 'center') {
+                trendX = _valDrawnX + valTextW / 2 + 4;
+            } else if (_valDrawnAlign === 'left') {
+                trendX = _valDrawnX + valTextW + 4;
+            } else {
+                trendX = _valDrawnX + 4;
+            }
+
+            ctx.font = 'bold ' + trendFontSize + 'px sans-serif';
+            ctx.fillStyle = trendColor;
+            ctx.textAlign = 'left';
+            ctx.fillText(trendText, trendX, _valDrawnY);
+            ctx.textAlign = _valDrawnAlign; // restore
         }
 
         ctx.restore(); // end shape clip
@@ -5573,6 +5663,18 @@ define([
                 {value: 'medium', label: 'M'}, {value: 'large', label: 'L'}
             ], ns.chartHeight || 'default', makeOnChange('chartHeight')));
             sparkBody.appendChild(createTextRow('Custom Height', ns.customChartHeight || '', makeOnChange('customChartHeight'), { numeric: true, min: 10, max: 200, step: 5 }));
+
+            // Trend indicator
+            sparkBody.appendChild(createToggleRow('Trend', [
+                {value: 'off', label: 'Off'}, {value: 'absolute', label: 'Absolute'}, {value: 'percent', label: 'Percent'}
+            ], ns.trendDisplay || 'off', makeOnChangeAndRefresh('trendDisplay')));
+
+            if (ns.trendDisplay && ns.trendDisplay !== 'off') {
+                sparkBody.appendChild(createColorRow('Trend Color', colors, ns.trendColor || '', makeOnChange('trendColor')));
+                sparkBody.appendChild(createToggleRow('Color by Conditions', [
+                    {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
+                ], ns.trendUseConditions || 'off', makeOnChange('trendUseConditions')));
+            }
 
             body.appendChild(sparkSec);
 
