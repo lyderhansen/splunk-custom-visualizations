@@ -1006,7 +1006,8 @@ define([
                     animationType: mc.animationType,
                     animationTrigger: mc.animationTrigger,
                     animationSpeed: mc.animationSpeed,
-                    _animActive: mc._animActive
+                    _animActive: mc._animActive,
+                    _editorIdx: mi
                 });
             }
         }
@@ -4079,20 +4080,12 @@ define([
                         var selCci = self._connPopupIdx;
                         var ahc = self._computedConnections[selCci];
                         if (ahc) {
-                            // Find matching editorState connection by from+to+sameCount
+                            // Use _editorIdx stored on the computed connection for exact match
                             var edcAh = self._editorState.connections || [];
-                            var ahSameCount = 0;
                             var ahEdIdx = -1;
-                            for (var aeci = 0; aeci < edcAh.length; aeci++) {
-                                if (edcAh[aeci].from === ahc.from && edcAh[aeci].to === ahc.to) {
-                                    if (ahSameCount === (ahc._sameIdx || 0)) {
-                                        ahEdIdx = aeci;
-                                        break;
-                                    }
-                                    ahSameCount++;
-                                }
-                            }
-                            if (ahEdIdx < 0) {
+                            if (ahc._editorIdx !== undefined && ahc._editorIdx < edcAh.length) {
+                                ahEdIdx = ahc._editorIdx;
+                            } else {
                                 // Fallback: simple from+to match
                                 for (var aeci2 = 0; aeci2 < edcAh.length; aeci2++) {
                                     if (edcAh[aeci2].from === ahc.from && edcAh[aeci2].to === ahc.to) {
@@ -4131,13 +4124,21 @@ define([
                                 // Find editorState connection
                                 var wdConn = self._computedConnections[wdci];
                                 var edcDel = self._editorState.connections || [];
-                                for (var wdei = 0; wdei < edcDel.length; wdei++) {
-                                    if (edcDel[wdei].from === wdConn.from && edcDel[wdei].to === wdConn.to) {
-                                        if (edcDel[wdei].waypoints && edcDel[wdei].waypoints.length > wdHits[wdhi].wpIdx) {
-                                            edcDel[wdei].waypoints.splice(wdHits[wdhi].wpIdx, 1);
-                                            if (edcDel[wdei].waypoints.length === 0) delete edcDel[wdei].waypoints;
+                                var wdEdIdx = -1;
+                                if (wdConn._editorIdx !== undefined && wdConn._editorIdx < edcDel.length) {
+                                    wdEdIdx = wdConn._editorIdx;
+                                } else {
+                                    for (var wdei = 0; wdei < edcDel.length; wdei++) {
+                                        if (edcDel[wdei].from === wdConn.from && edcDel[wdei].to === wdConn.to) {
+                                            wdEdIdx = wdei;
+                                            break;
                                         }
-                                        break;
+                                    }
+                                }
+                                if (wdEdIdx >= 0) {
+                                    if (edcDel[wdEdIdx].waypoints && edcDel[wdEdIdx].waypoints.length > wdHits[wdhi].wpIdx) {
+                                        edcDel[wdEdIdx].waypoints.splice(wdHits[wdhi].wpIdx, 1);
+                                        if (edcDel[wdEdIdx].waypoints.length === 0) delete edcDel[wdEdIdx].waypoints;
                                     }
                                 }
                                 self.invalidateUpdateView();
@@ -4168,17 +4169,26 @@ define([
                         if (lhc._labelHitRect && lhc.label) {
                             var lr = lhc._labelHitRect;
                             if (pointInRect(mx, my, lr.x, lr.y, lr.w, lr.h)) {
-                                // Find editorState connection index
+                                // Find editorState connection index using _editorIdx for exact match
                                 var edcArr = self._editorState.connections || [];
-                                for (var leci = 0; leci < edcArr.length; leci++) {
-                                    if (edcArr[leci].from === lhc.from && edcArr[leci].to === lhc.to) {
-                                        self._isDraggingLabel = true;
-                                        self._dragLabelConnIdx = leci;
-                                        self._dragLabelConnFrom = lhc.from;
-                                        self._dragLabelConnTo = lhc.to;
-                                        self.canvas.style.cursor = 'move';
-                                        return;
+                                var lEdIdx = -1;
+                                if (lhc._editorIdx !== undefined && lhc._editorIdx < edcArr.length) {
+                                    lEdIdx = lhc._editorIdx;
+                                } else {
+                                    for (var leci = 0; leci < edcArr.length; leci++) {
+                                        if (edcArr[leci].from === lhc.from && edcArr[leci].to === lhc.to) {
+                                            lEdIdx = leci;
+                                            break;
+                                        }
                                     }
+                                }
+                                if (lEdIdx >= 0) {
+                                    self._isDraggingLabel = true;
+                                    self._dragLabelConnIdx = lEdIdx;
+                                    self._dragLabelConnFrom = lhc.from;
+                                    self._dragLabelConnTo = lhc.to;
+                                    self.canvas.style.cursor = 'move';
+                                    return;
                                 }
                             }
                         }
@@ -4314,24 +4324,17 @@ define([
                         self._selectedConnection = { index: closestCci };
                         self._selectedNodeIds = [];
                         self._showNodePopup = false;
-                        // Find matching editorState connection by from+to+index
-                        // Count how many connections with same from/to appear before this one
-                        var sameCount = 0;
-                        for (var scj = 0; scj < closestCci; scj++) {
-                            if (self._computedConnections[scj].from === cc.from && self._computedConnections[scj].to === cc.to) {
-                                sameCount++;
-                            }
-                        }
+                        // Find matching editorState connection using _editorIdx for exact match
                         var edConnIdx = -1;
                         var edCS = self._editorState.connections || [];
-                        var matchCount = 0;
-                        for (var eci = 0; eci < edCS.length; eci++) {
-                            if (edCS[eci].from === cc.from && edCS[eci].to === cc.to) {
-                                if (matchCount === sameCount) {
+                        if (cc._editorIdx !== undefined && cc._editorIdx < edCS.length) {
+                            edConnIdx = cc._editorIdx;
+                        } else {
+                            for (var eci = 0; eci < edCS.length; eci++) {
+                                if (edCS[eci].from === cc.from && edCS[eci].to === cc.to) {
                                     edConnIdx = eci;
                                     break;
                                 }
-                                matchCount++;
                             }
                         }
                         if (edConnIdx === -1) {
@@ -5124,23 +5127,17 @@ define([
                 }
                 if (dcClosestIdx >= 0) {
                     var dc2 = conns[dcClosestIdx];
-                    // Find matching editorState connection by from+to+index
-                    var sameCount2 = 0;
-                    for (var scj2 = 0; scj2 < dcClosestIdx; scj2++) {
-                        if (conns[scj2].from === dc2.from && conns[scj2].to === dc2.to) {
-                            sameCount2++;
-                        }
-                    }
+                    // Find matching editorState connection using _editorIdx for exact match
                     var edConns3 = self._editorState.connections || [];
                     var edConnIdx3 = -1;
-                    var matchCount3 = 0;
-                    for (var eci2 = 0; eci2 < edConns3.length; eci2++) {
-                        if (edConns3[eci2].from === dc2.from && edConns3[eci2].to === dc2.to) {
-                            if (matchCount3 === sameCount2) {
+                    if (dc2._editorIdx !== undefined && dc2._editorIdx < edConns3.length) {
+                        edConnIdx3 = dc2._editorIdx;
+                    } else {
+                        for (var eci2 = 0; eci2 < edConns3.length; eci2++) {
+                            if (edConns3[eci2].from === dc2.from && edConns3[eci2].to === dc2.to) {
                                 edConnIdx3 = eci2;
                                 break;
                             }
-                            matchCount3++;
                         }
                     }
                     if (edConnIdx3 >= 0) {
@@ -5222,7 +5219,9 @@ define([
                     }
                 }
                 // Delete/Backspace
-                if ((e.key === 'Delete' || e.key === 'Backspace') && self._editMode) {
+                if ((e.key === 'Delete' || e.key === 'Backspace' || e.keyCode === 46 || e.keyCode === 8) && self._editMode) {
+                    var delTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+                    if (delTag === 'input' || delTag === 'textarea' || delTag === 'select') return;
                     e.preventDefault();
                     self._deleteSelected();
                 }
