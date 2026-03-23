@@ -692,6 +692,7 @@ define([
                 padding: edState ? edState.padding : undefined,
                 customPadding: edState ? edState.customPadding : undefined,
                 customFontSize: edState ? edState.customFontSize : undefined,
+                customChartHeight: edState ? edState.customChartHeight : undefined,
                 markdownContent: edState ? edState.markdownContent : undefined
             };
 
@@ -967,6 +968,39 @@ define([
             return;
         }
 
+        if (type === 'dot') {
+            ctx.fillStyle = hexToRgba(color, 0.8);
+            for (var di = 0; di < clean.length; di++) {
+                var dotX = drawX + (clean.length > 1 ? (di / (clean.length - 1)) * drawW : drawW / 2);
+                var dotY = drawY + drawH - ((clean[di] - minVal) / range) * drawH;
+                ctx.beginPath();
+                ctx.arc(dotX, dotY, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            return;
+        }
+
+        if (type === 'step') {
+            ctx.strokeStyle = hexToRgba(color, 0.8);
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            var prevStepY;
+            for (var si = 0; si < clean.length; si++) {
+                var stepX = drawX + (clean.length > 1 ? (si / (clean.length - 1)) * drawW : drawW / 2);
+                var stepY = drawY + drawH - ((clean[si] - minVal) / range) * drawH;
+                if (si === 0) {
+                    ctx.moveTo(stepX, stepY);
+                } else {
+                    ctx.lineTo(stepX, prevStepY);
+                    ctx.lineTo(stepX, stepY);
+                }
+                prevStepY = stepY;
+            }
+            ctx.stroke();
+            ctx.lineWidth = 1;
+            return;
+        }
+
         // line or area
         var points = [];
         for (var pi = 0; pi < clean.length; pi++) {
@@ -1048,10 +1082,15 @@ define([
         labelFontSize = Math.max(8, Math.min(24, labelFontSize));
 
         // Compute chart height (responsive — proportion of node height)
-        var sparkH = Math.round(h * 0.25);
-        if (nodeChartH === 'small') sparkH = Math.round(h * 0.15);
-        else if (nodeChartH === 'medium') sparkH = Math.round(h * 0.35);
-        else if (nodeChartH === 'large') sparkH = Math.round(h * 0.50);
+        var sparkH;
+        if (node.customChartHeight) {
+            sparkH = parseInt(node.customChartHeight, 10);
+        } else {
+            sparkH = Math.round(h * 0.25);
+            if (nodeChartH === 'small') sparkH = Math.round(h * 0.15);
+            else if (nodeChartH === 'medium') sparkH = Math.round(h * 0.35);
+            else if (nodeChartH === 'large') sparkH = Math.round(h * 0.50);
+        }
         sparkH = Math.max(12, Math.min(h * 0.6, sparkH));
 
         // Compute opacity — per-node, then global default, then 1
@@ -1418,6 +1457,39 @@ define([
                 ctx.textAlign = tAlign;
                 ctx.textBaseline = 'middle';
                 drawFitText(ctx, valueText, rightTextX, ltStartY + labelFontSize + 4 + valueFontSize / 2, rightW - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
+            }
+        } else if (sparkPos === 'right' && hasSpark) {
+            // RIGHT: text on left 55%, sparkline on right 45% (mirror of left)
+            var rightSparkW = Math.round(tw0 * 0.45);
+            var rightSparkX = tx0 + tw0 - rightSparkW;
+            drawSparkline(ctx, node.series, rightSparkX + pad, ty0 + pad, rightSparkW - pad * 2, th0 - pad * 2, nodeSparkType, node.color);
+            // Label on left panel
+            var leftTextW = tw0 - rightSparkW - pad * 2;
+            var leftTextX;
+            if (tAlign === 'left') leftTextX = tx0 + pad;
+            else if (tAlign === 'right') leftTextX = tx0 + leftTextW - pad;
+            else leftTextX = tx0 + leftTextW / 2;
+            // Compute vertical position in the left panel
+            var rtTextBlockH = labelFontSize + valueFontSize + 4;
+            var rtStartY;
+            if (vAlign === 'top') {
+                rtStartY = ty0 + pad;
+            } else if (vAlign === 'bottom') {
+                rtStartY = ty0 + th0 - rtTextBlockH - pad;
+            } else {
+                rtStartY = ty0 + (th0 - rtTextBlockH) / 2;
+            }
+            ctx.font = labelFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.fillStyle = node.labelColor || theme.textMuted;
+            ctx.textAlign = tAlign;
+            ctx.textBaseline = 'top';
+            ctx.fillText(truncateText(node.label, 12), leftTextX, rtStartY);
+            // Value on left
+            if (showValue) {
+                ctx.fillStyle = node.valueColor || theme.text;
+                ctx.textAlign = tAlign;
+                ctx.textBaseline = 'middle';
+                drawFitText(ctx, valueText, leftTextX, rtStartY + labelFontSize + 4 + valueFontSize / 2, leftTextW - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else {
             // DEFAULT (below): label top, value middle, sparkline bottom
@@ -5486,18 +5558,21 @@ define([
             sparkBody.appendChild(createToggleRow('Chart Type', [
                 {value: '', label: 'Auto'}, {value: 'line', label: 'Line'},
                 {value: 'area', label: 'Area'}, {value: 'bar', label: 'Bar'},
+                {value: 'step', label: 'Step'}, {value: 'dot', label: 'Dot'},
                 {value: 'none', label: 'Off'}
             ], sparkType, makeOnChange('sparklineType')));
 
             sparkBody.appendChild(createToggleRow('Position', [
                 {value: 'default', label: 'Below'}, {value: 'above', label: 'Above'},
-                {value: 'behind', label: 'Behind'}, {value: 'left', label: 'Left'}
+                {value: 'behind', label: 'Behind'}, {value: 'left', label: 'Left'},
+                {value: 'right', label: 'Right'}
             ], sparkPos, makeOnChange('sparkPosition')));
 
             sparkBody.appendChild(createToggleRow('Chart Height', [
                 {value: 'default', label: 'Auto'}, {value: 'small', label: 'S'},
                 {value: 'medium', label: 'M'}, {value: 'large', label: 'L'}
             ], ns.chartHeight || 'default', makeOnChange('chartHeight')));
+            sparkBody.appendChild(createTextRow('Custom Height', ns.customChartHeight || '', makeOnChange('customChartHeight'), { numeric: true, min: 10, max: 200, step: 5 }));
 
             body.appendChild(sparkSec);
 
