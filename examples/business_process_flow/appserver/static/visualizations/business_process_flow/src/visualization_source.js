@@ -576,6 +576,22 @@ define([
             if (points.length === 3) {
                 // Already handled above
             }
+        } else if (conn.style === 'orthogonal' && points.length === 2) {
+            // Orthogonal with no waypoints: expand to 4-point path
+            var oMidX = (points[0].x + points[1].x) / 2;
+            var orthoSegs = [
+                points[0],
+                { x: oMidX, y: points[0].y },
+                { x: oMidX, y: points[1].y },
+                points[1]
+            ];
+            for (var osi = 0; osi < orthoSegs.length - 1; osi++) {
+                var osd = distToLine(px, py, orthoSegs[osi].x, orthoSegs[osi].y, orthoSegs[osi + 1].x, orthoSegs[osi + 1].y);
+                if (osd < minDist) {
+                    minDist = osd;
+                    closestSeg = 0;
+                }
+            }
         } else {
             // Straight polyline — test each segment
             for (var si2 = 0; si2 < points.length - 1; si2++) {
@@ -1504,13 +1520,13 @@ define([
             ctx.shadowOffsetY = 0;
         }
 
-        // Accent line at top (rect only)
-        if (accentLine === 'true' && shape === 'rect') {
+        // Accent line at top (all shapes — clip to shape boundary)
+        if (accentLine === 'true') {
             ctx.save();
-            roundRect(ctx, x, y, w, Math.min(3, h), radius);
+            shapePath();
             ctx.clip();
             ctx.fillStyle = node.color;
-            ctx.fillRect(x, y, w, 3);
+            ctx.fillRect(x, y, w, 6);
             ctx.restore();
         }
 
@@ -1584,7 +1600,7 @@ define([
         ctx.clip();
 
         // Layout — sparkline position determines content arrangement
-        var textPadY = shape === 'rect' && accentLine === 'true' ? 10 : 8;
+        var textPadY = accentLine === 'true' ? 10 : 8;
         var hasSpark = node.series && node.series.length > 1 && nodeSparkType !== 'none';
         var sparkPos = node.sparkPosition || 'default'; // default=below, above, behind, left
         var showValue = !node.hideValue;
@@ -2109,6 +2125,18 @@ define([
     function interpolateConnectionPath(points, style, t) {
         if (!points || points.length < 2) return { x: 0, y: 0 };
 
+        // Orthogonal with 2 points: expand to 4-point right-angle path then walk segments
+        if (style === 'orthogonal' && points.length === 2) {
+            var oMidX = (points[0].x + points[1].x) / 2;
+            var orthoPoints = [
+                points[0],
+                { x: oMidX, y: points[0].y },
+                { x: oMidX, y: points[1].y },
+                points[1]
+            ];
+            return interpolateConnectionPath(orthoPoints, 'straight', t);
+        }
+
         if (style === 'curved' && points.length === 2) {
             // Quadratic bezier — matches drawConnection simple curve
             var mx2 = (points[0].x + points[1].x) / 2;
@@ -2184,6 +2212,21 @@ define([
                 ctx.quadraticCurveTo(points[bci].x, points[bci].y, bxc, byc);
             }
             ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+        } else if (conn.style === 'orthogonal' && points.length >= 2) {
+            // Orthogonal routing: right-angle path
+            var boStart = points[0];
+            var boEnd = points[points.length - 1];
+            ctx.moveTo(boStart.x, boStart.y);
+            if (points.length === 2) {
+                var boMidX = (boStart.x + boEnd.x) / 2;
+                ctx.lineTo(boMidX, boStart.y);
+                ctx.lineTo(boMidX, boEnd.y);
+                ctx.lineTo(boEnd.x, boEnd.y);
+            } else {
+                for (var boi = 1; boi < points.length; boi++) {
+                    ctx.lineTo(points[boi].x, points[boi].y);
+                }
+            }
         } else {
             // Straight polyline
             ctx.moveTo(points[0].x, points[0].y);
@@ -2344,6 +2387,29 @@ define([
             midY = points[midIdx].y;
             endAngle = Math.atan2(endPt.y - pPrev.y, endPt.x - pPrev.x);
             startAngle = Math.atan2(p1.y - startPt.y, p1.x - startPt.x);
+        } else if (conn.style === 'orthogonal' && points.length >= 2) {
+            // Orthogonal routing: right-angle path
+            var oStart = points[0];
+            var oEnd = points[points.length - 1];
+            ctx.beginPath();
+            ctx.moveTo(oStart.x, oStart.y);
+            if (points.length === 2) {
+                // Auto-route: horizontal first, then vertical
+                var oMidX = (oStart.x + oEnd.x) / 2;
+                ctx.lineTo(oMidX, oStart.y);
+                ctx.lineTo(oMidX, oEnd.y);
+                ctx.lineTo(oEnd.x, oEnd.y);
+            } else {
+                // Use waypoints as corners for orthogonal path
+                for (var opi = 1; opi < points.length; opi++) {
+                    ctx.lineTo(points[opi].x, points[opi].y);
+                }
+            }
+            ctx.stroke();
+            midX = (oStart.x + oEnd.x) / 2;
+            midY = (oStart.y + oEnd.y) / 2;
+            endAngle = Math.atan2(oEnd.y - oStart.y, oEnd.x - oStart.x);
+            startAngle = endAngle;
         } else {
             // Straight polyline through all points
             ctx.beginPath();
@@ -3279,6 +3345,7 @@ define([
             this._animationOffset = 0;
             this._lastAnimTime = 0;
             this._hasActiveAnimations = false;
+            this._alignGuides = [];
 
             var self = this;
 
@@ -4646,6 +4713,57 @@ define([
                         self._editorState.nodes[self._dragNodeId].y = newY;
                     }
 
+                    // Calculate alignment guides (visual only, no snapping)
+                    self._alignGuides = [];
+                    if (self._editMode) {
+                        var agThreshold = 5;
+                        var agDraggedNodes = [];
+                        for (var dgi = 0; dgi < self._selectedNodeIds.length; dgi++) {
+                            var dgn = self._computedNodeMap[self._selectedNodeIds[dgi]];
+                            if (dgn) agDraggedNodes.push(dgn);
+                        }
+                        if (agDraggedNodes.length === 0) {
+                            var dgSingle = self._computedNodeMap[self._dragNodeId];
+                            if (dgSingle) agDraggedNodes.push(dgSingle);
+                        }
+                        if (agDraggedNodes.length > 0) {
+                            var dn = agDraggedNodes[0];
+                            var dnCx = dn.x + dn.w / 2;
+                            var dnCy = dn.y + dn.h / 2;
+                            for (var ogi = 0; ogi < self._computedNodes.length; ogi++) {
+                                var on = self._computedNodes[ogi];
+                                if (arrContains(self._selectedNodeIds, on.id)) continue;
+                                if (on.id === self._dragNodeId) continue;
+                                var onCx = on.x + on.w / 2;
+                                var onCy = on.y + on.h / 2;
+                                // Left edge
+                                if (Math.abs(dn.x - on.x) < agThreshold) {
+                                    self._alignGuides.push({ type: 'v', x: on.x });
+                                }
+                                // Right edge
+                                if (Math.abs((dn.x + dn.w) - (on.x + on.w)) < agThreshold) {
+                                    self._alignGuides.push({ type: 'v', x: on.x + on.w });
+                                }
+                                // Center X
+                                if (Math.abs(dnCx - onCx) < agThreshold) {
+                                    self._alignGuides.push({ type: 'v', x: onCx });
+                                }
+                                // Top edge
+                                if (Math.abs(dn.y - on.y) < agThreshold) {
+                                    self._alignGuides.push({ type: 'h', y: on.y });
+                                }
+                                // Bottom edge
+                                if (Math.abs((dn.y + dn.h) - (on.y + on.h)) < agThreshold) {
+                                    self._alignGuides.push({ type: 'h', y: on.y + on.h });
+                                }
+                                // Center Y
+                                if (Math.abs(dnCy - onCy) < agThreshold) {
+                                    self._alignGuides.push({ type: 'h', y: onCy });
+                                }
+                            }
+                        }
+                    }
+
                     self.invalidateUpdateView();
                     // Update cursor
                     self.canvas.style.cursor = self._editMode ? 'move' : 'grabbing';
@@ -5088,6 +5206,7 @@ define([
                 self._dragNodeId = null;
                 self._dragNodeStarts = {};
                 self._didDrag = false;
+                self._alignGuides = [];
             };
 
             // ── Double Click ──
@@ -6372,7 +6491,8 @@ define([
             // Line Style
             styleBody.appendChild(createToggleRow('Line Style', [
                 {value: 'straight', label: 'Straight'},
-                {value: 'curved', label: 'Curved'}
+                {value: 'curved', label: 'Curved'},
+                {value: 'orthogonal', label: 'Ortho'}
             ], conn.style || 'straight', makeConnChange('style')));
 
             // Width
@@ -6973,6 +7093,28 @@ define([
                     this._hoverItem.type === 'node' &&
                     this._hoverItem.id === pn.id;
                 drawNode(ctx, pn, theme, accentLine, sparklineType, nodeRadius, isNodeSelected, isNodeHovered, this._globalEffects || {});
+            }
+
+            // ── Alignment Guides ──
+            if (this._alignGuides && this._alignGuides.length > 0 && this._isDragging) {
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 0.5;
+                ctx.setLineDash([4, 4]);
+                ctx.globalAlpha = 0.6;
+                for (var agi = 0; agi < this._alignGuides.length; agi++) {
+                    var guide = this._alignGuides[agi];
+                    ctx.beginPath();
+                    if (guide.type === 'v') {
+                        ctx.moveTo(guide.x, -10000);
+                        ctx.lineTo(guide.x, 10000);
+                    } else {
+                        ctx.moveTo(-10000, guide.y);
+                        ctx.lineTo(10000, guide.y);
+                    }
+                    ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
+                ctx.setLineDash([]);
             }
 
             // ── Connection Ports on Selected Nodes ──
