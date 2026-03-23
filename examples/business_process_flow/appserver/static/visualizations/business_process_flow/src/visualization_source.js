@@ -1714,11 +1714,14 @@ define([
             ctx.textAlign = _valDrawnAlign; // restore
 
             // ── Visual Trend Comparison Marker on Sparkline ──
+            // Draw sparkline segment from compareIdx to end in trend color
             if (node._sparkBounds && sparkData && sparkData.length >= compareBack + 1) {
                 var sb = node._sparkBounds;
                 var sdLen = sparkData.length;
+                var compareIdx = sdLen - 1 - compareBack;
+                if (compareIdx < 0) compareIdx = 0;
 
-                // Calculate min/max for Y mapping
+                // Calculate min/max for Y mapping (same as drawSparkline uses)
                 var sMin = sparkData[0];
                 var sMax = sparkData[0];
                 for (var smi = 1; smi < sdLen; smi++) {
@@ -1727,47 +1730,81 @@ define([
                 }
                 var sRange = sMax - sMin || 1;
 
-                // Compare point position
-                var compareIdx = sdLen - 1 - compareBack;
-                var compareX = sb.x + (compareIdx / (sdLen - 1)) * sb.w;
-                var compareY = sb.y + sb.h - ((sparkData[compareIdx] - sMin) / sRange) * sb.h;
-
-                // Last point position
-                var lastX = sb.x + sb.w;
-                var lastY = sb.y + sb.h - ((sparkData[sdLen - 1] - sMin) / sRange) * sb.h;
-
-                // Determine marker color (same logic as trendColor above)
                 var markerColor = trendColor;
 
-                // Draw connecting line from compare point to last point
+                // Determine chart type to match the sparkline rendering
+                var activeChartType = node.sparklineType || 'area';
+
                 ctx.save();
-                ctx.strokeStyle = markerColor;
-                ctx.lineWidth = 2;
-                ctx.globalAlpha = 0.7;
-                ctx.setLineDash([]);
+                // Clip to sparkline bounds
                 ctx.beginPath();
-                ctx.moveTo(compareX, compareY);
-                ctx.lineTo(lastX, lastY);
-                ctx.stroke();
+                ctx.rect(sb.x, sb.y, sb.w, sb.h);
+                ctx.clip();
+
+                if (activeChartType === 'bar') {
+                    // For bar charts: color the bars from compareIdx to end
+                    var barW = sb.w / sdLen;
+                    var barGap = Math.max(1, barW * 0.15);
+                    for (var bi = compareIdx; bi < sdLen; bi++) {
+                        var bx = sb.x + (bi / sdLen) * sb.w + barGap / 2;
+                        var bh = ((sparkData[bi] - sMin) / sRange) * sb.h;
+                        var by = sb.y + sb.h - bh;
+                        ctx.fillStyle = markerColor;
+                        ctx.globalAlpha = 0.6;
+                        ctx.fillRect(bx, by, barW - barGap, bh);
+                    }
+                    ctx.globalAlpha = 1;
+                } else {
+                    // For line/area/step/dot: draw the line segment in trend color
+                    ctx.beginPath();
+                    ctx.strokeStyle = markerColor;
+                    ctx.lineWidth = 2;
+
+                    for (var ti = compareIdx; ti < sdLen; ti++) {
+                        var tx = sb.x + (ti / (sdLen - 1)) * sb.w;
+                        var ty = sb.y + sb.h - ((sparkData[ti] - sMin) / sRange) * sb.h;
+                        if (ti === compareIdx) {
+                            ctx.moveTo(tx, ty);
+                        } else {
+                            if (activeChartType === 'step') {
+                                // Step: horizontal then vertical
+                                var prevTx = sb.x + ((ti - 1) / (sdLen - 1)) * sb.w;
+                                var prevTy = sb.y + sb.h - ((sparkData[ti - 1] - sMin) / sRange) * sb.h;
+                                ctx.lineTo(tx, prevTy);
+                                ctx.lineTo(tx, ty);
+                            } else {
+                                ctx.lineTo(tx, ty);
+                            }
+                        }
+                    }
+                    ctx.stroke();
+
+                    // Fill area under the trend segment with transparent trend color
+                    if (activeChartType === 'area') {
+                        var lastTx = sb.x + ((sdLen - 1) / (sdLen - 1)) * sb.w;
+                        var firstTx = sb.x + (compareIdx / (sdLen - 1)) * sb.w;
+                        ctx.lineTo(lastTx, sb.y + sb.h);
+                        ctx.lineTo(firstTx, sb.y + sb.h);
+                        ctx.closePath();
+                        ctx.fillStyle = markerColor;
+                        ctx.globalAlpha = 0.2;
+                        ctx.fill();
+                        ctx.globalAlpha = 1;
+                    }
+                }
+
+                // Draw small dot at compare point only
+                var cpx = sb.x + (compareIdx / (sdLen - 1)) * sb.w;
+                var cpy = sb.y + sb.h - ((sparkData[compareIdx] - sMin) / sRange) * sb.h;
+                ctx.beginPath();
+                ctx.arc(cpx, cpy, 3, 0, Math.PI * 2);
+                ctx.fillStyle = markerColor;
                 ctx.globalAlpha = 1;
-
-                // Draw dot on compare point
-                ctx.beginPath();
-                ctx.arc(compareX, compareY, 4, 0, Math.PI * 2);
-                ctx.fillStyle = markerColor;
                 ctx.fill();
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1;
                 ctx.stroke();
 
-                // Draw dot on last point
-                ctx.beginPath();
-                ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
-                ctx.fillStyle = markerColor;
-                ctx.fill();
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
                 ctx.restore();
             }
         }
