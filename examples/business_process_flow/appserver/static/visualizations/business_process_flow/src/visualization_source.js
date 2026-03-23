@@ -958,6 +958,7 @@ define([
                 trendUseConditions: edState ? edState.trendUseConditions : undefined,
                 trendCompareBack: edState ? edState.trendCompareBack : undefined,
                 sparkHover: edState ? edState.sparkHover : undefined,
+                conditionTarget: edState ? edState.conditionTarget : undefined,
                 // Effects
                 shadowEnabled: edState ? edState.shadowEnabled : undefined,
                 shadowBlur: edState ? edState.shadowBlur : undefined,
@@ -1420,10 +1421,22 @@ define([
             }
         }
 
-        // Conditional formatting — evaluate rules per target
-        var condResults = evalConditionsAll(node.conditions, node.value);
-        // Backward-compat alias: condColor is the background override (or any old-style rule)
-        var condColor = condResults.background || null;
+        // Conditional formatting — single color from first matching rule, applied per conditionTarget
+        var condColor = evalConditions(node.conditions, node.value);
+        var condTarget = node.conditionTarget || 'background';
+        // condResults is kept for backward compat (evalConditionsAll still exists but unused in drawNode)
+        var condResults = {
+            background: (condColor && (condTarget === 'background' || condTarget === 'all')) ? condColor : null,
+            border:     (condColor && (condTarget === 'border'     || condTarget === 'all')) ? condColor : null,
+            value:      (condColor && (condTarget === 'value'      || condTarget === 'value+trend' || condTarget === 'all')) ? condColor : null,
+            label:      (condColor && condTarget === 'all') ? condColor : null,
+            sparkline:  (condColor && (condTarget === 'sparkline'  || condTarget === 'all')) ? condColor : null,
+            trend:      (condColor && (condTarget === 'trend'      || condTarget === 'value+trend' || condTarget === 'all')) ? condColor : null
+        };
+        // When condTarget is not background/all, don't tint the background
+        if (condTarget === 'none' || condTarget === 'border' || condTarget === 'value' || condTarget === 'trend' || condTarget === 'value+trend' || condTarget === 'sparkline') {
+            condColor = null;
+        }
 
         // Apply shadow (per-node or global) before fill
         var shadowOn = node.shadowEnabled !== undefined ? (node.shadowEnabled === true || node.shadowEnabled === 'on') : ge.shadowEnabled;
@@ -6398,6 +6411,18 @@ define([
             valueCtx.appendChild(valueDisplay);
             condBody.appendChild(valueCtx);
 
+            // ── Dynamic Elements (where the condition color is applied) ──
+            condBody.appendChild(createToggleRow('Dynamic Elements', [
+                {value: 'none',       label: 'None'},
+                {value: 'value',      label: 'Value'},
+                {value: 'trend',      label: 'Trend'},
+                {value: 'value+trend',label: 'Val+Trend'},
+                {value: 'background', label: 'BG'},
+                {value: 'border',     label: 'Border'},
+                {value: 'sparkline',  label: 'Spark'},
+                {value: 'all',        label: 'All'}
+            ], ns.conditionTarget || 'background', makeOnChange('conditionTarget')));
+
             // ── Quick Presets ──
             var presetLabel = document.createElement('div');
             presetLabel.textContent = 'QUICK PRESETS';
@@ -6415,9 +6440,9 @@ define([
                         var lo = Math.round(v * 0.5);
                         var hi = Math.round(v * 1.5);
                         return [
-                            {op: '<=', val: String(lo), color: '#22c55e', target: 'background'},
-                            {op: '<=', val: String(hi), color: '#eab308', target: 'background'},
-                            {op: '>', val: String(hi), color: '#ef4444', target: 'background'}
+                            {op: '<=', val: String(lo), color: '#22c55e'},
+                            {op: '<=', val: String(hi), color: '#eab308'},
+                            {op: '>', val: String(hi), color: '#ef4444'}
                         ];
                     }
                 },
@@ -6427,8 +6452,8 @@ define([
                         var v = nodeValueNum || 100;
                         var mid = Math.round(v);
                         return [
-                            {op: '<=', val: String(mid), color: '#22c55e', target: 'background'},
-                            {op: '>', val: String(mid), color: '#ef4444', target: 'background'}
+                            {op: '<=', val: String(mid), color: '#22c55e'},
+                            {op: '>', val: String(mid), color: '#ef4444'}
                         ];
                     }
                 },
@@ -6437,10 +6462,10 @@ define([
                     create: function() {
                         var v = nodeValueNum || 100;
                         return [
-                            {op: '<=', val: String(Math.round(v * 0.25)), color: '#3b82f6', target: 'background'},
-                            {op: '<=', val: String(Math.round(v * 0.5)), color: '#22c55e', target: 'background'},
-                            {op: '<=', val: String(Math.round(v * 1.5)), color: '#f97316', target: 'background'},
-                            {op: '>', val: String(Math.round(v * 1.5)), color: '#ef4444', target: 'background'}
+                            {op: '<=', val: String(Math.round(v * 0.25)), color: '#3b82f6'},
+                            {op: '<=', val: String(Math.round(v * 0.5)), color: '#22c55e'},
+                            {op: '<=', val: String(Math.round(v * 1.5)), color: '#f97316'},
+                            {op: '>', val: String(Math.round(v * 1.5)), color: '#ef4444'}
                         ];
                     }
                 },
@@ -6448,10 +6473,10 @@ define([
                     label: 'Status Text',
                     create: function() {
                         return [
-                            {op: 'contains', val: 'ok', color: '#22c55e', target: 'label'},
-                            {op: 'contains', val: 'warn', color: '#eab308', target: 'label'},
-                            {op: 'contains', val: 'error', color: '#ef4444', target: 'label'},
-                            {op: 'contains', val: 'critical', color: '#dc2626', target: 'label'}
+                            {op: 'contains', val: 'ok', color: '#22c55e'},
+                            {op: 'contains', val: 'warn', color: '#eab308'},
+                            {op: 'contains', val: 'error', color: '#ef4444'},
+                            {op: 'contains', val: 'critical', color: '#dc2626'}
                         ];
                     }
                 }
@@ -6594,36 +6619,7 @@ define([
                     valInput.addEventListener('keypress', function(e) { e.stopPropagation(); });
                     ruleRow.appendChild(valInput);
 
-                    // Target dropdown (what part of the node to color)
-                    var targetSelect = document.createElement('select');
-                    targetSelect.style.cssText = 'background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:3px;font-size:9px;padding:2px;flex-shrink:0;outline:none;';
-                    var targets = [
-                        {value: 'background', label: 'BG'},
-                        {value: 'border', label: 'Border'},
-                        {value: 'value', label: 'Value'},
-                        {value: 'label', label: 'Label'},
-                        {value: 'sparkline', label: 'Spark'},
-                        {value: 'trend', label: 'Trend'},
-                        {value: 'all', label: 'All'}
-                    ];
-                    for (var ti = 0; ti < targets.length; ti++) {
-                        var topt = document.createElement('option');
-                        topt.value = targets[ti].value;
-                        topt.textContent = targets[ti].label;
-                        if (targets[ti].value === (rule.target || 'background')) topt.selected = true;
-                        targetSelect.appendChild(topt);
-                    }
-                    targetSelect.addEventListener('change', function() {
-                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
-                        if (!es.nodes[nodeId].conditions) es.nodes[nodeId].conditions = [];
-                        if (es.nodes[nodeId].conditions[ruleIdx]) {
-                            es.nodes[nodeId].conditions[ruleIdx].target = targetSelect.value;
-                        }
-                        self._pushUndo();
-                        self.invalidateUpdateView();
-                    });
-                    targetSelect.addEventListener('mousedown', function(e) { e.stopPropagation(); });
-                    ruleRow.appendChild(targetSelect);
+                    // (Per-rule target removed — use Dynamic Elements selector at section top)
 
                     // Delete button
                     var delBtn = document.createElement('button');
