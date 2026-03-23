@@ -5,7 +5,15 @@ display.visualizations.custom.business_process_flow.business_process_flow.palett
 display.visualizations.custom.business_process_flow.business_process_flow.accentLine = <boolean>
 display.visualizations.custom.business_process_flow.business_process_flow.sparklineType = <string>
 display.visualizations.custom.business_process_flow.business_process_flow.nodeRadius = <integer>
-display.visualizations.custom.business_process_flow.business_process_flow.editMode = <boolean>
 display.visualizations.custom.business_process_flow.business_process_flow.lock = <boolean>
 display.visualizations.custom.business_process_flow.business_process_flow.editorState = <string>
 display.visualizations.custom.business_process_flow.business_process_flow.drilldownField = <string>
+display.visualizations.custom.business_process_flow.business_process_flow.rawValue = <boolean>
+display.visualizations.custom.business_process_flow.business_process_flow.shadowEnabled = <boolean>
+display.visualizations.custom.business_process_flow.business_process_flow.shadowBlur = <integer>
+display.visualizations.custom.business_process_flow.business_process_flow.shadowOffsetX = <integer>
+display.visualizations.custom.business_process_flow.business_process_flow.shadowOffsetY = <integer>
+display.visualizations.custom.business_process_flow.business_process_flow.shadowColor = <string>
+display.visualizations.custom.business_process_flow.business_process_flow.glowEnabled = <boolean>
+display.visualizations.custom.business_process_flow.business_process_flow.glowBlur = <integer>
+display.visualizations.custom.business_process_flow.business_process_flow.glowColor = <string>

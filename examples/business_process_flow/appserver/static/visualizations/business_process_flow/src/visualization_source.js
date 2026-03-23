@@ -904,7 +904,7 @@ define([
 
     // ── Node Drawing ──────────────────────────────────────────────
 
-    function drawNode(ctx, node, theme, accentLine, sparklineType, nodeRadius, isSelected, isHovered) {
+    function drawNode(ctx, node, theme, accentLine, sparklineType, nodeRadius, isSelected, isHovered, globalEffects) {
         var x = node.x;
         var y = node.y;
         var w = node.w;
@@ -956,14 +956,6 @@ define([
         // Apply opacity
         if (nodeAlpha < 1) ctx.globalAlpha = nodeAlpha;
 
-        // Shadow for hover
-        if (isHovered) {
-            ctx.shadowColor = hexToRgba(node.color, 0.3);
-            ctx.shadowBlur = 12;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 4;
-        }
-
         // Helper: create shape path for clipping
         function shapePath() {
             if (shape === 'circle') {
@@ -995,27 +987,58 @@ define([
         // Conditional formatting — evaluate rules to get override color
         var condColor = evalConditions(node.conditions, node.value);
 
+        // Resolve global effects object
+        var ge = globalEffects || {};
+
+        // Apply shadow (per-node or global) before fill
+        var shadowOn = node.shadowEnabled !== undefined ? (node.shadowEnabled === true || node.shadowEnabled === 'on') : ge.shadowEnabled;
+        if (isHovered && !shadowOn) {
+            // Default hover shadow when no explicit shadow configured
+            ctx.shadowColor = hexToRgba(node.color, 0.3);
+            ctx.shadowBlur = 12;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+        } else if (shadowOn) {
+            ctx.shadowBlur = node.shadowBlur !== undefined ? parseInt(node.shadowBlur, 10) : (ge.shadowBlur || 8);
+            ctx.shadowOffsetX = node.shadowOffsetX !== undefined ? parseInt(node.shadowOffsetX, 10) : (ge.shadowOffsetX || 2);
+            ctx.shadowOffsetY = node.shadowOffsetY !== undefined ? parseInt(node.shadowOffsetY, 10) : (ge.shadowOffsetY || 2);
+            ctx.shadowColor = node.shadowColor || ge.shadowColor || '#000000';
+        }
+
         // Draw shape fill — conditional color tints the background subtly
         shapePath();
         ctx.fillStyle = condColor ? hexToRgba(condColor, 0.15) : theme.nodeBg;
         ctx.fill();
+
+        // Reset shadow after fill
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.shadowColor = 'transparent';
 
         // Draw border — conditional color replaces border color
         if (borderWidth > 0) {
             shapePath();
             ctx.strokeStyle = isSelected ? node.color : (condColor || theme.nodeBorder);
             ctx.lineWidth = condColor ? Math.max(borderWidth, 2) : borderWidth;
-            var nodeStrokePattern = nodeState.strokePattern || 'solid';
+            var nodeStrokePattern = node.strokePattern || 'solid';
             applyStrokePattern(ctx, nodeStrokePattern);
             ctx.stroke();
             ctx.setLineDash([]); // reset
         }
 
-        // Reset shadow
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
+        // Glow effect — re-stroke with shadow to create outer glow
+        var glowOn = node.glowEnabled !== undefined ? (node.glowEnabled === true || node.glowEnabled === 'on') : ge.glowEnabled;
+        if (glowOn) {
+            shapePath();
+            ctx.shadowBlur = node.glowBlur !== undefined ? parseInt(node.glowBlur, 10) : (ge.glowBlur || 12);
+            ctx.shadowColor = node.glowColor || ge.glowColor || '#3b82f6';
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
+        }
 
         // Accent line at top (rect only)
         if (accentLine === 'true' && shape === 'rect') {
@@ -5231,11 +5254,27 @@ define([
             var lock          = config[ns + 'lock']          || 'false';
             var editorStateStr = config[ns + 'editorState']  || '';
             var drilldownField = config[ns + 'drilldownField'] || 'sourcetype';
+            var globalRawValue = config[ns + 'rawValue'] === 'true';
+            var globalShadowEnabled = config[ns + 'shadowEnabled'] === 'true';
+            var globalShadowBlur = parseInt(config[ns + 'shadowBlur'], 10) || 8;
+            var globalShadowOffsetX = parseInt(config[ns + 'shadowOffsetX'], 10) || 2;
+            var globalShadowOffsetY = parseInt(config[ns + 'shadowOffsetY'], 10) || 2;
+            var globalShadowColor = config[ns + 'shadowColor'] || '#000000';
+            var globalGlowEnabled = config[ns + 'glowEnabled'] === 'true';
+            var globalGlowBlur = parseInt(config[ns + 'glowBlur'], 10) || 12;
+            var globalGlowColor = config[ns + 'glowColor'] || '#3b82f6';
 
             // Edit mode is session-only — controlled by DOM Edit button, not config
             this._lockMode = lock === 'true';
             this._drilldownField = drilldownField;
             this._currentPalette = palette;
+            this._globalEffects = {
+                rawValue: globalRawValue,
+                shadowEnabled: globalShadowEnabled, shadowBlur: globalShadowBlur,
+                shadowOffsetX: globalShadowOffsetX, shadowOffsetY: globalShadowOffsetY,
+                shadowColor: globalShadowColor,
+                glowEnabled: globalGlowEnabled, glowBlur: globalGlowBlur, glowColor: globalGlowColor
+            };
 
             // Start periodic auto-sync: localStorage → formatter textarea.
             // Formatter textarea only exists when Dashboard Studio edit mode is open
@@ -5482,7 +5521,7 @@ define([
                 var isNodeHovered = this._hoverItem &&
                     this._hoverItem.type === 'node' &&
                     this._hoverItem.id === pn.id;
-                drawNode(ctx, pn, theme, accentLine, sparklineType, nodeRadius, isNodeSelected, isNodeHovered);
+                drawNode(ctx, pn, theme, accentLine, sparklineType, nodeRadius, isNodeSelected, isNodeHovered, this._globalEffects || {});
             }
 
             // Draw connection overlays (endpoints, waypoints) ON TOP of nodes
