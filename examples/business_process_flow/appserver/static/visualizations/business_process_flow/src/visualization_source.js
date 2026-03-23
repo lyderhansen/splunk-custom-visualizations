@@ -2748,14 +2748,14 @@ define([
         var opts = options || {};
 
         var wrapper = document.createElement('div');
-        wrapper.style.cssText = 'display:flex;align-items:stretch;';
+        wrapper.style.cssText = 'display:flex;align-items:stretch;height:28px;';
 
         var input = document.createElement('input');
         input.type = 'text';
         input.value = (value !== null && value !== undefined) ? String(value) : '';
-        input.style.cssText = 'flex:1;min-width:0;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:' +
+        input.style.cssText = 'flex:1;min-width:0;box-sizing:border-box;height:28px;background:#0f172a;border:1px solid #334155;border-radius:' +
             (opts.numeric ? '4px 0 0 4px' : '4px') +
-            ';color:#cbd5e1;font-size:11px;padding:4px 7px;outline:none;';
+            ';color:#cbd5e1;font-size:11px;padding:0 7px;outline:none;';
 
         input.addEventListener('focus', function() {
             input.style.borderColor = '#3b82f6';
@@ -2779,12 +2779,12 @@ define([
 
         if (opts.numeric) {
             var btnCol = document.createElement('div');
-            btnCol.style.cssText = 'display:flex;flex-direction:column;';
+            btnCol.style.cssText = 'display:flex;flex-direction:column;height:28px;';
 
             var upBtn = document.createElement('button');
             upBtn.textContent = '\u25B2';
-            upBtn.style.cssText = 'flex:1;width:24px;border:1px solid #334155;border-left:none;' +
-                'background:#1e293b;color:#64748b;font-size:6px;cursor:pointer;' +
+            upBtn.style.cssText = 'height:14px;width:22px;border:1px solid #334155;border-left:none;' +
+                'background:#1e293b;color:#64748b;font-size:5px;cursor:pointer;' +
                 'border-radius:0 4px 0 0;padding:0;line-height:1;transition:background 0.15s,color 0.15s;';
             upBtn.addEventListener('mouseenter', function() { upBtn.style.background = '#334155'; upBtn.style.color = '#cbd5e1'; });
             upBtn.addEventListener('mouseleave', function() { upBtn.style.background = '#1e293b'; upBtn.style.color = '#64748b'; });
@@ -2800,8 +2800,8 @@ define([
 
             var downBtn = document.createElement('button');
             downBtn.textContent = '\u25BC';
-            downBtn.style.cssText = 'flex:1;width:24px;border:1px solid #334155;border-left:none;border-top:none;' +
-                'background:#1e293b;color:#64748b;font-size:6px;cursor:pointer;' +
+            downBtn.style.cssText = 'height:14px;width:22px;border:1px solid #334155;border-left:none;border-top:none;' +
+                'background:#1e293b;color:#64748b;font-size:5px;cursor:pointer;' +
                 'border-radius:0 0 4px 0;padding:0;line-height:1;transition:background 0.15s,color 0.15s;';
             downBtn.addEventListener('mouseenter', function() { downBtn.style.background = '#334155'; downBtn.style.color = '#cbd5e1'; });
             downBtn.addEventListener('mouseleave', function() { downBtn.style.background = '#1e293b'; downBtn.style.color = '#64748b'; });
