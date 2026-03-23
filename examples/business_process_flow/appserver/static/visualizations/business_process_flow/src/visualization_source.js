@@ -650,7 +650,9 @@ define([
                 strokePattern: edState ? edState.strokePattern : undefined,
                 borderRadius: edState ? edState.borderRadius : undefined,
                 bgColor: edState ? edState.bgColor : undefined,
-                borderColor: edState ? edState.borderColor : undefined
+                borderColor: edState ? edState.borderColor : undefined,
+                strokeDash: edState ? edState.strokeDash : undefined,
+                strokeGap: edState ? edState.strokeGap : undefined
             };
 
             var baseObj = {
@@ -676,6 +678,8 @@ define([
                 borderRadius: perNode.borderRadius,
                 bgColor: perNode.bgColor,
                 borderColor: perNode.borderColor,
+                strokeDash: perNode.strokeDash,
+                strokeGap: perNode.strokeGap,
                 prefix: edState ? edState.prefix : undefined,
                 suffix: edState ? edState.suffix : undefined,
                 sparkPosition: edState ? edState.sparkPosition : undefined,
@@ -1047,7 +1051,8 @@ define([
         if (nodeOpacity !== 'default') {
             nodeAlpha = parseFloat(nodeOpacity) || 1;
         } else if (ge.defaultOpacity !== undefined && ge.defaultOpacity !== '') {
-            nodeAlpha = parseFloat(ge.defaultOpacity) || 1;
+            var rawOpacity = parseFloat(ge.defaultOpacity) || 1;
+            nodeAlpha = rawOpacity > 1 ? rawOpacity / 100 : rawOpacity;
         }
 
         // Compute border — per-node, then global default, then 1
@@ -1125,7 +1130,11 @@ define([
             ctx.strokeStyle = isSelected ? node.color : (condColor || nodeBorderColor || theme.nodeBorder);
             ctx.lineWidth = condColor ? Math.max(borderWidth, 2) : borderWidth;
             var nodeStrokePattern = node.strokePattern || ge.defaultStrokePattern || 'solid';
-            applyStrokePattern(ctx, nodeStrokePattern);
+            if (node.strokeDash && node.strokeGap) {
+                ctx.setLineDash([parseInt(node.strokeDash, 10), parseInt(node.strokeGap, 10)]);
+            } else {
+                applyStrokePattern(ctx, nodeStrokePattern);
+            }
             ctx.stroke();
             ctx.setLineDash([]); // reset
         }
@@ -1482,7 +1491,11 @@ define([
             ctx.lineWidth += 2; // thicken line on hover for visibility
         }
         var connPattern = conn.strokePattern || (conn.dash ? 'dashed' : 'solid');
-        applyStrokePattern(ctx, connPattern);
+        if (conn.strokeDash && conn.strokeGap) {
+            ctx.setLineDash([parseInt(conn.strokeDash, 10), parseInt(conn.strokeGap, 10)]);
+        } else {
+            applyStrokePattern(ctx, connPattern);
+        }
 
         var midX, midY, endAngle, startAngle;
 
@@ -2691,9 +2704,11 @@ define([
 
             var upBtn = document.createElement('button');
             upBtn.textContent = '\u25B2';
-            upBtn.style.cssText = 'flex:1;width:28px;border:1px solid #334155;border-left:none;' +
-                'background:#1e293b;color:#94a3b8;font-size:8px;cursor:pointer;' +
-                'border-radius:0 4px 0 0;padding:0;line-height:1;';
+            upBtn.style.cssText = 'flex:1;width:24px;border:1px solid #334155;border-left:none;' +
+                'background:#1e293b;color:#64748b;font-size:6px;cursor:pointer;' +
+                'border-radius:0 4px 0 0;padding:0;line-height:1;transition:background 0.15s,color 0.15s;';
+            upBtn.addEventListener('mouseenter', function() { upBtn.style.background = '#334155'; upBtn.style.color = '#cbd5e1'; });
+            upBtn.addEventListener('mouseleave', function() { upBtn.style.background = '#1e293b'; upBtn.style.color = '#64748b'; });
             upBtn.addEventListener('click', function() {
                 var cur = parseFloat(input.value) || 0;
                 var step = opts.step || 1;
@@ -2706,9 +2721,11 @@ define([
 
             var downBtn = document.createElement('button');
             downBtn.textContent = '\u25BC';
-            downBtn.style.cssText = 'flex:1;width:28px;border:1px solid #334155;border-left:none;border-top:none;' +
-                'background:#1e293b;color:#94a3b8;font-size:8px;cursor:pointer;' +
-                'border-radius:0 0 4px 0;padding:0;line-height:1;';
+            downBtn.style.cssText = 'flex:1;width:24px;border:1px solid #334155;border-left:none;border-top:none;' +
+                'background:#1e293b;color:#64748b;font-size:6px;cursor:pointer;' +
+                'border-radius:0 0 4px 0;padding:0;line-height:1;transition:background 0.15s,color 0.15s;';
+            downBtn.addEventListener('mouseenter', function() { downBtn.style.background = '#334155'; downBtn.style.color = '#cbd5e1'; });
+            downBtn.addEventListener('mouseleave', function() { downBtn.style.background = '#1e293b'; downBtn.style.color = '#64748b'; });
             downBtn.addEventListener('click', function() {
                 var cur = parseFloat(input.value) || 0;
                 var step = opts.step || 1;
@@ -5111,8 +5128,19 @@ define([
             var es = this._editorState;
             var self = this;
 
-            // Helper to create a standard onChange callback
+            // Helper to create onChange callback that does NOT rebuild the panel
+            // (safe for color pickers and non-structural changes)
             function makeOnChange(prop) {
+                return function(val) {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId][prop] = val;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                };
+            }
+
+            // Helper for properties that change panel structure (shows/hides sub-controls)
+            function makeOnChangeAndRefresh(prop) {
                 return function(val) {
                     if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
                     es.nodes[nodeId][prop] = val;
@@ -5133,7 +5161,7 @@ define([
                 {value: 'diamond', label: 'Diamond'}, {value: 'hexagon', label: 'Hexagon'},
                 {value: 'triangle', label: 'Triangle'}, {value: 'cylinder', label: 'Cylinder'},
                 {value: 'cloud', label: 'Cloud'}, {value: 'pill', label: 'Pill'}
-            ], currentShape, makeOnChange('shape')));
+            ], currentShape, makeOnChangeAndRefresh('shape')));
 
             // Value Color (accent/palette color)
             appearBody.appendChild(createColorRow('Value Color', colors, ns.color || '', makeOnChange('color')));
@@ -5173,6 +5201,10 @@ define([
                 {value: 'dotted', label: 'Dotted'}, {value: 'dash-dot', label: 'Dash-Dot'},
                 {value: 'long-dash', label: 'Long'}
             ], ns.strokePattern || 'solid', makeOnChange('strokePattern')));
+
+            // Custom Dash/Gap
+            appearBody.appendChild(createTextRow('Dash Length', ns.strokeDash || '', makeOnChange('strokeDash'), { numeric: true, min: 1, max: 100, step: 1 }));
+            appearBody.appendChild(createTextRow('Gap Length', ns.strokeGap || '', makeOnChange('strokeGap'), { numeric: true, min: 1, max: 100, step: 1 }));
 
             // Border Width
             appearBody.appendChild(createToggleRow('Border Width', [
@@ -5215,7 +5247,7 @@ define([
                 var isHidden = ns.hideValue ? true : false;
                 textBody.appendChild(createToggleRow('Value', [
                     {value: false, label: 'Show'}, {value: true, label: 'Hide'}
-                ], isHidden, makeOnChange('hideValue')));
+                ], isHidden, makeOnChangeAndRefresh('hideValue')));
 
                 // Raw Value
                 textBody.appendChild(createToggleRow('Raw Value', [
@@ -5290,7 +5322,7 @@ define([
 
             effectsBody.appendChild(createToggleRow('Shadow', [
                 {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
-            ], ns.shadowEnable || 'off', makeOnChange('shadowEnable')));
+            ], ns.shadowEnable || 'off', makeOnChangeAndRefresh('shadowEnable')));
 
             if (shadowOn) {
                 effectsBody.appendChild(createTextRow('Shadow Blur', ns.shadowBlur || '8', makeOnChange('shadowBlur'), { numeric: true, min: 0, max: 50, step: 1 }));
@@ -5301,7 +5333,7 @@ define([
 
             effectsBody.appendChild(createToggleRow('Glow', [
                 {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
-            ], ns.glowEnable || 'off', makeOnChange('glowEnable')));
+            ], ns.glowEnable || 'off', makeOnChangeAndRefresh('glowEnable')));
 
             if (glowOn) {
                 effectsBody.appendChild(createTextRow('Glow Blur', ns.glowBlur || '12', makeOnChange('glowBlur'), { numeric: true, min: 0, max: 50, step: 1 }));
@@ -5486,6 +5518,10 @@ define([
                 {value: 'dotted', label: 'Dotted'}, {value: 'dash-dot', label: 'Dash-Dot'},
                 {value: 'long-dash', label: 'Long'}
             ], conn.strokePattern || 'solid', makeConnChange('strokePattern')));
+
+            // Custom Dash/Gap
+            styleBody.appendChild(createTextRow('Dash Length', conn.strokeDash || '', makeConnChange('strokeDash'), { numeric: true, min: 1, max: 100, step: 1 }));
+            styleBody.appendChild(createTextRow('Gap Length', conn.strokeGap || '', makeConnChange('strokeGap'), { numeric: true, min: 1, max: 100, step: 1 }));
 
             // Color
             styleBody.appendChild(createColorRow('Color', colors, conn.color || '', makeConnChange('color')));

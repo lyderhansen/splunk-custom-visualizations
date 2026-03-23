@@ -50,12 +50,12 @@
         </splunk-text-input>
     </splunk-control-group>
 
-    <splunk-control-group label="Default Opacity" help="Default node opacity (0 to 1)">
-        <splunk-text-input name="{{VIZ_NAMESPACE}}.defaultOpacity" value="1">
+    <splunk-control-group label="Default Opacity" help="Global node opacity (0-100%)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.defaultOpacity" value="100">
         </splunk-text-input>
     </splunk-control-group>
 
-    <splunk-control-group label="Default Stroke Pattern" help="Default border stroke pattern">
+    <splunk-control-group label="Default Stroke" help="Default border pattern for nodes">
         <splunk-select name="{{VIZ_NAMESPACE}}.defaultStrokePattern" value="solid">
             <option value="solid">Solid</option>
             <option value="dashed">Dashed</option>
@@ -70,13 +70,13 @@
         </splunk-text-input>
     </splunk-control-group>
 
-    <splunk-control-group label="Default Border Color" help="Default border color (hex, leave empty for theme default)">
-        <splunk-text-input name="{{VIZ_NAMESPACE}}.defaultBorderColor" value="">
+    <splunk-control-group label="Default Background" help="Default node background color (hex, leave empty for theme default)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.defaultBgColor" value="">
         </splunk-text-input>
     </splunk-control-group>
 
-    <splunk-control-group label="Default Background Color" help="Default node background color (hex, leave empty for theme default)">
-        <splunk-text-input name="{{VIZ_NAMESPACE}}.defaultBgColor" value="">
+    <splunk-control-group label="Default Border Color" help="Default node border color (hex, leave empty for theme default)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.defaultBorderColor" value="">
         </splunk-text-input>
     </splunk-control-group>
 
