@@ -1448,9 +1448,11 @@ define([
         } else if (sparkPos === 'left' && hasSpark) {
             // LEFT: sparkline on left, text on right
             var leftSparkW = Math.round(tw0 * 0.45);
-            var leftSparkActualH = Math.min(sparkH, th0 - pad * 2);
-            drawSparkline(ctx, node.series, tx0 + pad, ty0 + pad, leftSparkW - pad * 2, leftSparkActualH, nodeSparkType, node.color);
-            node._sparkBounds = { x: tx0 + pad, y: ty0 + pad, w: leftSparkW - pad * 2, h: leftSparkActualH };
+            var leftSparkActualH = th0 - pad * 2;
+            var leftSparkAreaX = tx0;
+            var leftSparkAreaY = ty0 + pad;
+            drawSparkline(ctx, node.series, leftSparkAreaX, leftSparkAreaY, leftSparkW, leftSparkActualH, nodeSparkType, node.color);
+            node._sparkBounds = { x: leftSparkAreaX, y: leftSparkAreaY, w: leftSparkW, h: leftSparkActualH };
             node._sparkDataRef = node.series;
             // Label on right (tAlign applies within right panel)
             var rightX = tx0 + leftSparkW + pad;
@@ -1489,9 +1491,10 @@ define([
             // RIGHT: text on left 55%, sparkline on right 45% (mirror of left)
             var rightSparkW = Math.round(tw0 * 0.45);
             var rightSparkX = tx0 + tw0 - rightSparkW;
-            var rightSparkActualH = Math.min(sparkH, th0 - pad * 2);
-            drawSparkline(ctx, node.series, rightSparkX + pad, ty0 + pad, rightSparkW - pad * 2, rightSparkActualH, nodeSparkType, node.color);
-            node._sparkBounds = { x: rightSparkX + pad, y: ty0 + pad, w: rightSparkW - pad * 2, h: rightSparkActualH };
+            var rightSparkActualH = th0 - pad * 2;
+            var rightSparkAreaY = ty0 + pad;
+            drawSparkline(ctx, node.series, rightSparkX, rightSparkAreaY, rightSparkW, rightSparkActualH, nodeSparkType, node.color);
+            node._sparkBounds = { x: rightSparkX, y: rightSparkAreaY, w: rightSparkW, h: rightSparkActualH };
             node._sparkDataRef = node.series;
             // Label on left panel
             var leftTextW = tw0 - rightSparkW - pad * 2;
@@ -3328,6 +3331,9 @@ define([
             this._pendingToolbarAction = null;
             this._isConnecting = false;
             this._connectFromId = null;
+            this._connectFromPort = null;
+            this._connectMouseX = 0;
+            this._connectMouseY = 0;
             this._isResizing = false;
             this._resizeNodeId = null;
             this._resizeHandle = null;
@@ -4160,6 +4166,7 @@ define([
                                     });
                                     self._isConnecting = false;
                                     self._connectFromId = null;
+                                    self._connectFromPort = null;
                                     self.canvas.style.cursor = 'default';
                                     self.invalidateUpdateView();
                                 }
@@ -4298,6 +4305,28 @@ define([
                                     }
                                 }
                                 break;
+                            }
+                        }
+                    }
+
+                    // Check connection port hits — start drag-to-connect
+                    for (var npi = 0; npi < self._computedNodes.length; npi++) {
+                        var pn = self._computedNodes[npi];
+                        if (pn._ports && arrContains(self._selectedNodeIds, pn.id)) {
+                            for (var ppi = 0; ppi < pn._ports.length; ppi++) {
+                                var port = pn._ports[ppi];
+                                var pdx = mx - port.px;
+                                var pdy = my - port.py;
+                                if (pdx * pdx + pdy * pdy <= 64) {
+                                    self._isConnecting = true;
+                                    self._connectFromId = pn.id;
+                                    self._connectFromPort = port.side;
+                                    self._connectMouseX = mx;
+                                    self._connectMouseY = my;
+                                    self.canvas.style.cursor = 'crosshair';
+                                    e.preventDefault();
+                                    return;
+                                }
                             }
                         }
                     }
@@ -4678,9 +4707,12 @@ define([
                     return;
                 }
 
-                // In connecting mode, redraw for temp line
+                // In connecting mode, update mouse position and redraw for temp line
                 if (self._isConnecting && self._connectFromId) {
+                    self._connectMouseX = mx;
+                    self._connectMouseY = my;
                     self.invalidateUpdateView();
+                    if (self._connectFromPort) return;
                 }
 
                 // Handle rubber-band selection drag
@@ -4826,8 +4858,30 @@ define([
                     }
                 }
 
+                // Check port hover — show crosshair when over a connection port
+                var onPort = false;
+                if (self._editMode) {
+                    for (var hpi = 0; hpi < self._computedNodes.length; hpi++) {
+                        if (self._computedNodes[hpi]._ports && arrContains(self._selectedNodeIds, self._computedNodes[hpi].id)) {
+                            for (var hpp = 0; hpp < self._computedNodes[hpi]._ports.length; hpp++) {
+                                var hp = self._computedNodes[hpi]._ports[hpp];
+                                var hpdx = mx - hp.px;
+                                var hpdy = my - hp.py;
+                                if (hpdx * hpdx + hpdy * hpdy <= 64) {
+                                    self.canvas.style.cursor = 'crosshair';
+                                    onPort = true;
+                                    break;
+                                }
+                            }
+                            if (onPort) break;
+                        }
+                    }
+                }
+
                 // Update cursor based on state
-                if (self._isConnecting) {
+                if (onPort) {
+                    // already set above
+                } else if (self._isConnecting) {
                     self.canvas.style.cursor = 'crosshair';
                 } else if (self._hoverItem) {
                     if (self._hoverItem.type === 'button') {
@@ -4954,6 +5008,40 @@ define([
                     self._rubberBandEnd = null;
                     self._updatePanel();
                     self.invalidateUpdateView();
+                    return;
+                }
+
+                // Handle port-based drag-to-connect end
+                if (self._isConnecting && self._connectFromPort) {
+                    self._isConnecting = false;
+                    var cmx = self._mouseX - self._panX;
+                    var cmy = self._mouseY - self._panY;
+                    // Find target node under cursor
+                    for (var tni = 0; tni < self._computedNodes.length; tni++) {
+                        var tn = self._computedNodes[tni];
+                        if (tn.id !== self._connectFromId && hitTestNode(cmx, cmy, tn)) {
+                            // Create connection
+                            var newConn = {
+                                from: self._connectFromId,
+                                to: tn.id,
+                                endEndpoint: 'filledArrow',
+                                sourceAnchor: self._connectFromPort || 'auto',
+                                targetAnchor: 'auto',
+                                style: 'straight',
+                                color: '',
+                                width: 2,
+                                manual: true
+                            };
+                            if (!self._editorState.connections) self._editorState.connections = [];
+                            self._pushUndo();
+                            self._editorState.connections.push(newConn);
+                            self.invalidateUpdateView();
+                            break;
+                        }
+                    }
+                    self._connectFromId = null;
+                    self._connectFromPort = null;
+                    self.canvas.style.cursor = 'default';
                     return;
                 }
 
@@ -5218,6 +5306,7 @@ define([
                     e.preventDefault();
                     self._isConnecting = false;
                     self._connectFromId = null;
+                    self._connectFromPort = null;
                     self.canvas.style.cursor = 'default';
                     self.invalidateUpdateView();
                 }
@@ -5239,6 +5328,7 @@ define([
                     if (self._isConnecting) {
                         self._isConnecting = false;
                         self._connectFromId = null;
+                        self._connectFromPort = null;
                         self.canvas.style.cursor = 'default';
                         changed = true;
                     }
@@ -6491,6 +6581,35 @@ define([
                 drawNode(ctx, pn, theme, accentLine, sparklineType, nodeRadius, isNodeSelected, isNodeHovered, this._globalEffects || {});
             }
 
+            // ── Connection Ports on Selected Nodes ──
+            if (this._editMode) {
+                for (var cpi = 0; cpi < positioned.length; cpi++) {
+                    var cpn = positioned[cpi];
+                    if (arrContains(this._selectedNodeIds, cpn.id)) {
+                        var portRadius = 6;
+                        var portColor = '#6366f1';
+                        var ports = [
+                            { side: 'top', px: cpn.x + cpn.w / 2, py: cpn.y },
+                            { side: 'bottom', px: cpn.x + cpn.w / 2, py: cpn.y + cpn.h },
+                            { side: 'left', px: cpn.x, py: cpn.y + cpn.h / 2 },
+                            { side: 'right', px: cpn.x + cpn.w, py: cpn.y + cpn.h / 2 }
+                        ];
+                        for (var pdi = 0; pdi < ports.length; pdi++) {
+                            ctx.beginPath();
+                            ctx.arc(ports[pdi].px, ports[pdi].py, portRadius, 0, Math.PI * 2);
+                            ctx.fillStyle = portColor;
+                            ctx.fill();
+                            ctx.strokeStyle = '#fff';
+                            ctx.lineWidth = 1.5;
+                            ctx.stroke();
+                        }
+                        cpn._ports = ports;
+                    } else {
+                        cpn._ports = null;
+                    }
+                }
+            }
+
             // ── Sparkline Hover Overlay ──
             if (this._sparkHoverNode && this._sparkHoverIdx >= 0) {
                 var shNode = this._sparkHoverNode;
@@ -6598,13 +6717,21 @@ define([
                 if (this._isConnecting && this._connectFromId) {
                     var fromConnNode = nodeMap[this._connectFromId];
                     if (fromConnNode) {
+                        var clStartX = fromConnNode.x + fromConnNode.w / 2;
+                        var clStartY = fromConnNode.y + fromConnNode.h / 2;
+                        if (this._connectFromPort === 'top') { clStartX = fromConnNode.x + fromConnNode.w / 2; clStartY = fromConnNode.y; }
+                        else if (this._connectFromPort === 'bottom') { clStartX = fromConnNode.x + fromConnNode.w / 2; clStartY = fromConnNode.y + fromConnNode.h; }
+                        else if (this._connectFromPort === 'left') { clStartX = fromConnNode.x; clStartY = fromConnNode.y + fromConnNode.h / 2; }
+                        else if (this._connectFromPort === 'right') { clStartX = fromConnNode.x + fromConnNode.w; clStartY = fromConnNode.y + fromConnNode.h / 2; }
+                        var clEndX = this._connectFromPort ? this._connectMouseX : (this._mouseX - this._panX);
+                        var clEndY = this._connectFromPort ? this._connectMouseY : (this._mouseY - this._panY);
                         ctx.save();
-                        ctx.setLineDash([6, 4]);
-                        ctx.strokeStyle = theme.textMuted;
+                        ctx.setLineDash([6, 3]);
+                        ctx.strokeStyle = '#6366f1';
                         ctx.lineWidth = 2;
                         ctx.beginPath();
-                        ctx.moveTo(fromConnNode.x + fromConnNode.w / 2, fromConnNode.y + fromConnNode.h / 2);
-                        ctx.lineTo(this._mouseX - this._panX, this._mouseY - this._panY);
+                        ctx.moveTo(clStartX, clStartY);
+                        ctx.lineTo(clEndX, clEndY);
                         ctx.stroke();
                         ctx.setLineDash([]);
                         ctx.restore();
