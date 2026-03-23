@@ -14,6 +14,13 @@ define([
     'api/SplunkVisualizationUtils'
 ], function(SplunkVisualizationBase, SplunkVisualizationUtils) {
 
+    // ── Panel Theme (module-level, updated by updateView) ────────
+    var panelTheme = {
+        bg: '#0f172a', inputBg: '#0f172a', border: '#334155', text: '#cbd5e1',
+        textMuted: '#64748b', active: '#6366f1', activeBg: '#475569',
+        sectionBg: '#1e293b', sectionText: '#94a3b8'
+    };
+
     // ── Color Palettes ────────────────────────────────────────────
 
     var PALETTES = {
@@ -840,6 +847,7 @@ define([
                 trendUpColor: edState ? edState.trendUpColor : undefined,
                 trendDownColor: edState ? edState.trendDownColor : undefined,
                 trendCompareBack: edState ? edState.trendCompareBack : undefined,
+                trendShowMarker: edState ? edState.trendShowMarker : undefined,
                 sparkHover: edState ? edState.sparkHover : undefined,
                 conditionTarget: edState ? edState.conditionTarget : undefined,
                 // Effects
@@ -1966,7 +1974,7 @@ define([
 
             // ── Visual Trend Comparison Marker on Sparkline ──
             // Overlay the compare segment of the sparkline in trend color
-            if (node._sparkBounds && sparkData && sparkData.length >= compareBack + 1) {
+            if (node.trendShowMarker !== 'off' && node._sparkBounds && sparkData && sparkData.length >= compareBack + 1) {
                 var sb = node._sparkBounds;
                 var sdLen = sparkData.length;
                 var compareIdx = sdLen - 1 - compareBack;
@@ -2783,21 +2791,21 @@ define([
         var isExpanded = (expanded !== false);
 
         var section = document.createElement('div');
-        section.style.cssText = 'border-bottom:1px solid #1e293b;';
+        section.style.cssText = 'border-bottom:1px solid ' + panelTheme.sectionBg + ';';
 
         var header = document.createElement('div');
-        header.style.cssText = 'display:flex;align-items:center;padding:6px 10px;background:#1e293b;cursor:pointer;user-select:none;-webkit-user-select:none;';
+        header.style.cssText = 'display:flex;align-items:center;padding:6px 10px;background:' + panelTheme.sectionBg + ';cursor:pointer;user-select:none;-webkit-user-select:none;';
 
         var arrow = document.createElement('span');
-        arrow.style.cssText = 'font-size:9px;color:#64748b;margin-right:5px;transition:transform 0.15s;display:inline-block;';
+        arrow.style.cssText = 'font-size:9px;color:' + panelTheme.textMuted + ';margin-right:5px;transition:transform 0.15s;display:inline-block;';
         arrow.textContent = isExpanded ? '\u25BC' : '\u25B6';
 
         var titleEl = document.createElement('span');
-        titleEl.style.cssText = 'font-size:11px;font-weight:bold;color:#94a3b8;flex:1;';
+        titleEl.style.cssText = 'font-size:11px;font-weight:bold;color:' + panelTheme.sectionText + ';flex:1;';
         titleEl.textContent = title;
 
         var summaryEl = document.createElement('span');
-        summaryEl.style.cssText = 'font-size:9px;color:#64748b;margin-left:4px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        summaryEl.style.cssText = 'font-size:9px;color:' + panelTheme.textMuted + ';margin-left:4px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
         summaryEl.textContent = summaryText || '';
         summaryEl.style.display = isExpanded ? 'none' : 'inline';
 
@@ -2835,7 +2843,7 @@ define([
         row.style.cssText = 'margin-bottom:8px;';
 
         var labelEl = document.createElement('div');
-        labelEl.style.cssText = 'color:#64748b;font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;';
+        labelEl.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;';
         labelEl.textContent = label;
         row.appendChild(labelEl);
 
@@ -2850,9 +2858,9 @@ define([
                 var isActive = (opt.value === activeValue);
                 btn.textContent = opt.label !== undefined ? opt.label : opt.value;
                 btn.style.cssText = 'padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;border:1px solid ' +
-                    (isActive ? '#3b82f6' : '#334155') + ';background:' +
+                    (isActive ? '#3b82f6' : panelTheme.border) + ';background:' +
                     (isActive ? 'rgba(59,130,246,0.2)' : 'transparent') +
-                    ';color:' + (isActive ? '#93c5fd' : '#94a3b8') + ';transition:all 0.1s;';
+                    ';color:' + (isActive ? '#93c5fd' : panelTheme.sectionText) + ';transition:all 0.1s;';
                 btn._optValue = opt.value;
                 btn._active = isActive;
                 buttons.push(btn);
@@ -2862,9 +2870,9 @@ define([
                         var b = buttons[j];
                         var a = (b._optValue === opt.value);
                         b._active = a;
-                        b.style.borderColor = a ? '#3b82f6' : '#334155';
+                        b.style.borderColor = a ? '#3b82f6' : panelTheme.border;
                         b.style.background = a ? 'rgba(59,130,246,0.2)' : 'transparent';
-                        b.style.color = a ? '#93c5fd' : '#94a3b8';
+                        b.style.color = a ? '#93c5fd' : panelTheme.sectionText;
                     }
                     if (onChange) onChange(opt.value);
                 });
@@ -2888,7 +2896,7 @@ define([
         row.style.cssText = 'margin-bottom:8px;';
 
         var labelEl = document.createElement('div');
-        labelEl.style.cssText = 'color:#64748b;font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;';
+        labelEl.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;';
         labelEl.textContent = label;
         row.appendChild(labelEl);
 
@@ -2900,16 +2908,16 @@ define([
         var input = document.createElement('input');
         input.type = 'text';
         input.value = (value !== null && value !== undefined) ? String(value) : '';
-        input.style.cssText = 'flex:1;min-width:0;box-sizing:border-box;height:28px;background:#0f172a;border:1px solid #334155;border-radius:' +
+        input.style.cssText = 'flex:1;min-width:0;box-sizing:border-box;height:28px;background:' + panelTheme.inputBg + ';border:1px solid ' + panelTheme.border + ';border-radius:' +
             (opts.numeric ? '4px 0 0 4px' : '4px') +
-            ';color:#cbd5e1;font-size:11px;padding:0 7px;outline:none;';
+            ';color:' + panelTheme.text + ';font-size:11px;padding:0 7px;outline:none;';
 
         input.addEventListener('focus', function() {
             input.style.borderColor = '#3b82f6';
             input.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.25)';
         });
         input.addEventListener('blur', function() {
-            input.style.borderColor = '#334155';
+            input.style.borderColor = panelTheme.border;
             input.style.boxShadow = 'none';
             if (onChange) onChange(input.value);
         });
@@ -2930,11 +2938,11 @@ define([
 
             var upBtn = document.createElement('button');
             upBtn.textContent = '\u25B2';
-            upBtn.style.cssText = 'height:14px;width:22px;border:1px solid #334155;border-left:none;' +
-                'background:#1e293b;color:#64748b;font-size:5px;cursor:pointer;' +
+            upBtn.style.cssText = 'height:14px;width:22px;border:1px solid ' + panelTheme.border + ';border-left:none;' +
+                'background:' + panelTheme.sectionBg + ';color:' + panelTheme.textMuted + ';font-size:5px;cursor:pointer;' +
                 'border-radius:0 4px 0 0;padding:0;line-height:1;transition:background 0.15s,color 0.15s;';
-            upBtn.addEventListener('mouseenter', function() { upBtn.style.background = '#334155'; upBtn.style.color = '#cbd5e1'; });
-            upBtn.addEventListener('mouseleave', function() { upBtn.style.background = '#1e293b'; upBtn.style.color = '#64748b'; });
+            upBtn.addEventListener('mouseenter', function() { upBtn.style.background = panelTheme.border; upBtn.style.color = panelTheme.text; });
+            upBtn.addEventListener('mouseleave', function() { upBtn.style.background = panelTheme.sectionBg; upBtn.style.color = panelTheme.textMuted; });
             upBtn.addEventListener('click', function() {
                 var cur = parseFloat(input.value) || 0;
                 var step = opts.step || 1;
@@ -2947,11 +2955,11 @@ define([
 
             var downBtn = document.createElement('button');
             downBtn.textContent = '\u25BC';
-            downBtn.style.cssText = 'height:14px;width:22px;border:1px solid #334155;border-left:none;border-top:none;' +
-                'background:#1e293b;color:#64748b;font-size:5px;cursor:pointer;' +
+            downBtn.style.cssText = 'height:14px;width:22px;border:1px solid ' + panelTheme.border + ';border-left:none;border-top:none;' +
+                'background:' + panelTheme.sectionBg + ';color:' + panelTheme.textMuted + ';font-size:5px;cursor:pointer;' +
                 'border-radius:0 0 4px 0;padding:0;line-height:1;transition:background 0.15s,color 0.15s;';
-            downBtn.addEventListener('mouseenter', function() { downBtn.style.background = '#334155'; downBtn.style.color = '#cbd5e1'; });
-            downBtn.addEventListener('mouseleave', function() { downBtn.style.background = '#1e293b'; downBtn.style.color = '#64748b'; });
+            downBtn.addEventListener('mouseenter', function() { downBtn.style.background = panelTheme.border; downBtn.style.color = panelTheme.text; });
+            downBtn.addEventListener('mouseleave', function() { downBtn.style.background = panelTheme.sectionBg; downBtn.style.color = panelTheme.textMuted; });
             downBtn.addEventListener('click', function() {
                 var cur = parseFloat(input.value) || 0;
                 var step = opts.step || 1;
@@ -2981,28 +2989,33 @@ define([
         row.style.cssText = 'margin-bottom:8px;';
 
         var labelEl = document.createElement('div');
-        labelEl.style.cssText = 'color:#64748b;font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;';
+        labelEl.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;';
         labelEl.textContent = label;
         row.appendChild(labelEl);
 
+        // Single line: swatches + hex input + color picker
         var swatchRow = document.createElement('div');
-        swatchRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-bottom:5px;';
+        swatchRow.style.cssText = 'display:flex;gap:3px;flex-wrap:wrap;align-items:center;';
 
         var swatches = [];
 
         function updateSwatches(selectedColor) {
             for (var si = 0; si < swatches.length; si++) {
                 var sw = swatches[si];
-                var isSelected = (sw._color.toLowerCase() === (selectedColor || '').toLowerCase());
-                sw.style.outline = isSelected ? '2px solid #f1f5f9' : '2px solid transparent';
+                var isSel = (sw._color.toLowerCase() === (selectedColor || '').toLowerCase());
+                sw.style.outline = isSel ? '2px solid ' + panelTheme.text : '2px solid transparent';
                 sw.style.outlineOffset = '1px';
             }
         }
 
+        var hexInput = document.createElement('input');
+        hexInput.type = 'text';
+        hexInput.value = activeColor || '';
+
         for (var ci = 0; ci < colors.length; ci++) {
             (function(color) {
                 var swatch = document.createElement('div');
-                swatch.style.cssText = 'width:16px;height:16px;border-radius:3px;cursor:pointer;flex-shrink:0;background:' + color + ';';
+                swatch.style.cssText = 'width:14px;height:14px;border-radius:3px;cursor:pointer;flex-shrink:0;background:' + color + ';';
                 swatch._color = color;
                 swatch.addEventListener('click', function() {
                     hexInput.value = color;
@@ -3015,29 +3028,20 @@ define([
             })(colors[ci]);
         }
 
-        row.appendChild(swatchRow);
-
-        var inputRow = document.createElement('div');
-        inputRow.style.cssText = 'display:flex;gap:5px;align-items:center;';
-
-        var hexInput = document.createElement('input');
-        hexInput.type = 'text';
-        hexInput.value = activeColor || '';
-        hexInput.style.cssText = 'flex:1;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#cbd5e1;font-size:11px;padding:3px 6px;outline:none;min-width:0;';
-        hexInput.placeholder = '#rrggbb(aa)';
+        hexInput.style.cssText = 'width:55px;background:' + panelTheme.inputBg + ';border:1px solid ' + panelTheme.border + ';border-radius:4px;color:' + panelTheme.text + ';font-size:10px;padding:2px 4px;outline:none;flex-shrink:0;';
+        hexInput.placeholder = '#hex';
 
         hexInput.addEventListener('focus', function() {
             hexInput.style.borderColor = '#3b82f6';
             hexInput.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.25)';
         });
         hexInput.addEventListener('blur', function() {
-            hexInput.style.borderColor = '#334155';
+            hexInput.style.borderColor = panelTheme.border;
             hexInput.style.boxShadow = 'none';
             var val = hexInput.value.trim();
             if (val && val.charAt(0) !== '#') val = '#' + val;
             if (/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(val)) {
                 updateSwatches(val);
-                // Native picker only supports 6-digit hex; update it with the base color
                 if (val.length === 9) {
                     colorPicker.value = val.substring(0, 7);
                 } else {
@@ -3057,7 +3061,7 @@ define([
         var colorPicker = document.createElement('input');
         colorPicker.type = 'color';
         colorPicker.value = (activeColor && /^#[0-9a-fA-F]{6}/.test(activeColor)) ? activeColor.substring(0, 7) : '#3b82f6';
-        colorPicker.style.cssText = 'width:24px;height:24px;border:none;background:none;cursor:pointer;padding:0;border-radius:3px;flex-shrink:0;';
+        colorPicker.style.cssText = 'width:18px;height:18px;border:none;background:none;cursor:pointer;padding:0;border-radius:3px;flex-shrink:0;';
 
         colorPicker.addEventListener('mousedown', function(e) { e.preventDefault(); e.stopPropagation(); });
         colorPicker.addEventListener('click', function(e) { e.stopPropagation(); });
@@ -3075,9 +3079,9 @@ define([
             if (onSelect) onSelect(val);
         });
 
-        inputRow.appendChild(hexInput);
-        inputRow.appendChild(colorPicker);
-        row.appendChild(inputRow);
+        swatchRow.appendChild(hexInput);
+        swatchRow.appendChild(colorPicker);
+        row.appendChild(swatchRow);
 
         updateSwatches(activeColor);
 
@@ -5584,7 +5588,7 @@ define([
 
             var bringFwdBtn = document.createElement('button');
             bringFwdBtn.textContent = 'Bring Forward';
-            bringFwdBtn.style.cssText = 'flex:1;padding:4px;border-radius:4px;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-size:10px;cursor:pointer;';
+            bringFwdBtn.style.cssText = 'flex:1;padding:4px;border-radius:4px;border:1px solid ' + panelTheme.border + ';background:' + panelTheme.sectionBg + ';color:' + panelTheme.sectionText + ';font-size:10px;cursor:pointer;';
             bringFwdBtn.addEventListener('click', function() {
                 if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
                 var cur = parseInt(es.nodes[nodeId].zOrder, 10) || 0;
@@ -5595,7 +5599,7 @@ define([
 
             var sendBackBtn = document.createElement('button');
             sendBackBtn.textContent = 'Send Back';
-            sendBackBtn.style.cssText = 'flex:1;padding:4px;border-radius:4px;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-size:10px;cursor:pointer;';
+            sendBackBtn.style.cssText = 'flex:1;padding:4px;border-radius:4px;border:1px solid ' + panelTheme.border + ';background:' + panelTheme.sectionBg + ';color:' + panelTheme.sectionText + ';font-size:10px;cursor:pointer;';
             sendBackBtn.addEventListener('click', function() {
                 if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
                 var cur = parseInt(es.nodes[nodeId].zOrder, 10) || 0;
@@ -5626,26 +5630,61 @@ define([
             // Border Color override
             appearBody.appendChild(createColorRow('Border Color', colors, ns.borderColor || '', makeOnChange('borderColor')));
 
-            // Border Radius (only for rect)
+            // Border Radius (only for rect) — preset + custom merged
             if (currentShape === 'rect') {
+                var radiusPresets = ['0','4','8','12','20','50'];
+                var curRadius = ns.borderRadius || '0';
+                var isRadiusCustom = curRadius && radiusPresets.indexOf(curRadius) === -1;
                 appearBody.appendChild(createToggleRow('Border Radius', [
                     {value: '0', label: '0'}, {value: '4', label: '4'},
                     {value: '8', label: '8'}, {value: '12', label: '12'},
-                    {value: '20', label: '20'}, {value: '50', label: '50'}
-                ], ns.borderRadius || '0', makeOnChange('borderRadius')));
-                appearBody.appendChild(createTextRow('Custom Radius', ns.borderRadius || '', makeOnChange('borderRadius'), { numeric: true, min: 0, max: 100, step: 1 }));
+                    {value: '20', label: '20'}, {value: '50', label: '50'},
+                    {value: 'custom', label: 'Custom'}
+                ], isRadiusCustom ? 'custom' : curRadius, function(val) {
+                    if (val === 'custom') {
+                        self._refreshPanel();
+                    } else {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        es.nodes[nodeId].borderRadius = val;
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                        self._refreshPanel();
+                    }
+                }));
+                appearBody.appendChild(createTextRow('Custom Radius', curRadius, function(val) {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].borderRadius = val;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                }, { numeric: true, min: 0, max: 100, step: 1 }));
             }
 
-            // Opacity
+            // Opacity — preset + custom merged
+            var opacityPresets = ['default','0.8','0.6','0.4'];
+            var curOpacity = ns.opacity || 'default';
+            var isOpacityCustom = curOpacity !== 'default' && opacityPresets.indexOf(curOpacity) === -1;
             appearBody.appendChild(createToggleRow('Opacity', [
                 {value: 'default', label: '100%'}, {value: '0.8', label: '80%'},
-                {value: '0.6', label: '60%'}, {value: '0.4', label: '40%'}
-            ], ns.opacity || 'default', makeOnChange('opacity')));
-            var opacityOnChange = makeOnChange('opacity');
-            appearBody.appendChild(createTextRow('Custom %', String(Math.round((parseFloat(ns.opacity) || 1) * 100)), function(val) {
+                {value: '0.6', label: '60%'}, {value: '0.4', label: '40%'},
+                {value: 'custom', label: 'Custom'}
+            ], isOpacityCustom ? 'custom' : curOpacity, function(val) {
+                if (val === 'custom') {
+                    self._refreshPanel();
+                } else {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].opacity = val;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                    self._refreshPanel();
+                }
+            }));
+            appearBody.appendChild(createTextRow('Custom %', String(Math.round((parseFloat(curOpacity) || 1) * 100)), function(val) {
                 var pct = parseInt(val, 10);
                 if (!isNaN(pct) && pct >= 0 && pct <= 100) {
-                    opacityOnChange(String(pct / 100));
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].opacity = String(pct / 100);
+                    self._pushUndo();
+                    self.invalidateUpdateView();
                 }
             }, { numeric: true, min: 0, max: 100, step: 5 }));
 
@@ -5660,13 +5699,31 @@ define([
             appearBody.appendChild(createTextRow('Dash Length', ns.strokeDash || '', makeOnChange('strokeDash'), { numeric: true, min: 1, max: 100, step: 1 }));
             appearBody.appendChild(createTextRow('Gap Length', ns.strokeGap || '', makeOnChange('strokeGap'), { numeric: true, min: 1, max: 100, step: 1 }));
 
-            // Border Width
+            // Border Width — preset + custom merged
+            var bwPresets = ['default','0','1','2','3'];
+            var curBW = ns.borderWidth || 'default';
+            var isBWCustom = curBW !== 'default' && bwPresets.indexOf(curBW) === -1;
             appearBody.appendChild(createToggleRow('Border Width', [
                 {value: 'default', label: 'Auto'}, {value: '0', label: 'None'},
                 {value: '1', label: 'Thin'}, {value: '2', label: 'Med'},
-                {value: '3', label: 'Thick'}
-            ], ns.borderWidth || 'default', makeOnChange('borderWidth')));
-            appearBody.appendChild(createTextRow('Custom Width (px)', ns.borderWidth || '', makeOnChange('borderWidth'), { numeric: true, min: 0, max: 20, step: 1 }));
+                {value: '3', label: 'Thick'}, {value: 'custom', label: 'Custom'}
+            ], isBWCustom ? 'custom' : curBW, function(val) {
+                if (val === 'custom') {
+                    self._refreshPanel();
+                } else {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].borderWidth = val;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                    self._refreshPanel();
+                }
+            }));
+            appearBody.appendChild(createTextRow('Custom Width (px)', curBW !== 'default' ? curBW : '', function(val) {
+                if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                es.nodes[nodeId].borderWidth = val;
+                self._pushUndo();
+                self.invalidateUpdateView();
+            }, { numeric: true, min: 0, max: 20, step: 1 }));
 
             body.appendChild(appearSec);
 
@@ -5677,7 +5734,7 @@ define([
                 var ta = document.createElement('textarea');
                 ta.value = ns.markdownContent || '## Title\n\nText here';
                 ta.style.cssText = 'width:100%;box-sizing:border-box;height:120px;padding:8px;' +
-                    'border-radius:4px;border:1px solid #334155;background:#0f172a;color:#cbd5e1;' +
+                    'border-radius:4px;border:1px solid ' + panelTheme.border + ';background:' + panelTheme.inputBg + ';color:' + panelTheme.text + ';' +
                     'font:11px monospace;resize:vertical;';
                 ta.addEventListener('input', function() {
                     if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
@@ -5714,13 +5771,38 @@ define([
                 // Suffix
                 textBody.appendChild(createTextRow('Suffix', ns.suffix || '', makeOnChange('suffix')));
 
-                // Font Size
+                // Font Size — preset + custom merged
+                var fontSizeMap = { small: 10, medium: 14, large: 18, xlarge: 24 };
+                var curFontPreset = ns.fontSize || 'default';
+                var curCustomFont = ns.customFontSize || '';
+                var isFontCustom = curCustomFont && curFontPreset === 'default';
                 textBody.appendChild(createToggleRow('Font Size', [
                     {value: 'default', label: 'Auto'}, {value: 'small', label: 'S'},
                     {value: 'medium', label: 'M'}, {value: 'large', label: 'L'},
-                    {value: 'xlarge', label: 'XL'}
-                ], ns.fontSize || 'default', makeOnChange('fontSize')));
-                textBody.appendChild(createTextRow('Custom Font (px)', ns.customFontSize || '', makeOnChange('customFontSize'), { numeric: true, min: 6, max: 72, step: 1 }));
+                    {value: 'xlarge', label: 'XL'}, {value: 'custom', label: 'Custom'}
+                ], isFontCustom ? 'custom' : curFontPreset, function(val) {
+                    if (val === 'custom') {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        es.nodes[nodeId].fontSize = 'default';
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                        self._refreshPanel();
+                    } else {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        es.nodes[nodeId].fontSize = val;
+                        es.nodes[nodeId].customFontSize = '';
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                        self._refreshPanel();
+                    }
+                }));
+                textBody.appendChild(createTextRow('Custom Font (px)', curCustomFont || (fontSizeMap[curFontPreset] || ''), function(val) {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].customFontSize = val;
+                    es.nodes[nodeId].fontSize = 'default';
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                }, { numeric: true, min: 6, max: 72, step: 1 }));
 
                 // H. Align
                 textBody.appendChild(createToggleRow('H. Align', [
@@ -5740,12 +5822,37 @@ define([
                 // Value Color (hex + picker only, no swatches)
                 textBody.appendChild(createColorRow('Value Color', [], ns.valueColor || '', makeOnChange('valueColor')));
 
-                // Padding
+                // Padding — preset + custom merged
+                var padPresetMap = { compact: 2, normal: 10, spacious: 28 };
+                var curPad = ns.padding || 'normal';
+                var curCustomPad = ns.customPadding || '';
+                var isPadCustom = curCustomPad && !padPresetMap[curPad];
                 textBody.appendChild(createToggleRow('Padding', [
                     {value: 'compact', label: 'Compact'}, {value: 'normal', label: 'Normal'},
-                    {value: 'spacious', label: 'Spacious'}
-                ], ns.padding || 'normal', makeOnChange('padding')));
-                textBody.appendChild(createTextRow('Custom Padding', ns.customPadding || '', makeOnChange('customPadding'), { numeric: true, min: 0, max: 50, step: 2 }));
+                    {value: 'spacious', label: 'Spacious'}, {value: 'custom', label: 'Custom'}
+                ], isPadCustom ? 'custom' : curPad, function(val) {
+                    if (val === 'custom') {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        es.nodes[nodeId].padding = '';
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                        self._refreshPanel();
+                    } else {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        es.nodes[nodeId].padding = val;
+                        es.nodes[nodeId].customPadding = '';
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                        self._refreshPanel();
+                    }
+                }));
+                textBody.appendChild(createTextRow('Custom Padding', curCustomPad || (padPresetMap[curPad] || ''), function(val) {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].customPadding = val;
+                    es.nodes[nodeId].padding = '';
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                }, { numeric: true, min: 0, max: 50, step: 2 }));
 
                 body.appendChild(textSec);
             }
@@ -5770,11 +5877,38 @@ define([
                 {value: 'right', label: 'Right'}
             ], sparkPos, makeOnChange('sparkPosition')));
 
+            // Chart Height — preset + custom merged
+            var chPresets = ['default','small','medium','large'];
+            var curCH = ns.chartHeight || 'default';
+            var curCustomCH = ns.customChartHeight || '';
+            var isCHCustom = curCustomCH && curCH === 'default';
             sparkBody.appendChild(createToggleRow('Chart Height', [
                 {value: 'default', label: 'Auto'}, {value: 'small', label: 'S'},
-                {value: 'medium', label: 'M'}, {value: 'large', label: 'L'}
-            ], ns.chartHeight || 'default', makeOnChange('chartHeight')));
-            sparkBody.appendChild(createTextRow('Custom Height', ns.customChartHeight || '', makeOnChange('customChartHeight'), { numeric: true, min: 10, max: 200, step: 5 }));
+                {value: 'medium', label: 'M'}, {value: 'large', label: 'L'},
+                {value: 'custom', label: 'Custom'}
+            ], isCHCustom ? 'custom' : curCH, function(val) {
+                if (val === 'custom') {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].chartHeight = 'default';
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                    self._refreshPanel();
+                } else {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].chartHeight = val;
+                    es.nodes[nodeId].customChartHeight = '';
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                    self._refreshPanel();
+                }
+            }));
+            sparkBody.appendChild(createTextRow('Custom Height', curCustomCH || '', function(val) {
+                if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                es.nodes[nodeId].customChartHeight = val;
+                es.nodes[nodeId].chartHeight = 'default';
+                self._pushUndo();
+                self.invalidateUpdateView();
+            }, { numeric: true, min: 10, max: 200, step: 5 }));
 
             sparkBody.appendChild(createToggleRow('Hover Detail', [
                 {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
@@ -5789,6 +5923,9 @@ define([
                 sparkBody.appendChild(createTextRow('Compare Back', ns.trendCompareBack || '1', makeOnChange('trendCompareBack'), { numeric: true, min: 1, max: 59, step: 1 }));
                 sparkBody.appendChild(createColorRow('Trend Up', colors, ns.trendUpColor || '#22c55e', makeOnChange('trendUpColor')));
                 sparkBody.appendChild(createColorRow('Trend Down', colors, ns.trendDownColor || '#ef4444', makeOnChange('trendDownColor')));
+                sparkBody.appendChild(createToggleRow('Show Marker', [
+                    {value: 'on', label: 'On'}, {value: 'off', label: 'Off'}
+                ], ns.trendShowMarker || 'on', makeOnChange('trendShowMarker')));
             }
 
             body.appendChild(sparkSec);
@@ -5873,13 +6010,13 @@ define([
 
             // Current value context
             var valueCtx = document.createElement('div');
-            valueCtx.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 8px;background:#0f172a;border:1px solid #1e293b;border-radius:4px;margin-bottom:8px;';
+            valueCtx.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 8px;background:' + panelTheme.inputBg + ';border:1px solid ' + panelTheme.sectionBg + ';border-radius:4px;margin-bottom:8px;';
             var valueLabel = document.createElement('span');
             valueLabel.textContent = 'Current value:';
-            valueLabel.style.cssText = 'color:#64748b;font-size:9px;';
+            valueLabel.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:9px;';
             var valueDisplay = document.createElement('span');
             valueDisplay.textContent = nodeValueNum ? formatCount(nodeValueNum) : String(nodeValue || 'N/A');
-            valueDisplay.style.cssText = 'color:#e2e8f0;font-size:11px;font-weight:600;font-family:monospace;';
+            valueDisplay.style.cssText = 'color:' + panelTheme.text + ';font-size:11px;font-weight:600;font-family:monospace;';
             valueCtx.appendChild(valueLabel);
             valueCtx.appendChild(valueDisplay);
             condBody.appendChild(valueCtx);
@@ -6560,6 +6697,7 @@ define([
             var globalDefaultBorderWidth = config[ns + 'defaultBorderWidth'] || '1';
             var globalDefaultBorderColor = config[ns + 'defaultBorderColor'] || '';
             var globalDefaultBgColor = config[ns + 'defaultBgColor'] || '';
+            var showEditButton = config[ns + 'showEditButton'] !== 'false'; // default true
 
             // Edit mode is session-only — controlled by DOM Edit button, not config
             this._lockMode = lock === 'true';
@@ -7032,7 +7170,11 @@ define([
 
             // Show/hide edit button
             if (this._editBtn) {
-                this._editBtn.style.display = this._editMode ? 'none' : 'flex';
+                if (this._editMode) {
+                    this._editBtn.style.display = 'none';
+                } else {
+                    this._editBtn.style.display = showEditButton ? 'flex' : 'none';
+                }
             }
 
             // Show/hide properties panel
@@ -7043,6 +7185,19 @@ define([
                     var panelBorder = isDark ? '#334155' : '#e2e8f0';
                     var panelText = isDark ? '#cbd5e1' : '#334155';
                     var panelTitleColor = isDark ? '#fbbf24' : '#b45309';
+
+                    // Update module-level panelTheme so child components inherit
+                    if (isDark) {
+                        panelTheme.bg = '#0f172a'; panelTheme.inputBg = '#0f172a';
+                        panelTheme.border = '#334155'; panelTheme.text = '#cbd5e1';
+                        panelTheme.textMuted = '#64748b'; panelTheme.sectionBg = '#1e293b';
+                        panelTheme.sectionText = '#94a3b8';
+                    } else {
+                        panelTheme.bg = '#ffffff'; panelTheme.inputBg = '#f8fafc';
+                        panelTheme.border = '#e2e8f0'; panelTheme.text = '#1e293b';
+                        panelTheme.textMuted = '#64748b'; panelTheme.sectionBg = '#f1f5f9';
+                        panelTheme.sectionText = '#475569';
+                    }
 
                     this._panelEl.style.background = panelBg;
                     this._panelEl.style.borderLeftColor = panelBorder;

@@ -91,6 +91,13 @@
         </splunk-radio-input>
     </splunk-control-group>
 
+    <splunk-control-group label="Show Edit Button" help="Show the Edit button in view mode">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showEditButton" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
     <splunk-control-group label="Layout Data" help="Paste layout JSON here from Copy Layout, or edit manually">
         <splunk-text-area name="{{VIZ_NAMESPACE}}.editorState" value="">
         </splunk-text-area>
