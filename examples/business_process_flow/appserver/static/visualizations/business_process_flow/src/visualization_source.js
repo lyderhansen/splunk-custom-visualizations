@@ -686,9 +686,12 @@ define([
                 conditions: edState ? edState.conditions : undefined,
                 rawValue: edState ? edState.rawValue : undefined,
                 textAlign: edState ? edState.textAlign : undefined,
+                verticalAlign: edState ? edState.verticalAlign : undefined,
                 labelColor: edState ? edState.labelColor : undefined,
                 valueColor: edState ? edState.valueColor : undefined,
                 padding: edState ? edState.padding : undefined,
+                customPadding: edState ? edState.customPadding : undefined,
+                customFontSize: edState ? edState.customFontSize : undefined,
                 markdownContent: edState ? edState.markdownContent : undefined
             };
 
@@ -1023,8 +1026,9 @@ define([
         var ge = globalEffects || {};
         var showRaw = node.rawValue !== undefined ? (node.rawValue === true || node.rawValue === 'on' || node.rawValue === 'full') : ge.rawValue;
         var tAlign = node.textAlign || 'center';
-        var padMap = { compact: 6, normal: 10, spacious: 16 };
-        var pad = padMap[node.padding] || padMap.normal;
+        var vAlign = node.verticalAlign || 'middle';
+        var padMap = { compact: 4, normal: 12, spacious: 24 };
+        var pad = node.customPadding ? parseInt(node.customPadding, 10) : (padMap[node.padding] || padMap.normal);
 
         // Responsive base sizes — scale with node dimensions
         var baseScale = Math.min(w / 180, h / 120); // 180x120 is default node size
@@ -1037,6 +1041,8 @@ define([
         else if (nodeFontSize === 'medium') { valueFontSize = Math.round(18 * clampedScale); labelFontSize = Math.round(10 * clampedScale); }
         else if (nodeFontSize === 'large') { valueFontSize = Math.round(28 * clampedScale); labelFontSize = Math.round(12 * clampedScale); }
         else if (nodeFontSize === 'xlarge') { valueFontSize = Math.round(36 * clampedScale); labelFontSize = Math.round(14 * clampedScale); }
+        // Custom font size override
+        if (node.customFontSize) { valueFontSize = parseInt(node.customFontSize, 10); labelFontSize = Math.round(valueFontSize * 0.7); }
         // Clamp to reasonable bounds
         valueFontSize = Math.max(10, Math.min(60, valueFontSize));
         labelFontSize = Math.max(8, Math.min(24, labelFontSize));
@@ -1372,16 +1378,29 @@ define([
             }
         } else {
             // DEFAULT (below): label top, value middle, sparkline bottom
+            // Compute vertical offsets based on vAlign
+            var vOffsetLabel, vOffsetValue;
+            if (vAlign === 'top') {
+                vOffsetLabel = textPadY;
+                vOffsetValue = labelFontSize + textPadY * 2;
+            } else if (vAlign === 'bottom') {
+                vOffsetLabel = th0 - valueFontSize - labelFontSize - textPadY * 3;
+                vOffsetValue = th0 - valueFontSize - textPadY;
+            } else {
+                // middle (default)
+                vOffsetLabel = textPadY;
+                vOffsetValue = th0 * 0.48;
+            }
             // Label
             ctx.font = labelFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
             ctx.fillStyle = node.labelColor || theme.textMuted;
             ctx.textAlign = tAlign;
             ctx.textBaseline = 'top';
-            var labelY = ty0 + textPadY;
+            var labelY = ty0 + vOffsetLabel;
             if (shape === 'circle') labelY = y + h * 0.18;
             ctx.fillText(truncateText(node.label, 18), textX, labelY);
             // Value
-            var valueY = ty0 + th0 * 0.48;
+            var valueY = ty0 + vOffsetValue;
             if (showValue) {
                 ctx.fillStyle = node.valueColor || theme.text;
                 ctx.textAlign = tAlign;
@@ -5255,8 +5274,8 @@ define([
                 {value: 'cloud', label: 'Cloud'}, {value: 'pill', label: 'Pill'}
             ], currentShape, makeOnChangeAndRefresh('shape')));
 
-            // Value Color (accent/palette color)
-            appearBody.appendChild(createColorRow('Value Color', colors, ns.color || '', makeOnChange('color')));
+            // Chart Color (accent/palette color)
+            appearBody.appendChild(createColorRow('Chart Color', colors, ns.color || '', makeOnChange('color')));
 
             // Background Color override
             appearBody.appendChild(createColorRow('Background', colors, ns.bgColor || '', makeOnChange('bgColor')));
@@ -5358,12 +5377,19 @@ define([
                     {value: 'medium', label: 'M'}, {value: 'large', label: 'L'},
                     {value: 'xlarge', label: 'XL'}
                 ], ns.fontSize || 'default', makeOnChange('fontSize')));
+                textBody.appendChild(createTextRow('Custom Font (px)', ns.customFontSize || '', makeOnChange('customFontSize'), { numeric: true, min: 6, max: 72, step: 1 }));
 
-                // Text Align
-                textBody.appendChild(createToggleRow('Text Align', [
+                // H. Align
+                textBody.appendChild(createToggleRow('H. Align', [
                     {value: 'left', label: 'Left'}, {value: 'center', label: 'Center'},
                     {value: 'right', label: 'Right'}
                 ], ns.textAlign || 'center', makeOnChange('textAlign')));
+
+                // V. Align
+                textBody.appendChild(createToggleRow('V. Align', [
+                    {value: 'top', label: 'Top'}, {value: 'middle', label: 'Middle'},
+                    {value: 'bottom', label: 'Bottom'}
+                ], ns.verticalAlign || 'middle', makeOnChange('verticalAlign')));
 
                 // Label Color (hex + picker only, no swatches)
                 textBody.appendChild(createColorRow('Label Color', [], ns.labelColor || '', makeOnChange('labelColor')));
@@ -5376,6 +5402,7 @@ define([
                     {value: 'compact', label: 'Compact'}, {value: 'normal', label: 'Normal'},
                     {value: 'spacious', label: 'Spacious'}
                 ], ns.padding || 'normal', makeOnChange('padding')));
+                textBody.appendChild(createTextRow('Custom Padding', ns.customPadding || '', makeOnChange('customPadding'), { numeric: true, min: 0, max: 50, step: 2 }));
 
                 body.appendChild(textSec);
             }
