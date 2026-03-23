@@ -697,6 +697,7 @@ define([
                 trendDisplay: edState ? edState.trendDisplay : undefined,
                 trendColor: edState ? edState.trendColor : undefined,
                 trendUseConditions: edState ? edState.trendUseConditions : undefined,
+                trendCompareBack: edState ? edState.trendCompareBack : undefined,
                 sparkHover: edState ? edState.sparkHover : undefined
             };
 
@@ -1632,10 +1633,18 @@ define([
         // ── Trend Indicator ──
         var trendDisplay = node.trendDisplay || 'off';
         if (trendDisplay !== 'off' && showValue && node.series && node.series.length >= 2) {
-            var lastVal = node.series[node.series.length - 1];
-            var prevVal = node.series[node.series.length - 2];
-            var trendVal = lastVal - prevVal;
-            var trendPct = prevVal !== 0 ? ((lastVal - prevVal) / prevVal) * 100 : 0;
+            var compareBack = parseInt(node.trendCompareBack, 10) || 1;
+            var sparkData = node.series;
+            var lastVal, prevVal, trendVal, trendPct;
+            if (sparkData.length >= compareBack + 1) {
+                lastVal = sparkData[sparkData.length - 1];
+                prevVal = sparkData[sparkData.length - 1 - compareBack];
+            } else {
+                lastVal = sparkData[sparkData.length - 1];
+                prevVal = sparkData[sparkData.length - 2];
+            }
+            trendVal = lastVal - prevVal;
+            trendPct = prevVal !== 0 ? ((lastVal - prevVal) / prevVal) * 100 : 0;
 
             var trendArrow = trendVal >= 0 ? '\u2191' : '\u2193';
             var trendText;
@@ -1691,6 +1700,64 @@ define([
             ctx.textAlign = 'left';
             ctx.fillText(trendText, trendX, _valDrawnY);
             ctx.textAlign = _valDrawnAlign; // restore
+
+            // ── Visual Trend Comparison Marker on Sparkline ──
+            if (node._sparkBounds && sparkData && sparkData.length >= compareBack + 1) {
+                var sb = node._sparkBounds;
+                var sdLen = sparkData.length;
+
+                // Calculate min/max for Y mapping
+                var sMin = sparkData[0];
+                var sMax = sparkData[0];
+                for (var smi = 1; smi < sdLen; smi++) {
+                    if (sparkData[smi] < sMin) sMin = sparkData[smi];
+                    if (sparkData[smi] > sMax) sMax = sparkData[smi];
+                }
+                var sRange = sMax - sMin || 1;
+
+                // Compare point position
+                var compareIdx = sdLen - 1 - compareBack;
+                var compareX = sb.x + (compareIdx / (sdLen - 1)) * sb.w;
+                var compareY = sb.y + sb.h - ((sparkData[compareIdx] - sMin) / sRange) * sb.h;
+
+                // Last point position
+                var lastX = sb.x + sb.w;
+                var lastY = sb.y + sb.h - ((sparkData[sdLen - 1] - sMin) / sRange) * sb.h;
+
+                // Determine marker color (same logic as trendColor above)
+                var markerColor = trendColor;
+
+                // Draw connecting line from compare point to last point
+                ctx.save();
+                ctx.strokeStyle = markerColor;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.7;
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.moveTo(compareX, compareY);
+                ctx.lineTo(lastX, lastY);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+
+                // Draw dot on compare point
+                ctx.beginPath();
+                ctx.arc(compareX, compareY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = markerColor;
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Draw dot on last point
+                ctx.beginPath();
+                ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = markerColor;
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.restore();
+            }
         }
 
         ctx.restore(); // end shape clip
@@ -5818,6 +5885,7 @@ define([
             ], ns.trendDisplay || 'off', makeOnChangeAndRefresh('trendDisplay')));
 
             if (ns.trendDisplay && ns.trendDisplay !== 'off') {
+                sparkBody.appendChild(createTextRow('Compare Back', ns.trendCompareBack || '1', makeOnChange('trendCompareBack'), { numeric: true, min: 1, max: 59, step: 1 }));
                 sparkBody.appendChild(createColorRow('Trend Color', colors, ns.trendColor || '', makeOnChange('trendColor')));
                 sparkBody.appendChild(createToggleRow('Color by Conditions', [
                     {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
