@@ -812,6 +812,8 @@ define([
                     width: mc.width || 2,
                     dash: mc.dash || false,
                     strokePattern: mc.strokePattern,
+                    strokeDash: mc.strokeDash,
+                    strokeGap: mc.strokeGap,
                     arrow: mc.arrow || 'forward',
                     label: mc.label || '',
                     manual: true,
@@ -1127,14 +1129,27 @@ define([
         var nodeBorderColor = node.borderColor || ge.defaultBorderColor || '';
         if (borderWidth > 0) {
             shapePath();
-            ctx.strokeStyle = isSelected ? node.color : (condColor || nodeBorderColor || theme.nodeBorder);
-            ctx.lineWidth = condColor ? Math.max(borderWidth, 2) : borderWidth;
+            var borderColor = nodeBorderColor || theme.nodeBorder;
             var nodeStrokePattern = node.strokePattern || ge.defaultStrokePattern || 'solid';
-            if (node.strokeDash && node.strokeGap) {
-                ctx.setLineDash([parseInt(node.strokeDash, 10), parseInt(node.strokeGap, 10)]);
+            var dashPattern;
+            var customDash = parseInt(node.strokeDash, 10);
+            var customGap = parseInt(node.strokeGap, 10);
+            if (customDash > 0 && customGap > 0) {
+                dashPattern = [customDash, customGap];
             } else {
-                applyStrokePattern(ctx, nodeStrokePattern);
+                dashPattern = STROKE_PATTERNS[nodeStrokePattern] || [];
             }
+            var actualBorderWidth = condColor ? Math.max(borderWidth, 2) : borderWidth;
+            if (dashPattern.length > 0 && actualBorderWidth < 1.5) {
+                actualBorderWidth = 1.5;
+            }
+            var isDarkTheme = theme.bg === '#0f172a';
+            if (dashPattern.length > 0 && !node.borderColor && !ge.defaultBorderColor) {
+                borderColor = isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+            }
+            ctx.strokeStyle = isSelected ? node.color : (condColor || borderColor);
+            ctx.lineWidth = actualBorderWidth;
+            ctx.setLineDash(dashPattern);
             ctx.stroke();
             ctx.setLineDash([]); // reset
         }
@@ -1525,11 +1540,15 @@ define([
             ctx.lineWidth += 2; // thicken line on hover for visibility
         }
         var connPattern = conn.strokePattern || (conn.dash ? 'dashed' : 'solid');
-        if (conn.strokeDash && conn.strokeGap) {
-            ctx.setLineDash([parseInt(conn.strokeDash, 10), parseInt(conn.strokeGap, 10)]);
+        var connDashPattern;
+        var connCustomDash = parseInt(conn.strokeDash, 10);
+        var connCustomGap = parseInt(conn.strokeGap, 10);
+        if (connCustomDash > 0 && connCustomGap > 0) {
+            connDashPattern = [connCustomDash, connCustomGap];
         } else {
-            applyStrokePattern(ctx, connPattern);
+            connDashPattern = STROKE_PATTERNS[connPattern] || [];
         }
+        ctx.setLineDash(connDashPattern);
 
         var midX, midY, endAngle, startAngle;
 
