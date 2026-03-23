@@ -1398,7 +1398,7 @@ define([
             }
         } else if (sparkPos === 'above' && hasSpark) {
             // ABOVE: sparkline in top portion, text below
-            var abSparkH = Math.round(th0 * 0.5);
+            var abSparkH = Math.min(sparkH, Math.round(th0 * 0.5));
             drawSparkline(ctx, node.series, tx0 + pad, ty0 + pad, tw0 - pad * 2, abSparkH - pad, nodeSparkType, node.color);
             // Text area below sparkline
             var abTextAreaY = ty0 + abSparkH;
@@ -1428,7 +1428,7 @@ define([
         } else if (sparkPos === 'left' && hasSpark) {
             // LEFT: sparkline on left, text on right
             var leftSparkW = Math.round(tw0 * 0.45);
-            drawSparkline(ctx, node.series, tx0 + pad, ty0 + pad, leftSparkW - pad * 2, th0 - pad * 2, nodeSparkType, node.color);
+            drawSparkline(ctx, node.series, tx0 + pad, ty0 + pad, leftSparkW - pad * 2, Math.min(sparkH, th0 - pad * 2), nodeSparkType, node.color);
             // Label on right (tAlign applies within right panel)
             var rightX = tx0 + leftSparkW + pad;
             var rightW = tw0 - leftSparkW - pad * 2;
@@ -1462,7 +1462,7 @@ define([
             // RIGHT: text on left 55%, sparkline on right 45% (mirror of left)
             var rightSparkW = Math.round(tw0 * 0.45);
             var rightSparkX = tx0 + tw0 - rightSparkW;
-            drawSparkline(ctx, node.series, rightSparkX + pad, ty0 + pad, rightSparkW - pad * 2, th0 - pad * 2, nodeSparkType, node.color);
+            drawSparkline(ctx, node.series, rightSparkX + pad, ty0 + pad, rightSparkW - pad * 2, Math.min(sparkH, th0 - pad * 2), nodeSparkType, node.color);
             // Label on left panel
             var leftTextW = tw0 - rightSparkW - pad * 2;
             var leftTextX;
