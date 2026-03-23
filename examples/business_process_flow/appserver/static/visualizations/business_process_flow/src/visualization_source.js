@@ -1714,14 +1714,21 @@ define([
             ctx.textAlign = _valDrawnAlign; // restore
 
             // ── Visual Trend Comparison Marker on Sparkline ──
-            // Draw sparkline segment from compareIdx to end in trend color
+            // Overlay the compare segment of the sparkline in trend color
             if (node._sparkBounds && sparkData && sparkData.length >= compareBack + 1) {
                 var sb = node._sparkBounds;
                 var sdLen = sparkData.length;
                 var compareIdx = sdLen - 1 - compareBack;
                 if (compareIdx < 0) compareIdx = 0;
 
-                // Calculate min/max for Y mapping (same as drawSparkline uses)
+                // Match drawSparkline's internal padding exactly
+                var sPad = 2;
+                var sdX = sb.x + sPad;
+                var sdY = sb.y + sPad;
+                var sdW = sb.w - sPad * 2;
+                var sdH = sb.h - sPad * 2;
+
+                // Calculate min/max for Y mapping (same as drawSparkline)
                 var sMin = sparkData[0];
                 var sMax = sparkData[0];
                 for (var smi = 1; smi < sdLen; smi++) {
@@ -1731,45 +1738,41 @@ define([
                 var sRange = sMax - sMin || 1;
 
                 var markerColor = trendColor;
-
-                // Determine chart type to match the sparkline rendering
                 var activeChartType = node.sparklineType || 'area';
 
                 ctx.save();
-                // Clip to sparkline bounds
                 ctx.beginPath();
                 ctx.rect(sb.x, sb.y, sb.w, sb.h);
                 ctx.clip();
 
                 if (activeChartType === 'bar') {
-                    // For bar charts: color the bars from compareIdx to end
-                    var barW = sb.w / sdLen;
-                    var barGap = Math.max(1, barW * 0.15);
+                    // Match drawSparkline bar positioning exactly
+                    var barW = sdW / sdLen;
                     for (var bi = compareIdx; bi < sdLen; bi++) {
-                        var bx = sb.x + (bi / sdLen) * sb.w + barGap / 2;
-                        var bh = ((sparkData[bi] - sMin) / sRange) * sb.h;
-                        var by = sb.y + sb.h - bh;
+                        var bx = sdX + bi * barW;
+                        var bh = ((sparkData[bi] - sMin) / sRange) * sdH;
+                        if (bh < 1) bh = 1;
+                        var by = sdY + sdH - bh;
                         ctx.fillStyle = markerColor;
-                        ctx.globalAlpha = 0.6;
-                        ctx.fillRect(bx, by, barW - barGap, bh);
+                        ctx.globalAlpha = 0.5;
+                        ctx.fillRect(bx, by, Math.max(barW - 1, 1), bh);
                     }
                     ctx.globalAlpha = 1;
                 } else {
                     // For line/area/step/dot: draw the line segment in trend color
+                    // Use same coordinate system as drawSparkline (with padding)
                     ctx.beginPath();
                     ctx.strokeStyle = markerColor;
                     ctx.lineWidth = 2;
 
                     for (var ti = compareIdx; ti < sdLen; ti++) {
-                        var tx = sb.x + (ti / (sdLen - 1)) * sb.w;
-                        var ty = sb.y + sb.h - ((sparkData[ti] - sMin) / sRange) * sb.h;
+                        var tx = sdX + (ti / (sdLen - 1)) * sdW;
+                        var ty = sdY + sdH - ((sparkData[ti] - sMin) / sRange) * sdH;
                         if (ti === compareIdx) {
                             ctx.moveTo(tx, ty);
                         } else {
                             if (activeChartType === 'step') {
-                                // Step: horizontal then vertical
-                                var prevTx = sb.x + ((ti - 1) / (sdLen - 1)) * sb.w;
-                                var prevTy = sb.y + sb.h - ((sparkData[ti - 1] - sMin) / sRange) * sb.h;
+                                var prevTy = sdY + sdH - ((sparkData[ti - 1] - sMin) / sRange) * sdH;
                                 ctx.lineTo(tx, prevTy);
                                 ctx.lineTo(tx, ty);
                             } else {
@@ -1779,31 +1782,19 @@ define([
                     }
                     ctx.stroke();
 
-                    // Fill area under the trend segment with transparent trend color
+                    // Fill area under the trend segment
                     if (activeChartType === 'area') {
-                        var lastTx = sb.x + ((sdLen - 1) / (sdLen - 1)) * sb.w;
-                        var firstTx = sb.x + (compareIdx / (sdLen - 1)) * sb.w;
-                        ctx.lineTo(lastTx, sb.y + sb.h);
-                        ctx.lineTo(firstTx, sb.y + sb.h);
+                        var lastTx = sdX + ((sdLen - 1) / (sdLen - 1)) * sdW;
+                        var firstTx = sdX + (compareIdx / (sdLen - 1)) * sdW;
+                        ctx.lineTo(lastTx, sdY + sdH);
+                        ctx.lineTo(firstTx, sdY + sdH);
                         ctx.closePath();
                         ctx.fillStyle = markerColor;
-                        ctx.globalAlpha = 0.2;
+                        ctx.globalAlpha = 0.15;
                         ctx.fill();
                         ctx.globalAlpha = 1;
                     }
                 }
-
-                // Draw small dot at compare point only
-                var cpx = sb.x + (compareIdx / (sdLen - 1)) * sb.w;
-                var cpy = sb.y + sb.h - ((sparkData[compareIdx] - sMin) / sRange) * sb.h;
-                ctx.beginPath();
-                ctx.arc(cpx, cpy, 3, 0, Math.PI * 2);
-                ctx.fillStyle = markerColor;
-                ctx.globalAlpha = 1;
-                ctx.fill();
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 1;
-                ctx.stroke();
 
                 ctx.restore();
             }
