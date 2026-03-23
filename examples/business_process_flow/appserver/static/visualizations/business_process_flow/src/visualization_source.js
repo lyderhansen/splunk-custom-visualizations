@@ -1134,10 +1134,13 @@ define([
             var dashPattern;
             var customDash = parseInt(node.strokeDash, 10);
             var customGap = parseInt(node.strokeGap, 10);
-            if (customDash > 0 && customGap > 0) {
-                dashPattern = [customDash, customGap];
+            var basePattern = STROKE_PATTERNS[nodeStrokePattern] || [];
+            if (customDash > 0 || customGap > 0) {
+                var d = customDash > 0 ? customDash : (basePattern[0] || 8);
+                var g = customGap > 0 ? customGap : (basePattern[1] || 4);
+                dashPattern = [d, g];
             } else {
-                dashPattern = STROKE_PATTERNS[nodeStrokePattern] || [];
+                dashPattern = basePattern;
             }
             var actualBorderWidth = condColor ? Math.max(borderWidth, 2) : borderWidth;
             if (dashPattern.length > 0 && actualBorderWidth < 1.5) {
@@ -1543,10 +1546,13 @@ define([
         var connDashPattern;
         var connCustomDash = parseInt(conn.strokeDash, 10);
         var connCustomGap = parseInt(conn.strokeGap, 10);
-        if (connCustomDash > 0 && connCustomGap > 0) {
-            connDashPattern = [connCustomDash, connCustomGap];
+        var connBasePattern = STROKE_PATTERNS[connPattern] || [];
+        if (connCustomDash > 0 || connCustomGap > 0) {
+            var cd = connCustomDash > 0 ? connCustomDash : (connBasePattern[0] || 8);
+            var cg = connCustomGap > 0 ? connCustomGap : (connBasePattern[1] || 4);
+            connDashPattern = [cd, cg];
         } else {
-            connDashPattern = STROKE_PATTERNS[connPattern] || [];
+            connDashPattern = connBasePattern;
         }
         ctx.setLineDash(connDashPattern);
 
