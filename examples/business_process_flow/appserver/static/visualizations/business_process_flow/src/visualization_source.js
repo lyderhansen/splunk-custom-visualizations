@@ -5826,44 +5826,84 @@ define([
             countEl.style.cssText = 'color:#cbd5e1;font:11px -apple-system,BlinkMacSystemFont,sans-serif;padding:6px 10px 8px 10px;';
             selBody.appendChild(countEl);
 
-            // Align buttons
-            var alignRows = [
-                [{label: 'Left', dir: 'left'}, {label: 'Center', dir: 'center'}, {label: 'Right', dir: 'right'}],
-                [{label: 'Top', dir: 'top'}, {label: 'Center', dir: 'middle'}, {label: 'Bottom', dir: 'bottom'}]
+            // Align buttons — descriptive labels like PowerPoint
+            // Horizontal alignment row
+            var hAlignLabel = document.createElement('div');
+            hAlignLabel.textContent = 'HORIZONTAL';
+            hAlignLabel.style.cssText = 'color:#64748b;font-size:8px;padding:4px 10px 2px;text-transform:uppercase;letter-spacing:0.5px;';
+            selBody.appendChild(hAlignLabel);
+            var hAlignDefs = [
+                {label: '\u2502\u2590 Left', dir: 'left'},
+                {label: '\u2503 Center', dir: 'center'},
+                {label: '\u258C\u2502 Right', dir: 'right'}
             ];
-            for (var ai = 0; ai < alignRows.length; ai++) {
-                var aRow = document.createElement('div');
-                aRow.style.cssText = 'display:flex;gap:4px;padding:2px 10px;';
-                for (var abi = 0; abi < alignRows[ai].length; abi++) {
-                    (function(btnDef) {
-                        var direction = btnDef.dir;
-                        var btn = document.createElement('button');
-                        btn.textContent = btnDef.label;
-                        btn.style.cssText = 'flex:1;padding:5px 2px;border-radius:4px;border:1px solid #334155;background:rgba(30,41,59,0.8);color:#cbd5e1;font:10px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;';
-                        btn.addEventListener('click', function() {
-                            alignNodes(self._editorState, self._selectedNodeIds, self._computedNodeMap, direction);
-                            self._pushUndo();
-                            self.invalidateUpdateView();
-                        });
-                        btn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
-                        aRow.appendChild(btn);
-                    })(alignRows[ai][abi]);
-                }
-                selBody.appendChild(aRow);
-            }
-
-            // Distribute buttons
-            var distRow = document.createElement('div');
-            distRow.style.cssText = 'display:flex;gap:4px;padding:4px 10px 6px 10px;';
-            var distBtns = [{label: 'Distrib H', axis: 'horizontal'}, {label: 'Distrib V', axis: 'vertical'}];
-            for (var di = 0; di < distBtns.length; di++) {
+            var hRow = document.createElement('div');
+            hRow.style.cssText = 'display:flex;gap:4px;padding:2px 10px;';
+            for (var hai = 0; hai < hAlignDefs.length; hai++) {
                 (function(btnDef) {
-                    var axis = btnDef.axis;
                     var btn = document.createElement('button');
                     btn.textContent = btnDef.label;
-                    btn.style.cssText = 'flex:1;padding:5px 2px;border-radius:4px;border:1px solid #334155;background:rgba(30,41,59,0.8);color:#cbd5e1;font:10px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;';
+                    btn.style.cssText = 'flex:1;padding:5px 2px;border-radius:4px;border:1px solid #334155;background:rgba(30,41,59,0.8);color:#cbd5e1;font:10px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;transition:background 0.15s;';
+                    btn.addEventListener('mouseenter', function() { btn.style.background = '#334155'; });
+                    btn.addEventListener('mouseleave', function() { btn.style.background = 'rgba(30,41,59,0.8)'; });
                     btn.addEventListener('click', function() {
-                        distributeNodes(self._editorState, self._selectedNodeIds, self._computedNodeMap, axis);
+                        alignNodes(self._editorState, self._selectedNodeIds, self._computedNodeMap, btnDef.dir);
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                    });
+                    btn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                    hRow.appendChild(btn);
+                })(hAlignDefs[hai]);
+            }
+            selBody.appendChild(hRow);
+
+            // Vertical alignment row
+            var vAlignLabel = document.createElement('div');
+            vAlignLabel.textContent = 'VERTICAL';
+            vAlignLabel.style.cssText = 'color:#64748b;font-size:8px;padding:6px 10px 2px;text-transform:uppercase;letter-spacing:0.5px;';
+            selBody.appendChild(vAlignLabel);
+            var vAlignDefs = [
+                {label: '\u2500\u2580 Top', dir: 'top'},
+                {label: '\u2501 Middle', dir: 'middle'},
+                {label: '\u2584\u2500 Bottom', dir: 'bottom'}
+            ];
+            var vRow = document.createElement('div');
+            vRow.style.cssText = 'display:flex;gap:4px;padding:2px 10px;';
+            for (var vai = 0; vai < vAlignDefs.length; vai++) {
+                (function(btnDef) {
+                    var btn = document.createElement('button');
+                    btn.textContent = btnDef.label;
+                    btn.style.cssText = 'flex:1;padding:5px 2px;border-radius:4px;border:1px solid #334155;background:rgba(30,41,59,0.8);color:#cbd5e1;font:10px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;transition:background 0.15s;';
+                    btn.addEventListener('mouseenter', function() { btn.style.background = '#334155'; });
+                    btn.addEventListener('mouseleave', function() { btn.style.background = 'rgba(30,41,59,0.8)'; });
+                    btn.addEventListener('click', function() {
+                        alignNodes(self._editorState, self._selectedNodeIds, self._computedNodeMap, btnDef.dir);
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                    });
+                    btn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                    vRow.appendChild(btn);
+                })(vAlignDefs[vai]);
+            }
+            selBody.appendChild(vRow);
+
+            // Distribute buttons
+            var distLabel = document.createElement('div');
+            distLabel.textContent = 'DISTRIBUTE';
+            distLabel.style.cssText = 'color:#64748b;font-size:8px;padding:6px 10px 2px;text-transform:uppercase;letter-spacing:0.5px;';
+            selBody.appendChild(distLabel);
+            var distRow = document.createElement('div');
+            distRow.style.cssText = 'display:flex;gap:4px;padding:2px 10px 6px 10px;';
+            var distBtns = [{label: '\u2194 Horizontal', axis: 'horizontal'}, {label: '\u2195 Vertical', axis: 'vertical'}];
+            for (var di = 0; di < distBtns.length; di++) {
+                (function(btnDef) {
+                    var btn = document.createElement('button');
+                    btn.textContent = btnDef.label;
+                    btn.style.cssText = 'flex:1;padding:5px 2px;border-radius:4px;border:1px solid #334155;background:rgba(30,41,59,0.8);color:#cbd5e1;font:10px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;transition:background 0.15s;';
+                    btn.addEventListener('mouseenter', function() { btn.style.background = '#334155'; });
+                    btn.addEventListener('mouseleave', function() { btn.style.background = 'rgba(30,41,59,0.8)'; });
+                    btn.addEventListener('click', function() {
+                        distributeNodes(self._editorState, self._selectedNodeIds, self._computedNodeMap, btnDef.axis);
                         self._pushUndo();
                         self.invalidateUpdateView();
                     });
