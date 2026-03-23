@@ -1031,6 +1031,7 @@ define([
                     animationTrigger: mc.animationTrigger,
                     animationSpeed: mc.animationSpeed,
                     _animActive: mc._animActive,
+                    lineHop: mc.lineHop || '',
                     _editorIdx: mi
                 });
             }
@@ -2236,6 +2237,23 @@ define([
         }
     }
 
+    /**
+     * Find the intersection point of two line segments A and B.
+     * Returns { x, y, t } where t is the parameter along segment A, or null if no intersection.
+     */
+    function segmentIntersection(ax1, ay1, ax2, ay2, bx1, by1, bx2, by2) {
+        var dax = ax2 - ax1, day = ay2 - ay1;
+        var dbx = bx2 - bx1, dby = by2 - by1;
+        var denom = dax * dby - day * dbx;
+        if (Math.abs(denom) < 0.001) return null; // parallel
+        var t = ((bx1 - ax1) * dby - (by1 - ay1) * dbx) / denom;
+        var u = ((bx1 - ax1) * day - (by1 - ay1) * dax) / denom;
+        if (t > 0.01 && t < 0.99 && u > 0.01 && u < 0.99) {
+            return { x: ax1 + t * dax, y: ay1 + t * day, t: t };
+        }
+        return null;
+    }
+
     function drawConnection(ctx, fromNode, toNode, conn, theme, isSelected, editMode, isHovered, animOffset) {
         var fromCx = fromNode.x + fromNode.w / 2;
         var fromCy = fromNode.y + fromNode.h / 2;
@@ -2311,6 +2329,9 @@ define([
                 points[points.length - 1] = { x: pLast.x + edx / elen * eShorten, y: pLast.y + edy / elen * eShorten };
             }
         }
+
+        // Store rendered points for hop detection by other connections
+        conn._renderedPoints = points;
 
         // Draw the path
         ctx.strokeStyle = lineColor;
@@ -2533,6 +2554,115 @@ define([
             ctx.shadowBlur = 0;
             ctx.shadowColor = 'transparent';
             ctx.lineWidth = conn.width || 2;
+        }
+    }
+
+    /**
+     * Draw line hops (bridges) on connections that cross other connections.
+     * Called after all connections are drawn so _renderedPoints is populated.
+     * Only processes connections with lineHop === 'over' or lineHop === 'gap'.
+     * Skips curved connections (hops only work on straight/orthogonal polylines).
+     */
+    function drawConnectionHops(ctx, connections) {
+        var hopRadius = 8;
+
+        for (var ci = 0; ci < connections.length; ci++) {
+            var conn = connections[ci];
+            if (!conn.lineHop || conn.lineHop === '') continue;
+            if (conn.style === 'curved') continue;
+            var points = conn._renderedPoints;
+            if (!points || points.length < 2) continue;
+
+            // Collect all intersection points across all segments of this connection
+            var intersections = [];
+            for (var si = 0; si < points.length - 1; si++) {
+                var p1 = points[si];
+                var p2 = points[si + 1];
+                for (var oci = 0; oci < connections.length; oci++) {
+                    if (oci === ci) continue;
+                    var oc = connections[oci];
+                    if (!oc._renderedPoints) continue;
+                    for (var oseg = 0; oseg < oc._renderedPoints.length - 1; oseg++) {
+                        var op1 = oc._renderedPoints[oseg];
+                        var op2 = oc._renderedPoints[oseg + 1];
+                        var isect = segmentIntersection(p1.x, p1.y, p2.x, p2.y, op1.x, op1.y, op2.x, op2.y);
+                        if (isect) {
+                            intersections.push({ x: isect.x, y: isect.y, seg: si, t: isect.t });
+                        }
+                    }
+                }
+            }
+
+            if (intersections.length === 0) continue;
+
+            // Sort by segment index then by t parameter
+            intersections.sort(function(a, b) {
+                if (a.seg !== b.seg) return a.seg - b.seg;
+                return a.t - b.t;
+            });
+
+            // Redraw the connection line with hops in place of the original straight stroke
+            var lineColor = conn.color || '#94a3b8';
+            var lineWidth = conn.width || 2;
+            ctx.strokeStyle = lineColor;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.setLineDash([]);
+
+            // First, paint over the existing line with background color to erase it
+            // (draw in two passes: erase then redraw with hops)
+            // We draw the hop line on top; for 'gap' we need to actually erase at crossing.
+            // Simplest approach: redraw entire line with hops.
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+
+            var prevSegEnd = points[0]; // track current drawing position implicitly via lineTo
+
+            // We'll iterate segment by segment, emitting hops where needed
+            for (var sj = 0; sj < points.length - 1; sj++) {
+                var sp1 = points[sj];
+                var sp2 = points[sj + 1];
+                var segDx = sp2.x - sp1.x;
+                var segDy = sp2.y - sp1.y;
+                var segLen = Math.sqrt(segDx * segDx + segDy * segDy);
+                var nx = segLen > 0 ? segDx / segLen : 0;
+                var ny = segLen > 0 ? segDy / segLen : 0;
+
+                // Collect intersections for this segment
+                var segIsects = [];
+                for (var ii = 0; ii < intersections.length; ii++) {
+                    if (intersections[ii].seg === sj) {
+                        segIsects.push(intersections[ii]);
+                    }
+                }
+
+                if (segIsects.length === 0) {
+                    ctx.lineTo(sp2.x, sp2.y);
+                } else {
+                    // Draw line with hops for this segment
+                    for (var ki = 0; ki < segIsects.length; ki++) {
+                        var isct = segIsects[ki];
+                        var beforeX = isct.x - nx * hopRadius;
+                        var beforeY = isct.y - ny * hopRadius;
+                        var afterX = isct.x + nx * hopRadius;
+                        var afterY = isct.y + ny * hopRadius;
+
+                        ctx.lineTo(beforeX, beforeY);
+
+                        if (conn.lineHop === 'over') {
+                            // Semicircle arc hopping over the crossing line
+                            var angle = Math.atan2(ny, nx);
+                            ctx.arc(isct.x, isct.y, hopRadius, angle + Math.PI, angle, false);
+                        } else {
+                            // Gap: lift pen and skip over intersection
+                            ctx.moveTo(afterX, afterY);
+                        }
+                    }
+                    ctx.lineTo(sp2.x, sp2.y);
+                }
+            }
+            ctx.stroke();
         }
     }
 
@@ -6515,6 +6645,11 @@ define([
             // Color
             styleBody.appendChild(createColorRow('Color', colors, conn.color || '', makeConnChange('color')));
 
+            // Line Hop
+            styleBody.appendChild(createToggleRow('Line Hop', [
+                {value: '', label: 'Off'}, {value: 'over', label: 'Hop Over'}, {value: 'gap', label: 'Gap'}
+            ], conn.lineHop || '', makeConnChange('lineHop')));
+
             body.appendChild(styleSec);
 
             // ── Endpoints Section ──
@@ -7073,6 +7208,9 @@ define([
                     drawConnection(ctx, fromNd, toNd, conn, theme, connSelected, this._editMode, connHovered, this._animationOffset);
                 }
             }
+
+            // Draw line hops (bridges) where hop-enabled connections cross others
+            drawConnectionHops(ctx, connections);
 
             // Sort nodes by zOrder before drawing (lower first = drawn underneath)
             var drawOrder = [];
