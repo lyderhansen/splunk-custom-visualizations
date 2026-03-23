@@ -1111,6 +1111,11 @@ define([
                     endpointSize: mc.endpointSize,
                     waypoints: mc.waypoints || [],
                     labelPosition: mc.labelPosition !== undefined ? parseFloat(mc.labelPosition) : 0.5,
+                    labelFontSize: mc.labelFontSize,
+                    labelColor: mc.labelColor,
+                    labelBgColor: mc.labelBgColor,
+                    labelBorderColor: mc.labelBorderColor,
+                    labelBorderStyle: mc.labelBorderStyle,
                     startFlipped: mc.startFlipped || false,
                     endFlipped: mc.endFlipped || false,
                     animationType: mc.animationType,
@@ -2492,6 +2497,11 @@ define([
             conn._deferredDraw.labelY = labelPt.y;
             conn._deferredDraw.labelPoints = points;
             conn._deferredDraw.labelStyle = conn.style;
+            conn._deferredDraw.labelFontSize = conn.labelFontSize;
+            conn._deferredDraw.labelColor = conn.labelColor;
+            conn._deferredDraw.labelBgColor = conn.labelBgColor;
+            conn._deferredDraw.labelBorderColor = conn.labelBorderColor;
+            conn._deferredDraw.labelBorderStyle = conn.labelBorderStyle;
         }
 
         // Animation overlay (marching-ants or pulse)
@@ -3079,18 +3089,34 @@ define([
 
             // Labels (drawn on top of everything)
             if (dd.label) {
-                ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-                var lblW = ctx.measureText(dd.label).width + 8;
-                var lblH = 16;
-                roundRect(ctx, dd.labelX - lblW / 2, dd.labelY - lblH / 2, lblW, lblH, 3);
-                ctx.fillStyle = theme.nodeBg;
-                ctx.globalAlpha = 0.9;
+                var lblFontSize = dd.labelFontSize ? parseInt(dd.labelFontSize, 10) : 10;
+                ctx.font = lblFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                var lblPad = Math.max(6, lblFontSize * 0.5);
+                var lblW = ctx.measureText(dd.label).width + lblPad * 2;
+                var lblH = lblFontSize + lblPad;
+                var lblX = dd.labelX - lblW / 2;
+                var lblY = dd.labelY - lblH / 2;
+                roundRect(ctx, lblX, lblY, lblW, lblH, 3);
+                // Background
+                ctx.fillStyle = dd.labelBgColor || theme.nodeBg;
+                ctx.globalAlpha = dd.labelBgColor ? 1 : 0.9;
                 ctx.fill();
                 ctx.globalAlpha = 1;
-                ctx.strokeStyle = theme.nodeBorder;
-                ctx.lineWidth = 0.5;
-                ctx.stroke();
-                ctx.fillStyle = theme.textMuted;
+                // Border
+                var lblBorderStyle = dd.labelBorderStyle || 'solid';
+                if (lblBorderStyle !== 'none') {
+                    ctx.strokeStyle = dd.labelBorderColor || theme.nodeBorder;
+                    ctx.lineWidth = 1;
+                    if (lblBorderStyle === 'dashed') {
+                        ctx.setLineDash([4, 3]);
+                    } else if (lblBorderStyle === 'dotted') {
+                        ctx.setLineDash([2, 2]);
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+                // Text
+                ctx.fillStyle = dd.labelColor || theme.textMuted;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(dd.label, dd.labelX, dd.labelY);
@@ -3098,7 +3124,7 @@ define([
                 ctx.textBaseline = 'alphabetic';
                 ctx.lineWidth = 1;
                 // Store hit rect for label dragging
-                connections[oi]._labelHitRect = { x: dd.labelX - lblW / 2, y: dd.labelY - lblH / 2, w: lblW, h: lblH };
+                connections[oi]._labelHitRect = { x: lblX, y: lblY, w: lblW, h: lblH };
             }
         }
     }
@@ -7063,6 +7089,19 @@ define([
                     self.invalidateUpdateView();
                 }
             }, { numeric: true, min: 0, max: 100, step: 5 }));
+
+            labelBody.appendChild(createTextRow('Font Size', conn.labelFontSize || '', makeConnChange('labelFontSize'), { numeric: true, min: 6, max: 36, step: 1 }));
+
+            labelBody.appendChild(createColorRow('Text Color', colors, conn.labelColor || '', makeConnChange('labelColor')));
+
+            labelBody.appendChild(createColorRow('Background', colors, conn.labelBgColor || '', makeConnChange('labelBgColor')));
+
+            labelBody.appendChild(createColorRow('Border Color', colors, conn.labelBorderColor || '', makeConnChange('labelBorderColor')));
+
+            labelBody.appendChild(createToggleRow('Border Style', [
+                {value: 'solid', label: 'Solid'}, {value: 'dashed', label: 'Dashed'},
+                {value: 'dotted', label: 'Dotted'}, {value: 'none', label: 'None'}
+            ], conn.labelBorderStyle || 'solid', makeConnChange('labelBorderStyle')));
 
             body.appendChild(labelSec);
 
