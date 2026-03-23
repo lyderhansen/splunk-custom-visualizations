@@ -807,6 +807,7 @@ define([
                     color: mc.color || '',
                     width: mc.width || 2,
                     dash: mc.dash || false,
+                    strokePattern: mc.strokePattern,
                     arrow: mc.arrow || 'forward',
                     label: mc.label || '',
                     manual: true,
@@ -821,7 +822,10 @@ define([
                     labelOffsetX: mc.labelOffsetX || 0,
                     labelOffsetY: mc.labelOffsetY || 0,
                     startFlipped: mc.startFlipped || false,
-                    endFlipped: mc.endFlipped || false
+                    endFlipped: mc.endFlipped || false,
+                    animationType: mc.animationType,
+                    animationTrigger: mc.animationTrigger,
+                    animationSpeed: mc.animationSpeed
                 });
             }
         }
@@ -2640,7 +2644,7 @@ define([
      * onChange called on blur and Enter key.
      * Stops key propagation to prevent canvas handler capture.
      */
-    function createTextRow(label, value, onChange) {
+    function createTextRow(label, value, onChange, options) {
         var row = document.createElement('div');
         row.style.cssText = 'margin-bottom:8px;';
 
@@ -2649,10 +2653,17 @@ define([
         labelEl.textContent = label;
         row.appendChild(labelEl);
 
+        var opts = options || {};
+
+        var wrapper = document.createElement('div');
+        wrapper.style.cssText = 'display:flex;align-items:stretch;';
+
         var input = document.createElement('input');
         input.type = 'text';
         input.value = (value !== null && value !== undefined) ? String(value) : '';
-        input.style.cssText = 'width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#cbd5e1;font-size:11px;padding:4px 7px;outline:none;';
+        input.style.cssText = 'flex:1;min-width:0;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:' +
+            (opts.numeric ? '4px 0 0 4px' : '4px') +
+            ';color:#cbd5e1;font-size:11px;padding:4px 7px;outline:none;';
 
         input.addEventListener('focus', function() {
             input.style.borderColor = '#3b82f6';
@@ -2672,7 +2683,48 @@ define([
         input.addEventListener('keyup', function(e) { e.stopPropagation(); });
         input.addEventListener('keypress', function(e) { e.stopPropagation(); });
 
-        row.appendChild(input);
+        wrapper.appendChild(input);
+
+        if (opts.numeric) {
+            var btnCol = document.createElement('div');
+            btnCol.style.cssText = 'display:flex;flex-direction:column;';
+
+            var upBtn = document.createElement('button');
+            upBtn.textContent = '\u25B2';
+            upBtn.style.cssText = 'flex:1;width:28px;border:1px solid #334155;border-left:none;' +
+                'background:#1e293b;color:#94a3b8;font-size:8px;cursor:pointer;' +
+                'border-radius:0 4px 0 0;padding:0;line-height:1;';
+            upBtn.addEventListener('click', function() {
+                var cur = parseFloat(input.value) || 0;
+                var step = opts.step || 1;
+                var max = opts.max !== undefined ? opts.max : Infinity;
+                var next = Math.min(cur + step, max);
+                input.value = String(next);
+                if (onChange) onChange(String(next));
+            });
+            upBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+
+            var downBtn = document.createElement('button');
+            downBtn.textContent = '\u25BC';
+            downBtn.style.cssText = 'flex:1;width:28px;border:1px solid #334155;border-left:none;border-top:none;' +
+                'background:#1e293b;color:#94a3b8;font-size:8px;cursor:pointer;' +
+                'border-radius:0 0 4px 0;padding:0;line-height:1;';
+            downBtn.addEventListener('click', function() {
+                var cur = parseFloat(input.value) || 0;
+                var step = opts.step || 1;
+                var min = opts.min !== undefined ? opts.min : -Infinity;
+                var next = Math.max(cur - step, min);
+                input.value = String(next);
+                if (onChange) onChange(String(next));
+            });
+            downBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+
+            btnCol.appendChild(upBtn);
+            btnCol.appendChild(downBtn);
+            wrapper.appendChild(btnCol);
+        }
+
+        row.appendChild(wrapper);
         return row;
     }
 
@@ -2729,7 +2781,7 @@ define([
         hexInput.type = 'text';
         hexInput.value = activeColor || '';
         hexInput.style.cssText = 'flex:1;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#cbd5e1;font-size:11px;padding:3px 6px;outline:none;min-width:0;';
-        hexInput.placeholder = '#rrggbb';
+        hexInput.placeholder = '#rrggbb(aa)';
 
         hexInput.addEventListener('focus', function() {
             hexInput.style.borderColor = '#3b82f6';
@@ -2739,9 +2791,15 @@ define([
             hexInput.style.borderColor = '#334155';
             hexInput.style.boxShadow = 'none';
             var val = hexInput.value.trim();
-            if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+            if (val && val.charAt(0) !== '#') val = '#' + val;
+            if (/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(val)) {
                 updateSwatches(val);
-                colorPicker.value = val;
+                // Native picker only supports 6-digit hex; update it with the base color
+                if (val.length === 9) {
+                    colorPicker.value = val.substring(0, 7);
+                } else {
+                    colorPicker.value = val;
+                }
                 if (onSelect) onSelect(val);
             }
         });
@@ -2755,10 +2813,12 @@ define([
 
         var colorPicker = document.createElement('input');
         colorPicker.type = 'color';
-        colorPicker.value = (activeColor && /^#[0-9a-fA-F]{6}$/.test(activeColor)) ? activeColor : '#3b82f6';
+        colorPicker.value = (activeColor && /^#[0-9a-fA-F]{6}/.test(activeColor)) ? activeColor.substring(0, 7) : '#3b82f6';
         colorPicker.style.cssText = 'width:24px;height:24px;border:none;background:none;cursor:pointer;padding:0;border-radius:3px;flex-shrink:0;';
 
-        colorPicker.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+        colorPicker.addEventListener('mousedown', function(e) { e.preventDefault(); e.stopPropagation(); });
+        colorPicker.addEventListener('click', function(e) { e.stopPropagation(); });
+        colorPicker.addEventListener('focus', function(e) { e.stopPropagation(); });
         colorPicker.addEventListener('input', function() {
             var val = colorPicker.value;
             hexInput.value = val;
@@ -3419,6 +3479,8 @@ define([
 
             // ── Mouse Down ──
             this._onMouseDown = function(e) {
+                // Don't process canvas clicks if a DOM panel element was clicked
+                if (e.target !== self.canvas) return;
                 var rect = self.canvas.getBoundingClientRect();
                 var rawMx = e.clientX - rect.left;
                 var rawMy = e.clientY - rect.top;
@@ -5089,7 +5151,7 @@ define([
                     {value: '8', label: '8'}, {value: '12', label: '12'},
                     {value: '20', label: '20'}, {value: '50', label: '50'}
                 ], ns.borderRadius || '0', makeOnChange('borderRadius')));
-                appearBody.appendChild(createTextRow('Custom Radius', ns.borderRadius || '', makeOnChange('borderRadius')));
+                appearBody.appendChild(createTextRow('Custom Radius', ns.borderRadius || '', makeOnChange('borderRadius'), { numeric: true, min: 0, max: 100, step: 1 }));
             }
 
             // Opacity
@@ -5103,7 +5165,7 @@ define([
                 if (!isNaN(pct) && pct >= 0 && pct <= 100) {
                     opacityOnChange(String(pct / 100));
                 }
-            }));
+            }, { numeric: true, min: 0, max: 100, step: 5 }));
 
             // Stroke Pattern
             appearBody.appendChild(createToggleRow('Stroke Pattern', [
@@ -5118,7 +5180,7 @@ define([
                 {value: '1', label: 'Thin'}, {value: '2', label: 'Med'},
                 {value: '3', label: 'Thick'}
             ], ns.borderWidth || 'default', makeOnChange('borderWidth')));
-            appearBody.appendChild(createTextRow('Custom Width (px)', ns.borderWidth || '', makeOnChange('borderWidth')));
+            appearBody.appendChild(createTextRow('Custom Width (px)', ns.borderWidth || '', makeOnChange('borderWidth'), { numeric: true, min: 0, max: 20, step: 1 }));
 
             body.appendChild(appearSec);
 
@@ -5231,9 +5293,9 @@ define([
             ], ns.shadowEnable || 'off', makeOnChange('shadowEnable')));
 
             if (shadowOn) {
-                effectsBody.appendChild(createTextRow('Shadow Blur', ns.shadowBlur || '8', makeOnChange('shadowBlur')));
-                effectsBody.appendChild(createTextRow('Shadow Offset X', ns.shadowOffsetX || '2', makeOnChange('shadowOffsetX')));
-                effectsBody.appendChild(createTextRow('Shadow Offset Y', ns.shadowOffsetY || '4', makeOnChange('shadowOffsetY')));
+                effectsBody.appendChild(createTextRow('Shadow Blur', ns.shadowBlur || '8', makeOnChange('shadowBlur'), { numeric: true, min: 0, max: 50, step: 1 }));
+                effectsBody.appendChild(createTextRow('Shadow Offset X', ns.shadowOffsetX || '2', makeOnChange('shadowOffsetX'), { numeric: true, min: -50, max: 50, step: 1 }));
+                effectsBody.appendChild(createTextRow('Shadow Offset Y', ns.shadowOffsetY || '4', makeOnChange('shadowOffsetY'), { numeric: true, min: -50, max: 50, step: 1 }));
                 effectsBody.appendChild(createColorRow('Shadow Color', [], ns.shadowColor || '#000000', makeOnChange('shadowColor')));
             }
 
@@ -5242,7 +5304,7 @@ define([
             ], ns.glowEnable || 'off', makeOnChange('glowEnable')));
 
             if (glowOn) {
-                effectsBody.appendChild(createTextRow('Glow Blur', ns.glowBlur || '12', makeOnChange('glowBlur')));
+                effectsBody.appendChild(createTextRow('Glow Blur', ns.glowBlur || '12', makeOnChange('glowBlur'), { numeric: true, min: 0, max: 50, step: 1 }));
                 effectsBody.appendChild(createColorRow('Glow Color', [], ns.glowColor || '#3b82f6', makeOnChange('glowColor')));
             }
 
@@ -5510,7 +5572,7 @@ define([
                 }
                 self._pushUndo();
                 self.invalidateUpdateView();
-            }));
+            }, { numeric: true, min: 1, max: 30, step: 1 }));
 
             body.appendChild(epSec);
 
@@ -5541,7 +5603,7 @@ define([
                 }
                 self._pushUndo();
                 self.invalidateUpdateView();
-            }));
+            }, { numeric: true, min: -50, max: 50, step: 1 }));
 
             anchorBody.appendChild(createTextRow('Target Offset', conn.targetAnchorOffset || '', function(val) {
                 var num = parseInt(val, 10);
@@ -5552,7 +5614,7 @@ define([
                 }
                 self._pushUndo();
                 self.invalidateUpdateView();
-            }));
+            }, { numeric: true, min: -50, max: 50, step: 1 }));
 
             body.appendChild(anchorSec);
 
