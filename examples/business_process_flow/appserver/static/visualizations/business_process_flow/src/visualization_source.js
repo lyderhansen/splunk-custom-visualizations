@@ -6060,6 +6060,41 @@ define([
 
         reflow: function() {
             this.invalidateUpdateView();
+        },
+
+        destroy: function() {
+            // Stop animation loop
+            this._stopAnimationLoop();
+
+            // Remove document-level key listeners (stored as named refs)
+            if (this._onKeyDown) {
+                document.removeEventListener('keydown', this._onKeyDown);
+                this._onKeyDown = null;
+            }
+            if (this._onKeyUp) {
+                document.removeEventListener('keyup', this._onKeyUp);
+                this._onKeyUp = null;
+            }
+
+            // Remove panel DOM elements
+            if (this._panelEl && this._panelEl.parentNode) {
+                this._panelEl.parentNode.removeChild(this._panelEl);
+            }
+            if (this._panelStrip && this._panelStrip.parentNode) {
+                this._panelStrip.parentNode.removeChild(this._panelStrip);
+            }
+            if (this._editBtn && this._editBtn.parentNode) {
+                this._editBtn.parentNode.removeChild(this._editBtn);
+            }
+
+            // Null DOM references
+            this._panelEl = null;
+            this._panelStrip = null;
+            this._panelBody = null;
+            this._panelTitle = null;
+            this._editBtn = null;
+
+            SplunkVisualizationBase.prototype.destroy.apply(this, arguments);
         }
     });
 });

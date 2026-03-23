@@ -1,5 +1,27 @@
 # Business Process Flow — Changelog
 
+## v5.0.0 — 2026-03-22
+- **DOM Properties Panel** — Right-side inspector panel replaces all canvas popups
+  - Collapsible sections: Appearance, Text & Value, Sparkline, Effects, Conditions
+  - Connection panel: Style, Endpoints, Anchors, Label, Animation
+  - Canvas Tools: Grid, Snap, Align, Distribute
+  - Multi-select: shared property editing
+  - Collapse/expand toggle (» / «)
+  - Light/dark theme support
+- **Canvas Panning** — Space+drag to pan, Fit button resets
+- **Multi-Select** — Shift+click and rubber-band drag selection
+  - Move all selected nodes together
+  - Align: left/center/right/top/middle/bottom
+  - Distribute: horizontal/vertical
+- **5 New Shapes** — Hexagon, triangle, cylinder, cloud, pill
+- **Stroke Patterns** — Solid, dashed, dotted, dash-dot, long-dash for nodes and connections
+- **Shadow & Glow** — Per-node and global drop shadow and outer glow effects
+- **Raw Value Toggle** — Show full numbers (12,450) instead of abbreviated (12K)
+- **Text Properties** — Per-node text alignment, label/value colors, padding
+- **Line Animations** — Marching ants and pulse effects with trigger (always/hover/click) and speed controls
+- **Markdown Text Boxes** — New textbox shape with heading, bold, italic, bullet list support
+- **Grid & Snap** — Dot grid overlay, snap-to-grid on drag, configurable grid size (10/20/50px)
+
 ## v4.9.1 — 2026-03-22 21:00
 - **Fix: curved line selection** — Hit testing now samples bezier curve (10 points) instead of testing straight segment. Curved lines can now be clicked/hovered properly.
 - **Auto-fit value text** — Values auto-shrink font to fit node width instead of truncating. Long numbers like "1,234,567" or "$45,678 events" shrink gracefully.
