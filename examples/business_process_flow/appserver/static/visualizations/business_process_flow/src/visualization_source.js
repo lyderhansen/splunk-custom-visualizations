@@ -696,7 +696,8 @@ define([
                 markdownContent: edState ? edState.markdownContent : undefined,
                 trendDisplay: edState ? edState.trendDisplay : undefined,
                 trendColor: edState ? edState.trendColor : undefined,
-                trendUseConditions: edState ? edState.trendUseConditions : undefined
+                trendUseConditions: edState ? edState.trendUseConditions : undefined,
+                sparkHover: edState ? edState.sparkHover : undefined
             };
 
             if (edState && edState.x !== undefined && edState.y !== undefined) {
@@ -1382,6 +1383,8 @@ define([
         if (sparkPos === 'behind' && hasSpark) {
             // BEHIND: sparkline fills entire node background, text overlaps on top
             drawSparkline(ctx, node.series, x, y, w, h, nodeSparkType, node.color);
+            node._sparkBounds = { x: x, y: y, w: w, h: h };
+            node._sparkDataRef = node.series;
             // Compute vertical position for label + value block
             var bhTextBlockH = labelFontSize + valueFontSize + 4;
             var bhStartY;
@@ -1412,6 +1415,8 @@ define([
             // ABOVE: sparkline in top portion, text below
             var abSparkH = Math.min(sparkH, Math.round(th0 * 0.5));
             drawSparkline(ctx, node.series, tx0 + pad, ty0 + pad, tw0 - pad * 2, abSparkH - pad, nodeSparkType, node.color);
+            node._sparkBounds = { x: tx0 + pad, y: ty0 + pad, w: tw0 - pad * 2, h: abSparkH - pad };
+            node._sparkDataRef = node.series;
             // Text area below sparkline
             var abTextAreaY = ty0 + abSparkH;
             var abTextAreaH = th0 - abSparkH;
@@ -1443,7 +1448,10 @@ define([
         } else if (sparkPos === 'left' && hasSpark) {
             // LEFT: sparkline on left, text on right
             var leftSparkW = Math.round(tw0 * 0.45);
-            drawSparkline(ctx, node.series, tx0 + pad, ty0 + pad, leftSparkW - pad * 2, Math.min(sparkH, th0 - pad * 2), nodeSparkType, node.color);
+            var leftSparkActualH = Math.min(sparkH, th0 - pad * 2);
+            drawSparkline(ctx, node.series, tx0 + pad, ty0 + pad, leftSparkW - pad * 2, leftSparkActualH, nodeSparkType, node.color);
+            node._sparkBounds = { x: tx0 + pad, y: ty0 + pad, w: leftSparkW - pad * 2, h: leftSparkActualH };
+            node._sparkDataRef = node.series;
             // Label on right (tAlign applies within right panel)
             var rightX = tx0 + leftSparkW + pad;
             var rightW = tw0 - leftSparkW - pad * 2;
@@ -1481,7 +1489,10 @@ define([
             // RIGHT: text on left 55%, sparkline on right 45% (mirror of left)
             var rightSparkW = Math.round(tw0 * 0.45);
             var rightSparkX = tx0 + tw0 - rightSparkW;
-            drawSparkline(ctx, node.series, rightSparkX + pad, ty0 + pad, rightSparkW - pad * 2, Math.min(sparkH, th0 - pad * 2), nodeSparkType, node.color);
+            var rightSparkActualH = Math.min(sparkH, th0 - pad * 2);
+            drawSparkline(ctx, node.series, rightSparkX + pad, ty0 + pad, rightSparkW - pad * 2, rightSparkActualH, nodeSparkType, node.color);
+            node._sparkBounds = { x: rightSparkX + pad, y: ty0 + pad, w: rightSparkW - pad * 2, h: rightSparkActualH };
+            node._sparkDataRef = node.series;
             // Label on left panel
             var leftTextW = tw0 - rightSparkW - pad * 2;
             var leftTextX;
@@ -1603,8 +1614,16 @@ define([
                 }
                 if (sparkW > 20) {
                     drawSparkline(ctx, node.series, sparkX, sparkY, sparkW, sparkH, nodeSparkType, node.color);
+                    node._sparkBounds = { x: sparkX, y: sparkY, w: sparkW, h: sparkH };
+                    node._sparkDataRef = node.series;
                 }
             }
+        }
+
+        // Clear spark bounds if no sparkline was drawn
+        if (!hasSpark || nodeSparkType === 'none') {
+            node._sparkBounds = null;
+            node._sparkDataRef = null;
         }
 
         // ── Trend Indicator ──
@@ -3340,6 +3359,8 @@ define([
             this._hitNodes = [];
             this._hitConnections = [];
             this._hoverItem = null;
+            this._sparkHoverNode = null;
+            this._sparkHoverIdx = -1;
             this._mouseX = 0;
             this._mouseY = 0;
             this._toolbarButtons = [];
@@ -4845,6 +4866,32 @@ define([
                     self.canvas.style.cursor = 'default';
                 }
 
+                // Sparkline hover check (only when not dragging/panning)
+                if (!self._isDragging && !self._isPanning) {
+                    var sparkHoverNode = null;
+                    var sparkHoverIdx = -1;
+                    for (var shi = 0; shi < self._computedNodes.length; shi++) {
+                        var shn = self._computedNodes[shi];
+                        if (shn.sparkHover === 'on' && shn._sparkBounds && shn._sparkDataRef && shn._sparkDataRef.length > 0) {
+                            var sb = shn._sparkBounds;
+                            if (mx >= sb.x && mx <= sb.x + sb.w && my >= sb.y && my <= sb.y + sb.h) {
+                                var relX = (mx - sb.x) / sb.w;
+                                var dataIdx = Math.round(relX * (shn._sparkDataRef.length - 1));
+                                dataIdx = Math.max(0, Math.min(shn._sparkDataRef.length - 1, dataIdx));
+                                sparkHoverNode = shn;
+                                sparkHoverIdx = dataIdx;
+                                break;
+                            }
+                        }
+                    }
+                    var sparkHoverChanged = (self._sparkHoverNode !== sparkHoverNode || self._sparkHoverIdx !== sparkHoverIdx);
+                    self._sparkHoverNode = sparkHoverNode;
+                    self._sparkHoverIdx = sparkHoverIdx;
+                    if (sparkHoverChanged) {
+                        self.invalidateUpdateView();
+                    }
+                }
+
                 // Re-render on hover change for visual feedback
                 var hoverChanged = false;
                 if (!oldHover && self._hoverItem) hoverChanged = true;
@@ -5241,6 +5288,13 @@ define([
             this.canvas.addEventListener('mouseup', this._onMouseUp, true);
             this.canvas.addEventListener('dblclick', this._onDblClick);
             this.canvas.addEventListener('contextmenu', this._onContextMenu);
+            this.canvas.addEventListener('mouseleave', function() {
+                if (self._sparkHoverNode) {
+                    self._sparkHoverNode = null;
+                    self._sparkHoverIdx = -1;
+                    self.invalidateUpdateView();
+                }
+            });
             // (overlay removed — modal editor handles edit mode events)
             document.addEventListener('keydown', this._onKeyDown);
 
@@ -5663,6 +5717,10 @@ define([
                 {value: 'medium', label: 'M'}, {value: 'large', label: 'L'}
             ], ns.chartHeight || 'default', makeOnChange('chartHeight')));
             sparkBody.appendChild(createTextRow('Custom Height', ns.customChartHeight || '', makeOnChange('customChartHeight'), { numeric: true, min: 10, max: 200, step: 5 }));
+
+            sparkBody.appendChild(createToggleRow('Hover Detail', [
+                {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
+            ], ns.sparkHover || 'off', makeOnChange('sparkHover')));
 
             // Trend indicator
             sparkBody.appendChild(createToggleRow('Trend', [
@@ -6431,6 +6489,77 @@ define([
                     this._hoverItem.type === 'node' &&
                     this._hoverItem.id === pn.id;
                 drawNode(ctx, pn, theme, accentLine, sparklineType, nodeRadius, isNodeSelected, isNodeHovered, this._globalEffects || {});
+            }
+
+            // ── Sparkline Hover Overlay ──
+            if (this._sparkHoverNode && this._sparkHoverIdx >= 0) {
+                var shNode = this._sparkHoverNode;
+                var shSb = shNode._sparkBounds;
+                var shSd = shNode._sparkDataRef;
+                var shIdx = this._sparkHoverIdx;
+
+                if (shSb && shSd && shSd.length > 0) {
+                    var shDataVal = shSd[shIdx];
+                    var shDpX = shSb.x + (shSd.length > 1 ? (shIdx / (shSd.length - 1)) * shSb.w : shSb.w / 2);
+
+                    // Vertical crosshair line
+                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([3, 3]);
+                    ctx.beginPath();
+                    ctx.moveTo(shDpX, shSb.y);
+                    ctx.lineTo(shDpX, shSb.y + shSb.h);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // Data point dot — compute Y from min/max
+                    var shMinV = shSd[0], shMaxV = shSd[0];
+                    for (var svi = 1; svi < shSd.length; svi++) {
+                        if (shSd[svi] < shMinV) shMinV = shSd[svi];
+                        if (shSd[svi] > shMaxV) shMaxV = shSd[svi];
+                    }
+                    var shRange = shMaxV - shMinV || 1;
+                    var shDpY = shSb.y + shSb.h - ((shDataVal - shMinV) / shRange) * shSb.h;
+
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(shDpX, shDpY, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = shNode.color || '#3b82f6';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Tooltip box
+                    var shTooltipText = formatCount(shDataVal);
+                    ctx.font = 'bold 11px sans-serif';
+                    var shTw = ctx.measureText(shTooltipText).width + 16;
+                    var shTh = 24;
+                    var shTx = shDpX - shTw / 2;
+                    var shTy = shDpY - shTh - 8;
+
+                    // Keep tooltip in bounds
+                    if (shTx < shSb.x) shTx = shSb.x;
+                    if (shTx + shTw > shSb.x + shSb.w) shTx = shSb.x + shSb.w - shTw;
+                    if (shTy < shSb.y) shTy = shDpY + 8; // flip below if too high
+
+                    // Draw tooltip background
+                    ctx.fillStyle = 'rgba(15,23,42,0.95)';
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.lineWidth = 1;
+                    roundRect(ctx, shTx, shTy, shTw, shTh, 4);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Draw tooltip text
+                    ctx.fillStyle = '#fff';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(shTooltipText, shTx + shTw / 2, shTy + shTh / 2);
+
+                    // Reset text state
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'alphabetic';
+                }
             }
 
             // Draw connection overlays (endpoints, waypoints) ON TOP of nodes
