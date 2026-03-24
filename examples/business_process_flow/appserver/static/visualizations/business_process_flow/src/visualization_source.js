@@ -3588,6 +3588,7 @@ define([
             this._isResizing = false;
             this._resizeNodeId = null;
             this._resizeHandle = null;
+            this._resizeDimensions = null;
             this._selectedConnection = null;
             this._selectedNodeIds = [];
             this._isRubberBanding = false;
@@ -5017,6 +5018,8 @@ define([
                     self._editorState.nodes[self._resizeNodeId].w = newNw;
                     self._editorState.nodes[self._resizeNodeId].h = newNh;
 
+                    self._resizeDimensions = { x: newNx, y: newNy, w: newNw, h: newNh };
+
                     self.invalidateUpdateView();
                     return;
                 }
@@ -5258,6 +5261,10 @@ define([
                 } else {
                     self.canvas.style.cursor = 'default';
                 }
+                // Draw mode always shows crosshair regardless of hover
+                if (self._drawMode) {
+                    self.canvas.style.cursor = 'crosshair';
+                }
 
                 // Sparkline hover check (only when not dragging/panning)
                 if (!self._isDragging && !self._isPanning) {
@@ -5488,6 +5495,7 @@ define([
                     self._isResizing = false;
                     self._resizeNodeId = null;
                     self._resizeHandle = null;
+                    self._resizeDimensions = null;
                     self.canvas.style.cursor = 'default';
                     self.invalidateUpdateView();
                     return;
@@ -5635,7 +5643,7 @@ define([
                 var mx = (e.clientX - rect.left) - self._panX;
                 var my = (e.clientY - rect.top) - self._panY;
 
-                // Double-click on node → open popup
+                // Double-click on node → open inline label editor
                 for (var dni = 0; dni < self._computedNodes.length; dni++) {
                     var dnd = self._computedNodes[dni];
                     if (hitTestNode(mx, my, dnd)) {
@@ -5644,6 +5652,47 @@ define([
                         self._showConnPopup = false;
                         self._updatePanel();
                         self.invalidateUpdateView();
+
+                        // Open inline text input for label editing
+                        var es = self._editorState;
+                        var inlineInput = document.createElement('input');
+                        inlineInput.type = 'text';
+                        inlineInput.value = es.nodes[dnd.id] ? (es.nodes[dnd.id].label || dnd.label || '') : (dnd.label || '');
+                        var nodeScreenX = dnd.x + self._panX;
+                        var nodeScreenY = dnd.y + self._panY;
+                        inlineInput.style.cssText = 'position:absolute;left:' + (nodeScreenX + dnd.w * 0.1) + 'px;' +
+                            'top:' + (nodeScreenY + dnd.h * 0.3) + 'px;' +
+                            'width:' + (dnd.w * 0.8) + 'px;' +
+                            'height:28px;' +
+                            'background:rgba(15,23,42,0.95);color:#f1f5f9;border:2px solid #3b82f6;' +
+                            'border-radius:4px;padding:2px 8px;font-size:14px;outline:none;' +
+                            'text-align:center;z-index:10;font-family:-apple-system,BlinkMacSystemFont,sans-serif;';
+                        self.el.appendChild(inlineInput);
+                        inlineInput.focus();
+                        inlineInput.select();
+
+                        var committed = false;
+                        function commitEdit() {
+                            if (committed) return;
+                            committed = true;
+                            if (!es.nodes[dnd.id]) es.nodes[dnd.id] = {};
+                            self._pushUndo();
+                            es.nodes[dnd.id].label = inlineInput.value;
+                            if (inlineInput.parentNode) inlineInput.parentNode.removeChild(inlineInput);
+                            self.invalidateUpdateView();
+                            self._updatePanel();
+                        }
+                        inlineInput.addEventListener('blur', commitEdit);
+                        inlineInput.addEventListener('keydown', function(e) {
+                            e.stopPropagation();
+                            if (e.key === 'Enter' || e.keyCode === 13) {
+                                inlineInput.blur();
+                            }
+                            if (e.key === 'Escape' || e.keyCode === 27) {
+                                committed = true;
+                                if (inlineInput.parentNode) inlineInput.parentNode.removeChild(inlineInput);
+                            }
+                        });
                         return;
                     }
                 }
@@ -7858,6 +7907,15 @@ define([
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'top';
                     ctx.fillText(Math.round(drw) + ' x ' + Math.round(drh), drx + drw / 2, dry + drh + 4);
+                }
+                // Show resize dimensions when resizing a node
+                if (this._resizeDimensions) {
+                    var rd = this._resizeDimensions;
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.font = '10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(Math.round(rd.w) + ' x ' + Math.round(rd.h), rd.x + rd.w / 2, rd.y + rd.h + 4);
                 }
                 // Node popup replaced by DOM panel (_updatePanel / _buildNodePanel)
                 // Connection popup replaced by DOM panel (_updatePanel / _buildConnectionPanel)
