@@ -2894,6 +2894,7 @@ define([
 
         var btnDefs = [
             { label: 'Copy Layout', icon: '', action: 'save',       w: 90 },
+            { label: '\u2B09', icon: '',     action: 'selectTool',     w: 36 },
             { label: '+',     icon: '+',     action: 'addNode',        w: 36 },
             { label: 'T',     icon: 'T',     action: 'addText',         w: 36 },
             { label: '\u25A1', icon: '',  action: 'drawRect',       w: 36 },
@@ -2912,7 +2913,7 @@ define([
             var def = btnDefs[i];
             var bw = def.w;
             var isHovered = hoverItem && hoverItem.type === 'button' && hoverItem.index === i;
-            var isActive = (def.action === 'drawRect' && drawMode === 'rect') || (def.action === 'drawPen' && drawMode === 'pen') || (def.action === 'editPoints' && drawMode === 'editPoints');
+            var isActive = (def.action === 'selectTool' && !drawMode) || (def.action === 'drawRect' && drawMode === 'rect') || (def.action === 'drawPen' && drawMode === 'pen') || (def.action === 'editPoints' && drawMode === 'editPoints');
 
             // Button background
             roundRect(ctx, btnX, btnY, bw, btnH, 4);
@@ -3996,7 +3997,18 @@ define([
 
             // ── Execute toolbar action ──
             this._executeToolbarAction = function(action) {
-                if (action === 'save') {
+                if (action === 'selectTool') {
+                    // Switch back to default select/move tool
+                    self._drawMode = null;
+                    self._editingCustomNode = null;
+                    self._penPoints = [];
+                    self._penMousePos = null;
+                    self._isDrawingRect = false;
+                    self.canvas.style.cursor = 'default';
+                    self._statusMessage = '';
+                    self.invalidateUpdateView();
+                    return;
+                } else if (action === 'save') {
                     self._saveEditorState();
                     return;
                 } else if (action === 'addNode') {
@@ -5204,8 +5216,7 @@ define([
                     if (ecnm && ecsm && ecsm.customPath) {
                         var normX = (mx - ecnm.x) / ecnm.w;
                         var normY = (my - ecnm.y) / ecnm.h;
-                        normX = Math.max(0, Math.min(1, normX));
-                        normY = Math.max(0, Math.min(1, normY));
+                        // Don't clamp — allow points outside 0-1, we'll recalc bounding box
                         var ept = ecsm.customPath[self._editingPointIdx];
                         if (self._editingHandleType === 'point') {
                             ept.x = normX;
@@ -5220,6 +5231,47 @@ define([
                             ept.hInY = normY;
                             ept.hOutX = ept.x * 2 - normX;
                             ept.hOutY = ept.y * 2 - normY;
+                        }
+                        // Auto-expand bounding box if any point is outside 0-1
+                        var cpArr = ecsm.customPath;
+                        var needsRenorm = false;
+                        for (var rni = 0; rni < cpArr.length; rni++) {
+                            if (cpArr[rni].x < 0 || cpArr[rni].x > 1 || cpArr[rni].y < 0 || cpArr[rni].y > 1) { needsRenorm = true; break; }
+                            if (cpArr[rni].hOutX !== undefined && (cpArr[rni].hOutX < -0.5 || cpArr[rni].hOutX > 1.5)) { needsRenorm = true; break; }
+                            if (cpArr[rni].hInX !== undefined && (cpArr[rni].hInX < -0.5 || cpArr[rni].hInX > 1.5)) { needsRenorm = true; break; }
+                        }
+                        if (needsRenorm) {
+                            // Recalculate bounding box from all points (in world coords)
+                            var wMinX = Infinity, wMaxX = -Infinity, wMinY = Infinity, wMaxY = -Infinity;
+                            for (var wpi = 0; wpi < cpArr.length; wpi++) {
+                                var wpx = ecnm.x + cpArr[wpi].x * ecnm.w;
+                                var wpy = ecnm.y + cpArr[wpi].y * ecnm.h;
+                                if (wpx < wMinX) wMinX = wpx;
+                                if (wpx > wMaxX) wMaxX = wpx;
+                                if (wpy < wMinY) wMinY = wpy;
+                                if (wpy > wMaxY) wMaxY = wpy;
+                            }
+                            var newW = Math.max(20, wMaxX - wMinX);
+                            var newH = Math.max(20, wMaxY - wMinY);
+                            // Re-normalize all points to new bounding box
+                            for (var rnj = 0; rnj < cpArr.length; rnj++) {
+                                var oldWx = ecnm.x + cpArr[rnj].x * ecnm.w;
+                                var oldWy = ecnm.y + cpArr[rnj].y * ecnm.h;
+                                cpArr[rnj].x = (oldWx - wMinX) / newW;
+                                cpArr[rnj].y = (oldWy - wMinY) / newH;
+                                if (cpArr[rnj].hOutX !== undefined) {
+                                    cpArr[rnj].hOutX = (ecnm.x + cpArr[rnj].hOutX * ecnm.w - wMinX) / newW;
+                                    cpArr[rnj].hOutY = (ecnm.y + cpArr[rnj].hOutY * ecnm.h - wMinY) / newH;
+                                }
+                                if (cpArr[rnj].hInX !== undefined) {
+                                    cpArr[rnj].hInX = (ecnm.x + cpArr[rnj].hInX * ecnm.w - wMinX) / newW;
+                                    cpArr[rnj].hInY = (ecnm.y + cpArr[rnj].hInY * ecnm.h - wMinY) / newH;
+                                }
+                            }
+                            ecsm.x = wMinX;
+                            ecsm.y = wMinY;
+                            ecsm.w = newW;
+                            ecsm.h = newH;
                         }
                         self.invalidateUpdateView();
                     }
