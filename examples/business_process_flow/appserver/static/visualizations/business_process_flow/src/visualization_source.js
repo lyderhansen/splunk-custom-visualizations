@@ -198,7 +198,7 @@ define([
         'server': '\u2395',
         'database': '\u2261',
         'cloud': '\u2601',
-        'shield': '\u2766',
+        'shield': '\u2694',
         'lock': '\u2302',
         'globe': '\u2295',
         'warning': '\u26A0',
@@ -207,6 +207,9 @@ define([
         'user': '\u2302',
         'star': '\u2605',
         'gear': '\u2699',
+        'heart': '\u2665',
+        'bolt': '\u26A1',
+        'flag': '\u2691',
         'arrow-right': '\u2192',
         'arrow-down': '\u2193',
         'circle': '\u25CF',
@@ -2040,15 +2043,22 @@ define([
                     dfValueY = dfLabelY + labelFontSize + 4;
                 }
             }
-            // Node Icon (drawn above label)
-            if (node.nodeIcon && node.nodeIcon !== 'none') {
+            // Node Icon (drawn inside node, above label — shift text down)
+            var _hasIcon = node.nodeIcon && node.nodeIcon !== 'none';
+            var _iconH = 0;
+            if (_hasIcon) {
+                _iconH = labelFontSize + 4;
+                dfLabelY += _iconH / 2;
+                dfValueY += _iconH / 2;
+            }
+            if (_hasIcon) {
                 var iconChar = NODE_ICONS[node.nodeIcon] || node.nodeIcon;
                 if (iconChar) {
-                    ctx.font = (labelFontSize + 4) + 'px sans-serif';
+                    ctx.font = _iconH + 'px sans-serif';
                     ctx.fillStyle = condResults.label || node.labelColor || theme.textMuted;
                     ctx.textAlign = tAlign;
                     ctx.textBaseline = 'bottom';
-                    ctx.fillText(iconChar, textX, dfLabelY - 2);
+                    ctx.fillText(iconChar, textX, dfLabelY - 1);
                 }
             }
             // Label
@@ -3858,6 +3868,11 @@ define([
             this._dragLabelStartY = 0;
             this._dragLabelOrigOffX = 0;
             this._dragLabelOrigOffY = 0;
+            this._isDraggingGroup = false;
+            this._dragGroupIdx = -1;
+            this._dragGroupStartX = 0;
+            this._dragGroupStartY = 0;
+            this._resetZoomRect = null;
             this._hitNodes = [];
             this._hitConnections = [];
             this._hoverItem = null;
@@ -4608,6 +4623,23 @@ define([
                 pre.innerHTML = highlighted;
             };
 
+            // ── Group bounds helper ──
+            this._getGroupBounds = function(grp, nMap) {
+                var gMinX = Infinity, gMaxX = -Infinity, gMinY = Infinity, gMaxY = -Infinity;
+                for (var i = 0; i < grp.nodeIds.length; i++) {
+                    var gNode = nMap[grp.nodeIds[i]];
+                    if (gNode) {
+                        if (gNode.x < gMinX) gMinX = gNode.x;
+                        if (gNode.x + gNode.w > gMaxX) gMaxX = gNode.x + gNode.w;
+                        if (gNode.y < gMinY) gMinY = gNode.y;
+                        if (gNode.y + gNode.h > gMaxY) gMaxY = gNode.y + gNode.h;
+                    }
+                }
+                if (gMinX === Infinity) return null;
+                var gPad = grp.padding || 20;
+                return { x: gMinX - gPad, y: gMinY - gPad - 20, w: gMaxX - gMinX + gPad * 2, h: gMaxY - gMinY + gPad * 2 + 20 };
+            };
+
             // ── Mouse Down ──
             this._onMouseDown = function(e) {
                 // Close shape dropdown on canvas click
@@ -4627,7 +4659,7 @@ define([
                 self._pendingToolbarAction = null;
 
                 // Space+drag panning
-                if (self._spaceHeld && !self._isDragging && !self._isResizing && !self._isDraggingWaypoint && !self._isDraggingAnchor && !self._isDraggingLabel) {
+                if (self._spaceHeld && !self._isDragging && !self._isResizing && !self._isDraggingWaypoint && !self._isDraggingAnchor && !self._isDraggingLabel && !self._isDraggingGroup) {
                     self._isPanning = true;
                     self._panStartX = e.clientX;
                     self._panStartY = e.clientY;
@@ -4635,6 +4667,17 @@ define([
                     e.preventDefault();
                     e.stopPropagation();
                     return;
+                }
+
+                // Reset Zoom button (screen space, raw coordinates)
+                if (self._resetZoomRect) {
+                    if (pointInRect(rawMx, rawMy, self._resetZoomRect.x, self._resetZoomRect.y, self._resetZoomRect.w, self._resetZoomRect.h)) {
+                        self._zoom = 1.0;
+                        self._panX = 0;
+                        self._panY = 0;
+                        self.invalidateUpdateView();
+                        return;
+                    }
                 }
 
                 // In modal edit mode, prevent event leaking
@@ -5420,6 +5463,49 @@ define([
                         return;
                     }
 
+                    // Check group hit — drag entire group
+                    var _groups = self._editorState.groups || [];
+                    var _groupHit = false;
+                    for (var ghi = 0; ghi < _groups.length; ghi++) {
+                        var grp = _groups[ghi];
+                        var gBounds = self._getGroupBounds(grp, self._computedNodeMap);
+                        if (gBounds && pointInRect(mx, my, gBounds.x, gBounds.y, gBounds.w, gBounds.h)) {
+                            var onGroupNode = false;
+                            for (var gni = 0; gni < grp.nodeIds.length; gni++) {
+                                var gnd = self._computedNodeMap[grp.nodeIds[gni]];
+                                if (gnd && hitTestNode(mx, my, gnd)) { onGroupNode = true; break; }
+                            }
+                            if (!onGroupNode) {
+                                self._pushUndo();
+                                // Pin all group node positions
+                                for (var gpn = 0; gpn < grp.nodeIds.length; gpn++) {
+                                    var gpnId = grp.nodeIds[gpn];
+                                    var gpnNode = self._computedNodeMap[gpnId];
+                                    if (gpnNode) {
+                                        if (!self._editorState.nodes[gpnId]) self._editorState.nodes[gpnId] = {};
+                                        if (self._editorState.nodes[gpnId].x === undefined) {
+                                            self._editorState.nodes[gpnId].x = gpnNode.x;
+                                            self._editorState.nodes[gpnId].y = gpnNode.y;
+                                        }
+                                    }
+                                }
+                                self._isDraggingGroup = true;
+                                self._dragGroupIdx = ghi;
+                                self._dragGroupStartX = mx;
+                                self._dragGroupStartY = my;
+                                self._selectedNodeIds = grp.nodeIds.slice();
+                                self._selectedConnection = null;
+                                self._showConnPopup = false;
+                                self._updatePanel();
+                                self.invalidateUpdateView();
+                                e.preventDefault();
+                                _groupHit = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (_groupHit) return;
+
                     // Clicked empty space — start rubber-band selection
                     self._isRubberBanding = true;
                     self._rubberBandStart = { x: mx, y: my };
@@ -5489,7 +5575,7 @@ define([
             // ── Mouse Move ──
             this._onMouseMove = function(e) {
                 // Stop event propagation during modal interactions
-                if (self._isDragging || self._isResizing || self._isConnecting || self._editMode || self._isPanning || self._isDrawingRect) {
+                if (self._isDragging || self._isResizing || self._isConnecting || self._editMode || self._isPanning || self._isDrawingRect || self._isDraggingGroup) {
                     e.preventDefault();
                     e.stopPropagation();
                 }
@@ -5513,6 +5599,27 @@ define([
                 var my = (rawMy - self._panY) / self._zoom;
                 self._mouseX = rawMx;
                 self._mouseY = rawMy;
+
+                // Handle group dragging
+                if (self._isDraggingGroup) {
+                    var gdx = mx - self._dragGroupStartX;
+                    var gdy = my - self._dragGroupStartY;
+                    var dragGrp = (self._editorState.groups || [])[self._dragGroupIdx];
+                    if (dragGrp) {
+                        for (var gdi = 0; gdi < dragGrp.nodeIds.length; gdi++) {
+                            var gns = self._editorState.nodes[dragGrp.nodeIds[gdi]];
+                            if (gns) {
+                                gns.x = (gns.x || 0) + gdx;
+                                gns.y = (gns.y || 0) + gdy;
+                            }
+                        }
+                    }
+                    self._dragGroupStartX = mx;
+                    self._dragGroupStartY = my;
+                    self._didDrag = true;
+                    self.invalidateUpdateView();
+                    return;
+                }
 
                 // Handle pen preview line
                 if (self._drawMode === 'pen' && self._penPoints.length > 0) {
@@ -6239,6 +6346,15 @@ define([
                     }
                     self._isDragging = false;
                     self._dragNodeId = null;
+                    return;
+                }
+
+                // Handle group drag end
+                if (self._isDraggingGroup) {
+                    self._isDraggingGroup = false;
+                    self._dragGroupIdx = -1;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
                     return;
                 }
 
@@ -7346,14 +7462,48 @@ define([
                 var textSec = createPanelSection('Text & Value', '', false);
                 var textBody = textSec._body;
 
-                // Icon
-                textBody.appendChild(createToggleRow('Icon', [
-                    {value: 'none', label: 'None'}, {value: 'server', label: '\u2395'},
-                    {value: 'cloud', label: '\u2601'}, {value: 'warning', label: '\u26A0'},
-                    {value: 'check', label: '\u2713'}, {value: 'error', label: '\u2717'},
-                    {value: 'star', label: '\u2605'}, {value: 'gear', label: '\u2699'},
-                    {value: 'globe', label: '\u2295'}, {value: 'diamond', label: '\u25C6'}
-                ], ns.nodeIcon || 'none', makeOnChange('nodeIcon')));
+                // Icon (dropdown select)
+                var iconOptions = [
+                    { value: 'none', label: 'None' },
+                    { value: 'server', label: '\u2395 Server' },
+                    { value: 'database', label: '\u2261 Database' },
+                    { value: 'cloud', label: '\u2601 Cloud' },
+                    { value: 'shield', label: '\u2694 Shield' },
+                    { value: 'lock', label: '\u2302 Lock' },
+                    { value: 'globe', label: '\u2295 Globe' },
+                    { value: 'warning', label: '\u26A0 Warning' },
+                    { value: 'check', label: '\u2713 Check' },
+                    { value: 'error', label: '\u2717 Error' },
+                    { value: 'star', label: '\u2605 Star' },
+                    { value: 'gear', label: '\u2699 Gear' },
+                    { value: 'heart', label: '\u2665 Heart' },
+                    { value: 'bolt', label: '\u26A1 Bolt' },
+                    { value: 'flag', label: '\u2691 Flag' },
+                    { value: 'circle', label: '\u25CF Circle' },
+                    { value: 'square', label: '\u25A0 Square' },
+                    { value: 'triangle', label: '\u25B2 Triangle' },
+                    { value: 'diamond', label: '\u25C6 Diamond' },
+                    { value: 'arrow-right', label: '\u2192 Arrow Right' },
+                    { value: 'arrow-down', label: '\u2193 Arrow Down' }
+                ];
+                var iconLabel = document.createElement('div');
+                iconLabel.textContent = 'ICON';
+                iconLabel.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;';
+                textBody.appendChild(iconLabel);
+                var iconSelect = document.createElement('select');
+                iconSelect.style.cssText = 'width:100%;padding:6px 8px;border-radius:4px;border:1px solid ' + panelTheme.border + ';background:' + panelTheme.inputBg + ';color:' + panelTheme.text + ';font-size:11px;margin-bottom:8px;';
+                for (var ioi = 0; ioi < iconOptions.length; ioi++) {
+                    var ioOpt = document.createElement('option');
+                    ioOpt.value = iconOptions[ioi].value;
+                    ioOpt.textContent = iconOptions[ioi].label;
+                    if (iconOptions[ioi].value === (ns.nodeIcon || 'none')) ioOpt.selected = true;
+                    iconSelect.appendChild(ioOpt);
+                }
+                iconSelect.addEventListener('change', function() {
+                    makeOnChange('nodeIcon')(iconSelect.value);
+                });
+                iconSelect.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                textBody.appendChild(iconSelect);
 
                 // Label
                 textBody.appendChild(createTextRow('Label', ns.label || '', makeOnChange('label')));
@@ -9217,8 +9367,26 @@ define([
                 ctx.fillText(Math.round(this._zoom * 100) + '%', w - 10, toolbarH + 6);
             }
 
-            // Mini-map (only when zoomed or panned)
-            if (positioned.length > 0 && (this._zoom !== 1.0 || this._panX !== 0 || this._panY !== 0)) {
+            // Reset Zoom button (screen space)
+            if (this._zoom !== 1.0) {
+                var rzX = w - 80, rzY = toolbarH + 8;
+                var rzW = 70, rzH = 24;
+                roundRect(ctx, rzX, rzY, rzW, rzH, 4);
+                ctx.fillStyle = 'rgba(59,130,246,0.9)';
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(Math.round(this._zoom * 100) + '% Reset', rzX + rzW / 2, rzY + rzH / 2);
+                this._resetZoomRect = { x: rzX, y: rzY, w: rzW, h: rzH };
+            } else {
+                this._resetZoomRect = null;
+            }
+
+            // Mini-map — only show when zoomed or panned away from default
+            var showMiniMap = this._zoom !== 1.0 || this._panX !== 0 || this._panY !== 0;
+            if (positioned.length > 0 && showMiniMap) {
                 var mmW = 150, mmH = 100;
                 var mmX = 10, mmY = h - mmH - 10;
                 var mmPad = 5;
