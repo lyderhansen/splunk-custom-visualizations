@@ -8692,13 +8692,13 @@ define([
                     if (epHoverNode) {
                         var ehx = epHoverNode.x, ehy = epHoverNode.y, ehw = epHoverNode.w, ehh = epHoverNode.h;
                         // Dashed highlight border
-                        ctx.strokeStyle = '#6366f1';
+                        ctx.strokeStyle = '#d946ef';
                         ctx.lineWidth = 2;
                         ctx.setLineDash([6, 4]);
                         ctx.strokeRect(ehx - 2, ehy - 2, ehw + 4, ehh + 4);
                         ctx.setLineDash([]);
                         // "Click to edit points" label
-                        ctx.fillStyle = 'rgba(99,102,241,0.9)';
+                        ctx.fillStyle = 'rgba(217,70,239,0.9)';
                         ctx.font = 'bold 10px sans-serif';
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'bottom';
@@ -8756,10 +8756,10 @@ define([
                                 ctx.stroke();
                             }
 
-                            // Point dot (larger, with index number)
+                            // Point dot — pink/magenta to distinguish from connection ports (blue)
                             ctx.beginPath();
                             ctx.arc(epx, epy, 6, 0, Math.PI * 2);
-                            ctx.fillStyle = '#3b82f6';
+                            ctx.fillStyle = '#d946ef';
                             ctx.fill();
                             ctx.strokeStyle = '#fff';
                             ctx.lineWidth = 2;
@@ -8767,11 +8767,11 @@ define([
                         }
 
                         // Hint text
-                        ctx.fillStyle = 'rgba(59,130,246,0.8)';
+                        ctx.fillStyle = 'rgba(217,70,239,0.8)';
                         ctx.font = '9px sans-serif';
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'bottom';
-                        ctx.fillText('Drag points \u2022 Click + to add \u2022 Del to remove', enx + enw / 2, eny - 6);
+                        ctx.fillText('Drag points \u2022 Click + to add \u2022 Alt+drag for curves \u2022 Del to remove', enx + enw / 2, eny - 6);
 
                         // Draw edge midpoints for adding new points (+ icons)
                         // Place midpoints at t=0.5 along the actual curve (bezier or straight)
@@ -8799,16 +8799,16 @@ define([
                                 midPx = enx + (prevPt.x + nextPt.x) / 2 * enw;
                                 midPy = eny + (prevPt.y + nextPt.y) / 2 * enh;
                             }
-                            // Solid circle with white fill + blue border + blue plus
+                            // Solid circle with white fill + pink border + pink plus
                             ctx.beginPath();
                             ctx.arc(midPx, midPy, 8, 0, Math.PI * 2);
                             ctx.fillStyle = '#fff';
                             ctx.fill();
-                            ctx.strokeStyle = '#3b82f6';
+                            ctx.strokeStyle = '#d946ef';
                             ctx.lineWidth = 2;
                             ctx.stroke();
-                            // Plus icon — solid blue
-                            ctx.strokeStyle = '#3b82f6';
+                            // Plus icon — solid pink
+                            ctx.strokeStyle = '#d946ef';
                             ctx.lineWidth = 2;
                             ctx.beginPath();
                             ctx.moveTo(midPx - 4, midPy);
