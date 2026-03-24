@@ -892,7 +892,8 @@ define([
                 gradientStart: edState ? edState.gradientStart : undefined,
                 gradientEnd: edState ? edState.gradientEnd : undefined,
                 zOrder: edState ? edState.zOrder : undefined,
-                frostedGlass: edState ? edState.frostedGlass : undefined
+                frostedGlass: edState ? edState.frostedGlass : undefined,
+                customPath: edState ? edState.customPath : undefined
             };
 
             if (edState && edState.x !== undefined && edState.y !== undefined) {
@@ -1343,6 +1344,14 @@ define([
                 drawCloudPath(ctx, x, y, w, h);
             } else if (shape === 'pill') {
                 drawPillPath(ctx, x, y, w, h);
+            } else if (shape === 'custom' && node.customPath && node.customPath.length >= 3) {
+                var cp = node.customPath;
+                ctx.beginPath();
+                ctx.moveTo(x + cp[0].x * w, y + cp[0].y * h);
+                for (var cpi = 1; cpi < cp.length; cpi++) {
+                    ctx.lineTo(x + cp[cpi].x * w, y + cp[cpi].y * h);
+                }
+                ctx.closePath();
             } else {
                 roundRect(ctx, x, y, w, h, radius);
             }
@@ -2866,6 +2875,7 @@ define([
             { label: '+',     icon: '+',     action: 'addNode',        w: 36 },
             { label: 'T',     icon: 'T',     action: 'addText',         w: 36 },
             { label: '\u25A1', icon: '',  action: 'drawRect',       w: 36 },
+            { label: '\u270E', icon: '',  action: 'drawPen',        w: 36 },
             { label: '\u2192', icon: '', action: 'addConnection',  w: 36 },
             { label: '\u2715', icon: '', action: 'deleteSelected',  w: 36, tint: 'red' },
             { label: '\u229E', icon: '', action: 'fit',            w: 36 },
@@ -2879,7 +2889,7 @@ define([
             var def = btnDefs[i];
             var bw = def.w;
             var isHovered = hoverItem && hoverItem.type === 'button' && hoverItem.index === i;
-            var isActive = (def.action === 'drawRect' && drawMode === 'rect');
+            var isActive = (def.action === 'drawRect' && drawMode === 'rect') || (def.action === 'drawPen' && drawMode === 'pen');
 
             // Button background
             roundRect(ctx, btnX, btnY, bw, btnH, 4);
@@ -3146,7 +3156,7 @@ define([
         if (shape === 'diamond') {
             return pointInDiamond(px, py, node.x + node.w / 2, node.y + node.h / 2, node.w, node.h);
         }
-        if (shape === 'hexagon' || shape === 'triangle' || shape === 'cylinder' || shape === 'cloud' || shape === 'pill') {
+        if (shape === 'hexagon' || shape === 'triangle' || shape === 'cylinder' || shape === 'cloud' || shape === 'pill' || shape === 'custom') {
             return px >= node.x && px <= node.x + node.w && py >= node.y && py <= node.y + node.h;
         }
         return pointInRect(px, py, node.x, node.y, node.w, node.h);
@@ -3604,7 +3614,9 @@ define([
             this._isDrawingRect = false;
             this._drawRectStart = null;
             this._drawRectEnd = null;
-            this._drawMode = null; // 'rect', null
+            this._drawMode = null; // 'rect', 'pen', null
+            this._penPoints = [];
+            this._penMousePos = null;
             this._isDraggingWaypoint = false;
             this._dragWpConnIdx = null;
             this._dragWpIdx = null;
@@ -3741,6 +3753,52 @@ define([
                 self._undoStack.push(JSON.stringify(self._editorState));
                 if (self._undoStack.length > 50) self._undoStack.shift();
                 self._redoStack = []; // clear redo on new action
+            };
+
+            this._createPenNode = function() {
+                var pts = self._penPoints;
+                if (pts.length < 3) { self._penPoints = []; return; }
+
+                // Calculate bounding box
+                var minX = pts[0].x, maxX = pts[0].x, minY = pts[0].y, maxY = pts[0].y;
+                for (var i = 1; i < pts.length; i++) {
+                    if (pts[i].x < minX) minX = pts[i].x;
+                    if (pts[i].x > maxX) maxX = pts[i].x;
+                    if (pts[i].y < minY) minY = pts[i].y;
+                    if (pts[i].y > maxY) maxY = pts[i].y;
+                }
+                var w = maxX - minX;
+                var h = maxY - minY;
+                if (w < 10 || h < 10) { self._penPoints = []; return; }
+
+                // Normalize points relative to bounding box (0-1 range)
+                var normalizedPts = [];
+                for (var j = 0; j < pts.length; j++) {
+                    normalizedPts.push({
+                        x: (pts[j].x - minX) / w,
+                        y: (pts[j].y - minY) / h
+                    });
+                }
+
+                var penNodeId = '_pen_' + Date.now();
+                if (!self._editorState.nodes) self._editorState.nodes = {};
+                self._editorState.nodes[penNodeId] = {
+                    manual: true,
+                    shape: 'custom',
+                    label: '',
+                    hideValue: true,
+                    x: minX,
+                    y: minY,
+                    w: w,
+                    h: h,
+                    customPath: normalizedPts
+                };
+                self._pushUndo();
+                self._selectedNodeIds = [penNodeId];
+                self._penPoints = [];
+                self._penMousePos = null;
+                self.invalidateUpdateView();
+                self._updatePanel();
             };
 
             this._undo = function() {
@@ -3905,6 +3963,25 @@ define([
                         self.canvas.style.cursor = 'crosshair';
                         self._statusMessage = 'Draw: click and drag to create a rectangle';
                         // Deselect everything
+                        self._selectedNodeIds = [];
+                        self._selectedConnection = null;
+                        self._connPopupIdx = null;
+                    }
+                    self.invalidateUpdateView();
+                    self._updatePanel();
+                    return;
+                } else if (action === 'drawPen') {
+                    if (self._drawMode === 'pen') {
+                        self._drawMode = null;
+                        self._penPoints = [];
+                        self._penMousePos = null;
+                        self.canvas.style.cursor = 'default';
+                        self._statusMessage = '';
+                    } else {
+                        self._drawMode = 'pen';
+                        self._penPoints = [];
+                        self.canvas.style.cursor = 'crosshair';
+                        self._statusMessage = 'Pen: click to place points, double-click or click start to close shape';
                         self._selectedNodeIds = [];
                         self._selectedConnection = null;
                         self._connPopupIdx = null;
@@ -4202,6 +4279,37 @@ define([
                             self._pendingToolbarAction = btn.action;
                             return;
                         }
+                    }
+
+                    // Pen mode: place points on EMPTY space
+                    if (self._drawMode === 'pen') {
+                        var penHitNode = false;
+                        for (var phni = 0; phni < self._computedNodes.length; phni++) {
+                            if (hitTestNode(mx, my, self._computedNodes[phni])) {
+                                penHitNode = true;
+                                break;
+                            }
+                        }
+                        if (!penHitNode) {
+                            // Check if clicking near the FIRST point (close the shape)
+                            if (self._penPoints.length >= 3) {
+                                var fp = self._penPoints[0];
+                                var closeDist = Math.sqrt((mx - fp.x) * (mx - fp.x) + (my - fp.y) * (my - fp.y));
+                                if (closeDist < 12) {
+                                    self._createPenNode();
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    return;
+                                }
+                            }
+                            // Add point
+                            self._penPoints.push({ x: mx, y: my });
+                            self.invalidateUpdateView();
+                            e.preventDefault();
+                            e.stopPropagation();
+                            return;
+                        }
+                        // Fall through to normal node handling
                     }
 
                     // Draw-rect mode: only start drawing on EMPTY space
@@ -4880,6 +4988,12 @@ define([
                 var my = rawMy - self._panY;
                 self._mouseX = rawMx;
                 self._mouseY = rawMy;
+
+                // Handle pen preview line
+                if (self._drawMode === 'pen' && self._penPoints.length > 0) {
+                    self._penMousePos = { x: mx, y: my };
+                    self.invalidateUpdateView();
+                }
 
                 // Handle rect drawing drag
                 if (self._isDrawingRect) {
@@ -5658,6 +5772,12 @@ define([
                 var mx = (e.clientX - rect.left) - self._panX;
                 var my = (e.clientY - rect.top) - self._panY;
 
+                // Pen mode: close shape on double-click
+                if (self._drawMode === 'pen' && self._penPoints.length >= 3) {
+                    self._createPenNode();
+                    return;
+                }
+
                 // Double-click on node → open inline label editor
                 for (var dni = 0; dni < self._computedNodes.length; dni++) {
                     var dnd = self._computedNodes[dni];
@@ -5801,6 +5921,8 @@ define([
                         self._isDrawingRect = false;
                         self._drawRectStart = null;
                         self._drawRectEnd = null;
+                        self._penPoints = [];
+                        self._penMousePos = null;
                         self.canvas.style.cursor = 'default';
                         self._statusMessage = '';
                         self.invalidateUpdateView();
@@ -6141,6 +6263,9 @@ define([
             if (currentShape === 'mixed') {
                 shapeOptions.push({value: 'mixed', label: 'Mixed'});
             }
+            if (currentShape === 'custom') {
+                shapeOptions.push({value: 'custom', label: 'Custom'});
+            }
             sharedBody.appendChild(createToggleRow('Shape', shapeOptions, currentShape, makeMultiOnChange('shape')));
 
             var colors = PALETTES[this._currentPalette || 'corporate'] || PALETTES.corporate;
@@ -6316,12 +6441,16 @@ define([
 
             // Shape
             var currentShape = ns.shape || 'rect';
-            appearBody.appendChild(createToggleRow('Shape', [
+            var shapeList = [
                 {value: 'rect', label: 'Rect'}, {value: 'circle', label: 'Circle'},
                 {value: 'diamond', label: 'Diamond'}, {value: 'hexagon', label: 'Hexagon'},
                 {value: 'triangle', label: 'Triangle'}, {value: 'cylinder', label: 'Cylinder'},
                 {value: 'cloud', label: 'Cloud'}, {value: 'pill', label: 'Pill'}
-            ], currentShape, makeOnChangeAndRefresh('shape')));
+            ];
+            if (currentShape === 'custom') {
+                shapeList.push({value: 'custom', label: 'Custom'});
+            }
+            appearBody.appendChild(createToggleRow('Shape', shapeList, currentShape, makeOnChangeAndRefresh('shape')));
 
             // Chart Color (accent/palette color)
             appearBody.appendChild(createColorRow('Chart Color', colors, ns.color || '', makeOnChange('color')));
@@ -7922,6 +8051,52 @@ define([
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'top';
                     ctx.fillText(Math.round(drw) + ' x ' + Math.round(drh), drx + drw / 2, dry + drh + 4);
+                }
+                // Pen tool preview
+                if (this._drawMode === 'pen' && this._penPoints.length > 0) {
+                    var pp = this._penPoints;
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([6, 4]);
+
+                    // Draw lines between placed points
+                    ctx.beginPath();
+                    ctx.moveTo(pp[0].x, pp[0].y);
+                    for (var ppi = 1; ppi < pp.length; ppi++) {
+                        ctx.lineTo(pp[ppi].x, pp[ppi].y);
+                    }
+                    // Line to cursor
+                    if (this._penMousePos) {
+                        ctx.lineTo(this._penMousePos.x, this._penMousePos.y);
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // Draw dots at each placed point
+                    for (var ppd = 0; ppd < pp.length; ppd++) {
+                        ctx.beginPath();
+                        ctx.arc(pp[ppd].x, pp[ppd].y, 4, 0, Math.PI * 2);
+                        ctx.fillStyle = ppd === 0 ? '#22c55e' : '#3b82f6';
+                        ctx.fill();
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                    }
+
+                    // If near first point, show close indicator
+                    if (pp.length >= 3 && this._penMousePos) {
+                        var fpDist = Math.sqrt(
+                            (this._penMousePos.x - pp[0].x) * (this._penMousePos.x - pp[0].x) +
+                            (this._penMousePos.y - pp[0].y) * (this._penMousePos.y - pp[0].y)
+                        );
+                        if (fpDist < 12) {
+                            ctx.beginPath();
+                            ctx.arc(pp[0].x, pp[0].y, 8, 0, Math.PI * 2);
+                            ctx.strokeStyle = '#22c55e';
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                        }
+                    }
                 }
                 // Show resize dimensions when resizing a node
                 if (this._resizeDimensions) {
