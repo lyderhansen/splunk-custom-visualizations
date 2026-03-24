@@ -3908,6 +3908,8 @@ define([
             this._panX = 0;
             this._panY = 0;
             this._zoom = 1.0;
+            this._isZooming = false;
+            this._zoomTimeout = null;
             this._isPanning = false;
             this._spaceHeld = false;
             this._animationFrame = null;
@@ -3926,6 +3928,12 @@ define([
                     e.preventDefault();
                     var delta = e.deltaY > 0 ? -0.05 : 0.05;
                     self._zoom = Math.max(0.25, Math.min(3, self._zoom + delta));
+                    self._isZooming = true;
+                    if (self._zoomTimeout) clearTimeout(self._zoomTimeout);
+                    self._zoomTimeout = setTimeout(function() {
+                        self._isZooming = false;
+                        self.invalidateUpdateView();
+                    }, 1000);
                     self.invalidateUpdateView();
                 }
             };
@@ -9550,7 +9558,7 @@ define([
             }
 
             // Mini-map — only show when zoomed or panned away from default
-            var showMiniMap = this._zoom !== 1.0 || this._panX !== 0 || this._panY !== 0;
+            var showMiniMap = this._isPanning || this._isZooming;
             if (positioned.length > 0 && showMiniMap) {
                 var mmW = 150, mmH = 100;
                 var mmX = 10, mmY = h - mmH - 10;
