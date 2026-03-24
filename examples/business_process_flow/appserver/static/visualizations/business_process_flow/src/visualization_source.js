@@ -2184,7 +2184,56 @@ define([
             };
         }
 
-        // For straight lines or multi-point: walk segments by total length
+        if (style === 'curved' && points.length > 2) {
+            // Multi-point smooth curve: quadratic bezier through waypoints
+            // Same algorithm as drawConnection/buildConnectionPath curved > 2
+            // First, build an array of curve segments with their approximate lengths
+            var curveSegs = [];
+            var curveTotalLen = 0;
+            // First segment: p0 to midpoint(p1, p2) via control point p1
+            for (var csi = 1; csi < points.length - 1; csi++) {
+                var csP0 = (csi === 1) ? points[0] : { x: (points[csi - 1].x + points[csi].x) / 2, y: (points[csi - 1].y + points[csi].y) / 2 };
+                var csCP = points[csi];
+                var csP1 = (csi < points.length - 2) ? { x: (points[csi].x + points[csi + 1].x) / 2, y: (points[csi].y + points[csi + 1].y) / 2 } : points[points.length - 1];
+                // Approximate length by sampling 10 sub-points
+                var csLen = 0;
+                var csPrev = csP0;
+                for (var csj = 1; csj <= 10; csj++) {
+                    var cst = csj / 10;
+                    var csmt = 1 - cst;
+                    var csPt = {
+                        x: csmt * csmt * csP0.x + 2 * csmt * cst * csCP.x + cst * cst * csP1.x,
+                        y: csmt * csmt * csP0.y + 2 * csmt * cst * csCP.y + cst * cst * csP1.y
+                    };
+                    var csdx = csPt.x - csPrev.x;
+                    var csdy = csPt.y - csPrev.y;
+                    csLen += Math.sqrt(csdx * csdx + csdy * csdy);
+                    csPrev = csPt;
+                }
+                curveSegs.push({ p0: csP0, cp: csCP, p1: csP1, len: csLen });
+                curveTotalLen += csLen;
+            }
+            if (curveTotalLen === 0) return { x: points[0].x, y: points[0].y };
+            // Walk along curve segments to find the point at parameter t
+            var targetDist2 = t * curveTotalLen;
+            var accumDist = 0;
+            for (var csk = 0; csk < curveSegs.length; csk++) {
+                var seg = curveSegs[csk];
+                if (accumDist + seg.len >= targetDist2 || csk === curveSegs.length - 1) {
+                    var segLocalT = seg.len > 0 ? (targetDist2 - accumDist) / seg.len : 0;
+                    segLocalT = Math.max(0, Math.min(1, segLocalT));
+                    var smt = 1 - segLocalT;
+                    return {
+                        x: smt * smt * seg.p0.x + 2 * smt * segLocalT * seg.cp.x + segLocalT * segLocalT * seg.p1.x,
+                        y: smt * smt * seg.p0.y + 2 * smt * segLocalT * seg.cp.y + segLocalT * segLocalT * seg.p1.y
+                    };
+                }
+                accumDist += seg.len;
+            }
+            return { x: points[points.length - 1].x, y: points[points.length - 1].y };
+        }
+
+        // For straight lines: walk segments by total length
         var totalLen = 0;
         var segLens = [];
         for (var i = 1; i < points.length; i++) {
