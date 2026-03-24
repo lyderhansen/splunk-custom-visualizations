@@ -8307,44 +8307,65 @@ define([
                 drawGrid(ctx, w, h, this._gridSize, this._panX, this._panY, isDark);
             }
 
-            // Draw connections
-            for (var ci = 0; ci < connections.length; ci++) {
-                var conn = connections[ci];
-                var fromNd = nodeMap[conn.from];
-                var toNd = nodeMap[conn.to];
-                if (fromNd && toNd) {
+            // Build unified draw list: nodes and connections interleaved by z-order.
+            // Each connection's z = min(fromNode.z, toNode.z) so it renders at the
+            // level of its lowest endpoint — connections to "Send to Back" nodes
+            // appear behind other nodes instead of always on top.
+            var drawList = [];
+
+            // Add nodes to draw list
+            for (var doi = 0; doi < positioned.length; doi++) {
+                var dlNode = positioned[doi];
+                var dlNodeZ = dlNode.zOrder === 'back' ? -100 : dlNode.zOrder === 'front' ? 100 : (parseInt(dlNode.zOrder, 10) || 0);
+                drawList.push({ type: 'node', item: dlNode, z: dlNodeZ });
+            }
+
+            // Add connections to draw list — z = min of from/to node z
+            for (var dlci = 0; dlci < connections.length; dlci++) {
+                var dlConn = connections[dlci];
+                var dlFromNode = nodeMap[dlConn.from];
+                var dlToNode = nodeMap[dlConn.to];
+                if (!dlFromNode || !dlToNode) continue;
+                var dlFromZ = dlFromNode.zOrder === 'back' ? -100 : dlFromNode.zOrder === 'front' ? 100 : (parseInt(dlFromNode.zOrder, 10) || 0);
+                var dlToZ = dlToNode.zOrder === 'back' ? -100 : dlToNode.zOrder === 'front' ? 100 : (parseInt(dlToNode.zOrder, 10) || 0);
+                var dlConnZ = Math.min(dlFromZ, dlToZ);
+                drawList.push({ type: 'connection', item: dlConn, from: dlFromNode, to: dlToNode, z: dlConnZ, idx: dlci });
+            }
+
+            // Sort by z-order; within same z, connections draw before nodes
+            drawList.sort(function(a, b) {
+                if (a.z !== b.z) return a.z - b.z;
+                if (a.type !== b.type) return a.type === 'connection' ? -1 : 1;
+                return 0;
+            });
+
+            // Draw in z-order (connections set _renderedPoints as a side-effect)
+            for (var dwi = 0; dwi < drawList.length; dwi++) {
+                var dwItem = drawList[dwi];
+                if (dwItem.type === 'connection') {
+                    var ci = dwItem.idx;
+                    var conn = dwItem.item;
+                    var fromNd = dwItem.from;
+                    var toNd = dwItem.to;
                     var connSelected = this._editMode && this._selectedConnection !== null &&
                         this._selectedConnection.index === ci;
                     var connHovered = this._hoverItem && this._hoverItem.type === 'connection' && this._hoverItem.index === ci;
                     conn._mouseX = this._mouseX - this._panX;
                     conn._mouseY = this._mouseY - this._panY;
                     drawConnection(ctx, fromNd, toNd, conn, theme, connSelected, this._editMode, connHovered, this._animationOffset);
+                } else {
+                    var pn = dwItem.item;
+                    var isNodeSelected = this._editMode && arrContains(this._selectedNodeIds, pn.id);
+                    var isNodeHovered = this._hoverItem &&
+                        this._hoverItem.type === 'node' &&
+                        this._hoverItem.id === pn.id;
+                    drawNode(ctx, pn, theme, accentLine, sparklineType, nodeRadius, isNodeSelected, isNodeHovered, this._globalEffects || {});
                 }
             }
 
-            // Draw line hops (bridges) where hop-enabled connections cross others
+            // Draw line hops (bridges) where hop-enabled connections cross others.
+            // _renderedPoints has been populated for all connections by the draw pass above.
             drawConnectionHops(ctx, connections);
-
-            // Sort nodes by zOrder before drawing (lower first = drawn underneath)
-            var drawOrder = [];
-            for (var doi = 0; doi < positioned.length; doi++) {
-                drawOrder.push(positioned[doi]);
-            }
-            drawOrder.sort(function(a, b) {
-                var za = a.zOrder === 'back' ? -100 : a.zOrder === 'front' ? 100 : (parseInt(a.zOrder, 10) || 0);
-                var zb = b.zOrder === 'back' ? -100 : b.zOrder === 'front' ? 100 : (parseInt(b.zOrder, 10) || 0);
-                return za - zb;
-            });
-
-            // Draw nodes
-            for (var di = 0; di < drawOrder.length; di++) {
-                var pn = drawOrder[di];
-                var isNodeSelected = this._editMode && arrContains(this._selectedNodeIds, pn.id);
-                var isNodeHovered = this._hoverItem &&
-                    this._hoverItem.type === 'node' &&
-                    this._hoverItem.id === pn.id;
-                drawNode(ctx, pn, theme, accentLine, sparklineType, nodeRadius, isNodeSelected, isNodeHovered, this._globalEffects || {});
-            }
 
             // ── Alignment Guides ──
             if (this._alignGuides && this._alignGuides.length > 0 && this._isDragging) {
