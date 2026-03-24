@@ -4481,7 +4481,19 @@ define([
                                 }
                             }
                             // Add point and start potential handle drag
-                            self._penPoints.push({ x: mx, y: my });
+                            // Shift = constrain to straight line from last point
+                            var penPlaceX = mx, penPlaceY = my;
+                            if (e.shiftKey && self._penPoints.length > 0) {
+                                var lpPt = self._penPoints[self._penPoints.length - 1];
+                                var lpDx = mx - lpPt.x;
+                                var lpDy = my - lpPt.y;
+                                var lpAngle = Math.atan2(lpDy, lpDx);
+                                var lpDist = Math.sqrt(lpDx * lpDx + lpDy * lpDy);
+                                var lpSnap = Math.round(lpAngle / (Math.PI / 4)) * (Math.PI / 4);
+                                penPlaceX = lpPt.x + Math.cos(lpSnap) * lpDist;
+                                penPlaceY = lpPt.y + Math.sin(lpSnap) * lpDist;
+                            }
+                            self._penPoints.push({ x: penPlaceX, y: penPlaceY });
                             self._penDraggingHandle = true;
                             self._penDragHandleIdx = self._penPoints.length - 1;
                             self.invalidateUpdateView();
@@ -4513,27 +4525,52 @@ define([
                         // Fall through to normal node handling below
                     }
 
-                    // Edit Points mode: click custom node to enter point editing
+                    // Edit Points mode: click any node to enter point editing
                     if (self._drawMode === 'editPoints') {
                         for (var epni = 0; epni < self._computedNodes.length; epni++) {
                             var epnd = self._computedNodes[epni];
                             if (hitTestNode(mx, my, epnd)) {
                                 var epndState = es.nodes[epnd.id];
-                                if (epndState && epndState.shape === 'custom' && epndState.customPath) {
-                                    self._editingCustomNode = epnd.id;
-                                    self._selectedNodeIds = [epnd.id];
-                                    self._editingPointIdx = -1;
-                                    self.invalidateUpdateView();
-                                    self._updatePanel();
-                                    e.preventDefault();
-                                    return;
+                                if (!epndState) { es.nodes[epnd.id] = {}; epndState = es.nodes[epnd.id]; }
+                                // Convert standard shapes to custom path if needed
+                                if (epndState.shape !== 'custom' || !epndState.customPath) {
+                                    var shapeType = epndState.shape || 'rect';
+                                    var genPath = [];
+                                    if (shapeType === 'circle') {
+                                        for (var cgi = 0; cgi < 12; cgi++) {
+                                            var cga = (cgi / 12) * Math.PI * 2 - Math.PI / 2;
+                                            genPath.push({ x: 0.5 + 0.5 * Math.cos(cga), y: 0.5 + 0.5 * Math.sin(cga) });
+                                        }
+                                    } else if (shapeType === 'diamond') {
+                                        genPath = [{x:0.5,y:0},{x:1,y:0.5},{x:0.5,y:1},{x:0,y:0.5}];
+                                    } else if (shapeType === 'hexagon') {
+                                        for (var hgi = 0; hgi < 6; hgi++) {
+                                            var hga = (Math.PI / 3) * hgi - Math.PI / 2;
+                                            genPath.push({ x: 0.5 + 0.5 * Math.cos(hga), y: 0.5 + 0.5 * Math.sin(hga) });
+                                        }
+                                    } else if (shapeType === 'triangle') {
+                                        genPath = [{x:0.5,y:0},{x:1,y:1},{x:0,y:1}];
+                                    } else {
+                                        // rect, pill, cylinder, cloud → simple rectangle
+                                        genPath = [{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:0,y:1}];
+                                    }
+                                    epndState.shape = 'custom';
+                                    epndState.customPath = genPath;
+                                    self._pushUndo();
                                 }
+                                self._editingCustomNode = epnd.id;
+                                self._selectedNodeIds = [epnd.id];
+                                self._editingPointIdx = -1;
+                                self.invalidateUpdateView();
+                                self._updatePanel();
+                                e.preventDefault();
+                                return;
                             }
                         }
                         // Click on empty = exit editing
                         self._editingCustomNode = null;
                         self.invalidateUpdateView();
-                        // Fall through to allow other interactions
+                        // Fall through
                     }
 
                     // Check node popup hits
@@ -5194,7 +5231,20 @@ define([
 
                 // Handle pen preview line
                 if (self._drawMode === 'pen' && self._penPoints.length > 0) {
-                    self._penMousePos = { x: mx, y: my };
+                    var penMx = mx, penMy = my;
+                    // Shift = constrain to straight lines (0/45/90/135 degrees)
+                    if (e.shiftKey && self._penPoints.length > 0) {
+                        var lastPt = self._penPoints[self._penPoints.length - 1];
+                        var pdx = mx - lastPt.x;
+                        var pdy = my - lastPt.y;
+                        var pAngle = Math.atan2(pdy, pdx);
+                        var pDist = Math.sqrt(pdx * pdx + pdy * pdy);
+                        // Snap to nearest 45° increment
+                        var snapAngle = Math.round(pAngle / (Math.PI / 4)) * (Math.PI / 4);
+                        penMx = lastPt.x + Math.cos(snapAngle) * pDist;
+                        penMy = lastPt.y + Math.sin(snapAngle) * pDist;
+                    }
+                    self._penMousePos = { x: penMx, y: penMy };
                     // Handle pen tool bezier handle drag
                     if (self._penDraggingHandle && self._penDragHandleIdx >= 0) {
                         var dhPt = self._penPoints[self._penDragHandleIdx];
@@ -5669,9 +5719,11 @@ define([
                 } else {
                     self.canvas.style.cursor = 'default';
                 }
-                // Draw mode: crosshair on empty space, move cursor on nodes
+                // Draw mode cursor
                 if (self._drawMode) {
-                    if (self._hoverItem && self._hoverItem.type === 'node') {
+                    if (self._drawMode === 'editPoints' && self._hoverItem && self._hoverItem.type === 'node') {
+                        self.canvas.style.cursor = 'cell'; // indicates editable
+                    } else if (self._hoverItem && self._hoverItem.type === 'node' && self._drawMode !== 'pen') {
                         self.canvas.style.cursor = 'move';
                     } else {
                         self.canvas.style.cursor = 'crosshair';
