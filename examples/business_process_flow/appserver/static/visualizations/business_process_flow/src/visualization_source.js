@@ -2661,7 +2661,7 @@ define([
 
             // Redraw the connection line with hops in place of the original straight stroke
             var lineColor = conn._resolvedLineColor || conn.color || '#94a3b8';
-            var lineWidth = conn.width || 2;
+            var lineWidth = conn._resolvedLineWidth || conn.width || 2;
 
             if (intersections.length === 0) {
                 // No intersections — draw normal line since main stroke was skipped
@@ -6704,10 +6704,29 @@ define([
             ], conn.style || 'straight', makeConnChange('style')));
 
             // Width
+            var curConnWidth = conn.width || 2;
+            var isCustomWidth = curConnWidth !== 1 && curConnWidth !== 2 && curConnWidth !== 3 && curConnWidth !== 4;
             styleBody.appendChild(createToggleRow('Width', [
                 {value: 1, label: '1'}, {value: 2, label: '2'},
-                {value: 3, label: '3'}, {value: 4, label: '4'}
-            ], conn.width || 2, makeConnChange('width')));
+                {value: 3, label: '3'}, {value: 4, label: '4'},
+                {value: 'custom', label: 'Custom'}
+            ], isCustomWidth ? 'custom' : curConnWidth, function(val) {
+                if (val !== 'custom') {
+                    conns[idx].width = parseInt(val, 10);
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                    self._refreshPanel();
+                }
+            }));
+            styleBody.appendChild(createTextRow('Custom Width', String(curConnWidth), function(val) {
+                var w = parseFloat(val);
+                if (!isNaN(w) && w > 0) {
+                    conns[idx].width = w;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                    self._refreshPanel();
+                }
+            }, { numeric: true, min: 0.5, max: 20, step: 0.5 }));
 
             // Stroke Pattern
             styleBody.appendChild(createToggleRow('Stroke Pattern', [
