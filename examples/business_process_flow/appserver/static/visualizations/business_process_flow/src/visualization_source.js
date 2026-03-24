@@ -2309,6 +2309,8 @@ define([
 
         var lineColor = conn.color || theme.lineBg;
         var lineWidth = conn.width || 2;
+        conn._resolvedLineColor = lineColor;
+        conn._resolvedLineWidth = lineWidth;
 
         // Endpoint size scales with line width, with optional override
         var epSize = conn.endpointSize ? parseInt(conn.endpointSize, 10) : Math.round(lineWidth * 3 + 2);
@@ -2658,7 +2660,7 @@ define([
             }
 
             // Redraw the connection line with hops in place of the original straight stroke
-            var lineColor = conn.color || '#94a3b8';
+            var lineColor = conn._resolvedLineColor || conn.color || '#94a3b8';
             var lineWidth = conn.width || 2;
 
             if (intersections.length === 0) {
