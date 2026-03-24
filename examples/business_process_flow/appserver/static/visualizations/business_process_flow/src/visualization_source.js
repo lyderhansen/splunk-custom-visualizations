@@ -4530,11 +4530,17 @@ define([
                         for (var epni = 0; epni < self._computedNodes.length; epni++) {
                             var epnd = self._computedNodes[epni];
                             if (hitTestNode(mx, my, epnd)) {
+                                if (!es.nodes[epnd.id]) es.nodes[epnd.id] = {};
                                 var epndState = es.nodes[epnd.id];
-                                if (!epndState) { es.nodes[epnd.id] = {}; epndState = es.nodes[epnd.id]; }
                                 // Convert standard shapes to custom path if needed
                                 if (epndState.shape !== 'custom' || !epndState.customPath) {
-                                    var shapeType = epndState.shape || 'rect';
+                                    // Read shape from computed node (works for data-driven nodes too)
+                                    var shapeType = epnd.shape || epndState.shape || 'rect';
+                                    // Also set w/h if not already in editorState
+                                    if (!epndState.w) epndState.w = epnd.w;
+                                    if (!epndState.h) epndState.h = epnd.h;
+                                    if (epndState.x === undefined) epndState.x = epnd.x;
+                                    if (epndState.y === undefined) epndState.y = epnd.y;
                                     var genPath = [];
                                     if (shapeType === 'circle') {
                                         for (var cgi = 0; cgi < 12; cgi++) {
@@ -8522,6 +8528,26 @@ define([
                         }
                     }
                 }
+                // Edit Points hover indicator — show dashed outline + label on hovered node
+                if (this._drawMode === 'editPoints' && !this._editingCustomNode && this._hoverItem && this._hoverItem.type === 'node') {
+                    var epHoverNode = this._computedNodeMap[this._hoverItem.id];
+                    if (epHoverNode) {
+                        var ehx = epHoverNode.x, ehy = epHoverNode.y, ehw = epHoverNode.w, ehh = epHoverNode.h;
+                        // Dashed highlight border
+                        ctx.strokeStyle = '#6366f1';
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([6, 4]);
+                        ctx.strokeRect(ehx - 2, ehy - 2, ehw + 4, ehh + 4);
+                        ctx.setLineDash([]);
+                        // "Click to edit points" label
+                        ctx.fillStyle = 'rgba(99,102,241,0.9)';
+                        ctx.font = 'bold 10px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText('Click to edit points', ehx + ehw / 2, ehy - 6);
+                    }
+                }
+
                 // Draw custom node point editing overlay
                 if (this._editingCustomNode) {
                     var editNode = this._computedNodeMap[this._editingCustomNode];
