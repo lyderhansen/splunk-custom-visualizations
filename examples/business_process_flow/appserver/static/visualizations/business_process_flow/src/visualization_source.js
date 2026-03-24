@@ -1748,11 +1748,13 @@ define([
                 drawFitText(ctx, valueText, textX, _valDrawnY, tw0 - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else if (sparkPos === 'left' && hasSpark) {
-            // LEFT: sparkline on left, text on right
+            // LEFT: sparkline on left bottom, text on right
             var leftSparkW = Math.round(tw0 * 0.45);
-            var leftSparkActualH = th0 - pad * 2;
+            var leftMaxH = th0 - pad * 2;
+            var leftSparkActualH = Math.min(sparkH, leftMaxH);
             var leftSparkAreaX = tx0;
-            var leftSparkAreaY = ty0 + pad;
+            // Place sparkline at BOTTOM of its column
+            var leftSparkAreaY = ty0 + th0 - pad - leftSparkActualH;
             drawSparkline(ctx, node.series, leftSparkAreaX, leftSparkAreaY, leftSparkW, leftSparkActualH, nodeSparkType, condResults.sparkline || node.color);
             node._sparkBounds = { x: leftSparkAreaX, y: leftSparkAreaY, w: leftSparkW, h: leftSparkActualH };
             node._sparkDataRef = node.series;
@@ -1790,11 +1792,13 @@ define([
                 drawFitText(ctx, valueText, rightTextX, _valDrawnY, rightW - pad * 2, valueFontSize, '"SF Mono", "Fira Code", "Consolas", monospace');
             }
         } else if (sparkPos === 'right' && hasSpark) {
-            // RIGHT: text on left 55%, sparkline on right 45% (mirror of left)
+            // RIGHT: text on left 55%, sparkline on right 45% bottom-aligned
             var rightSparkW = Math.round(tw0 * 0.45);
             var rightSparkX = tx0 + tw0 - rightSparkW;
-            var rightSparkActualH = th0 - pad * 2;
-            var rightSparkAreaY = ty0 + pad;
+            var rightMaxH = th0 - pad * 2;
+            var rightSparkActualH = Math.min(sparkH, rightMaxH);
+            // Place sparkline at BOTTOM of its column
+            var rightSparkAreaY = ty0 + th0 - pad - rightSparkActualH;
             drawSparkline(ctx, node.series, rightSparkX, rightSparkAreaY, rightSparkW, rightSparkActualH, nodeSparkType, condResults.sparkline || node.color);
             node._sparkBounds = { x: rightSparkX, y: rightSparkAreaY, w: rightSparkW, h: rightSparkActualH };
             node._sparkDataRef = node.series;
