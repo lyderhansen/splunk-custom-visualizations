@@ -4434,13 +4434,27 @@ define([
                             // Check if clicking on a midpoint (add new point)
                             for (var emi = 0; emi < ecp.length; emi++) {
                                 var emiNext = (emi + 1) % ecp.length;
-                                var midX = enx + (ecp[emi].x + ecp[emiNext].x) / 2 * enw;
-                                var midY = eny + (ecp[emi].y + ecp[emiNext].y) / 2 * enh;
+                                var mpPrev = ecp[emi], mpNext = ecp[emiNext];
+                                var midX, midY, midNx, midNy;
+                                var mpHO = mpPrev.hOutX !== undefined;
+                                var mpHI = mpNext.hInX !== undefined;
+                                if (mpHO && mpHI) {
+                                    midNx = 0.125*mpPrev.x + 0.375*mpPrev.hOutX + 0.375*mpNext.hInX + 0.125*mpNext.x;
+                                    midNy = 0.125*mpPrev.y + 0.375*mpPrev.hOutY + 0.375*mpNext.hInY + 0.125*mpNext.y;
+                                } else if (mpHO) {
+                                    midNx = 0.25*mpPrev.x + 0.5*mpPrev.hOutX + 0.25*mpNext.x;
+                                    midNy = 0.25*mpPrev.y + 0.5*mpPrev.hOutY + 0.25*mpNext.y;
+                                } else if (mpHI) {
+                                    midNx = 0.25*mpPrev.x + 0.5*mpNext.hInX + 0.25*mpNext.x;
+                                    midNy = 0.25*mpPrev.y + 0.5*mpNext.hInY + 0.25*mpNext.y;
+                                } else {
+                                    midNx = (mpPrev.x + mpNext.x) / 2;
+                                    midNy = (mpPrev.y + mpNext.y) / 2;
+                                }
+                                midX = enx + midNx * enw;
+                                midY = eny + midNy * enh;
                                 if (Math.sqrt((mx - midX) * (mx - midX) + (my - midY) * (my - midY)) < 12) {
-                                    var newPt = {
-                                        x: (ecp[emi].x + ecp[emiNext].x) / 2,
-                                        y: (ecp[emi].y + ecp[emiNext].y) / 2
-                                    };
+                                    var newPt = { x: midNx, y: midNy };
                                     ecp.splice(emi + 1, 0, newPt);
                                     self._pushUndo();
                                     self._editingPointIdx = emi + 1;
@@ -5274,7 +5288,13 @@ define([
                         var normY = (my - ecnm.y) / ecnm.h;
                         // Don't clamp — allow points outside 0-1, we'll recalc bounding box
                         var ept = ecsm.customPath[self._editingPointIdx];
-                        if (self._editingHandleType === 'point') {
+                        if (self._editingHandleType === 'point' && e.altKey) {
+                            // Alt+drag on point = create/edit bezier handles instead of moving point
+                            ept.hOutX = normX;
+                            ept.hOutY = normY;
+                            ept.hInX = ept.x * 2 - normX;
+                            ept.hInY = ept.y * 2 - normY;
+                        } else if (self._editingHandleType === 'point') {
                             ept.x = normX;
                             ept.y = normY;
                         } else if (self._editingHandleType === 'handleOut') {
@@ -8616,10 +8636,31 @@ define([
                         ctx.fillText('Drag points \u2022 Click + to add \u2022 Del to remove', enx + enw / 2, eny - 6);
 
                         // Draw edge midpoints for adding new points (+ icons)
+                        // Place midpoints at t=0.5 along the actual curve (bezier or straight)
                         for (var emi = 0; emi < ecp.length; emi++) {
                             var emiNext = (emi + 1) % ecp.length;
-                            var midPx = enx + (ecp[emi].x + ecp[emiNext].x) / 2 * enw;
-                            var midPy = eny + (ecp[emi].y + ecp[emiNext].y) / 2 * enh;
+                            var prevPt = ecp[emi], nextPt = ecp[emiNext];
+                            var midPx, midPy;
+                            var hasHO = prevPt.hOutX !== undefined;
+                            var hasHI = nextPt.hInX !== undefined;
+                            if (hasHO && hasHI) {
+                                // Cubic bezier at t=0.5
+                                var t5 = 0.5, mt5 = 0.5;
+                                midPx = enx + (mt5*mt5*mt5*prevPt.x + 3*mt5*mt5*t5*prevPt.hOutX + 3*mt5*t5*t5*nextPt.hInX + t5*t5*t5*nextPt.x) * enw;
+                                midPy = eny + (mt5*mt5*mt5*prevPt.y + 3*mt5*mt5*t5*prevPt.hOutY + 3*mt5*t5*t5*nextPt.hInY + t5*t5*t5*nextPt.y) * enh;
+                            } else if (hasHO) {
+                                // Quadratic at t=0.5 using handleOut
+                                midPx = enx + (0.25*prevPt.x + 0.5*prevPt.hOutX + 0.25*nextPt.x) * enw;
+                                midPy = eny + (0.25*prevPt.y + 0.5*prevPt.hOutY + 0.25*nextPt.y) * enh;
+                            } else if (hasHI) {
+                                // Quadratic at t=0.5 using handleIn
+                                midPx = enx + (0.25*prevPt.x + 0.5*nextPt.hInX + 0.25*nextPt.x) * enw;
+                                midPy = eny + (0.25*prevPt.y + 0.5*nextPt.hInY + 0.25*nextPt.y) * enh;
+                            } else {
+                                // Straight line midpoint
+                                midPx = enx + (prevPt.x + nextPt.x) / 2 * enw;
+                                midPy = eny + (prevPt.y + nextPt.y) / 2 * enh;
+                            }
                             // Circle background
                             ctx.beginPath();
                             ctx.arc(midPx, midPy, 7, 0, Math.PI * 2);
