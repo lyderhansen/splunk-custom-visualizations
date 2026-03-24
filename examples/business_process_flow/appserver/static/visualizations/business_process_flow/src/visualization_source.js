@@ -686,6 +686,55 @@ define([
         };
     }
 
+    // ── Sparkline Parsing ─────────────────────────────────────────
+
+    function parseSparklineData(raw) {
+        if (!raw) return null;
+
+        // Already an array (JSON mode)
+        if (Array.isArray(raw)) {
+            var nums = [];
+            for (var i = 0; i < raw.length; i++) {
+                var n = parseFloat(raw[i]);
+                if (!isNaN(n)) nums.push(n);
+            }
+            return nums.length > 0 ? nums : null;
+        }
+
+        // String format
+        var str = String(raw);
+
+        // Strip ##__SPARKLINE__## wrapper if present
+        str = str.replace(/##__SPARKLINE__##/g, '');
+        str = str.replace(/^\s+|\s+$/g, '');
+
+        if (!str) return null;
+
+        // Try parsing as JSON array
+        if (str.charAt(0) === '[') {
+            try {
+                var arr = JSON.parse(str);
+                if (Array.isArray(arr)) {
+                    var nums2 = [];
+                    for (var j = 0; j < arr.length; j++) {
+                        var n2 = parseFloat(arr[j]);
+                        if (!isNaN(n2)) nums2.push(n2);
+                    }
+                    return nums2.length > 0 ? nums2 : null;
+                }
+            } catch (e) { /* fall through */ }
+        }
+
+        // Try comma-separated
+        var parts = str.split(',');
+        var nums3 = [];
+        for (var k = 0; k < parts.length; k++) {
+            var n3 = parseFloat(parts[k].replace(/^\s+|\s+$/g, ''));
+            if (!isNaN(n3)) nums3.push(n3);
+        }
+        return nums3.length > 1 ? nums3 : null;
+    }
+
     // ── Grid Drawing ──────────────────────────────────────────────
 
     function drawGrid(ctx, w, h, gridSize, panX, panY, isDark) {
@@ -8076,6 +8125,7 @@ define([
             var labelField    = config[ns + 'labelField']    || 'sourcetype';
             var valueField    = config[ns + 'valueField']    || 'count';
             var subtitleField = config[ns + 'subtitleField'] || '';
+            var sparklineField = config[ns + 'sparklineField'] || '';
             var palette       = config[ns + 'palette']       || 'corporate';
             var accentLine    = config[ns + 'accentLine']    || 'false';
             var sparklineType = config[ns + 'sparklineType'] || 'area';
@@ -8246,6 +8296,29 @@ define([
                 var stepIdx = colIdx['step'] !== undefined ? colIdx['step'] : -1;
                 var connectsIdx = colIdx['connects_to'] !== undefined ? colIdx['connects_to'] : -1;
 
+                // Resolve sparkline column index: use configured field, else auto-detect
+                var sparkIdx = -1;
+                if (sparklineField && colIdx[sparklineField] !== undefined) {
+                    sparkIdx = colIdx[sparklineField];
+                } else if (!sparklineField && rows.length > 0) {
+                    // Auto-detect: find first column whose first-row value looks like sparkline data
+                    var colNames = Object.keys(colIdx);
+                    for (var si = 0; si < colNames.length; si++) {
+                        var sColIdx = colIdx[colNames[si]];
+                        var sVal = rows[0][sColIdx];
+                        if (sVal !== undefined && sVal !== null) {
+                            if (Array.isArray(sVal) && sVal.length > 1) {
+                                sparkIdx = sColIdx;
+                                break;
+                            }
+                            if (typeof sVal === 'string' && sVal.indexOf('##__SPARKLINE__##') !== -1) {
+                                sparkIdx = sColIdx;
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 for (var ri = 0; ri < rows.length; ri++) {
                     var row = rows[ri];
                     var nodeLabel = labelIdx >= 0 ? String(row[labelIdx] || '') : ('Node ' + (ri + 1));
@@ -8261,6 +8334,12 @@ define([
                         }
                     }
 
+                    var nodeSeries = [];
+                    if (sparkIdx >= 0) {
+                        var parsed = parseSparklineData(row[sparkIdx]);
+                        if (parsed) nodeSeries = parsed;
+                    }
+
                     var nodeId = nodeLabel || ('node_' + ri);
 
                     resolvedNodes.push({
@@ -8269,7 +8348,7 @@ define([
                         value: nodeValue,
                         step: nodeStep,
                         connectsTo: nodeConnects,
-                        series: [],
+                        series: nodeSeries,
                         subtitle: nodeSub,
                         color: colors[ri % colors.length],
                         rowIndex: ri
