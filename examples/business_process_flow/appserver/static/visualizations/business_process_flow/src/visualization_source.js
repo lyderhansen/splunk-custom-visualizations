@@ -6029,13 +6029,19 @@ define([
             var appearSec = createPanelSection('Appearance', '', true);
             var appearBody = appearSec._body;
 
-            // Arrange (z-order)
-            var zBtnRow = document.createElement('div');
-            zBtnRow.style.cssText = 'display:flex;gap:4px;margin-bottom:8px;';
+            // Arrange (z-order) — absolute + step controls
+            var zLabel = document.createElement('div');
+            zLabel.textContent = 'ARRANGE';
+            zLabel.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;';
+            appearBody.appendChild(zLabel);
+
+            var zAbsRow = document.createElement('div');
+            zAbsRow.style.cssText = 'display:flex;gap:4px;margin-bottom:4px;';
+            var zBtnStyle = 'flex:1;padding:4px;border-radius:4px;border:1px solid ' + panelTheme.border + ';background:' + panelTheme.sectionBg + ';color:' + panelTheme.sectionText + ';font-size:9px;cursor:pointer;text-align:center;';
 
             var sendToBackBtn = document.createElement('button');
             sendToBackBtn.textContent = 'Send to Back';
-            sendToBackBtn.style.cssText = 'flex:1;padding:5px;border-radius:4px;border:1px solid ' + panelTheme.border + ';background:' + panelTheme.sectionBg + ';color:' + panelTheme.sectionText + ';font-size:10px;cursor:pointer;';
+            sendToBackBtn.style.cssText = zBtnStyle;
             sendToBackBtn.addEventListener('click', function() {
                 if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
                 es.nodes[nodeId].zOrder = '-100';
@@ -6045,7 +6051,7 @@ define([
 
             var sendToFrontBtn = document.createElement('button');
             sendToFrontBtn.textContent = 'Send to Front';
-            sendToFrontBtn.style.cssText = 'flex:1;padding:5px;border-radius:4px;border:1px solid ' + panelTheme.border + ';background:' + panelTheme.sectionBg + ';color:' + panelTheme.sectionText + ';font-size:10px;cursor:pointer;';
+            sendToFrontBtn.style.cssText = zBtnStyle;
             sendToFrontBtn.addEventListener('click', function() {
                 if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
                 es.nodes[nodeId].zOrder = '100';
@@ -6053,9 +6059,38 @@ define([
                 self.invalidateUpdateView();
             });
 
-            zBtnRow.appendChild(sendToBackBtn);
-            zBtnRow.appendChild(sendToFrontBtn);
-            appearBody.appendChild(zBtnRow);
+            zAbsRow.appendChild(sendToBackBtn);
+            zAbsRow.appendChild(sendToFrontBtn);
+            appearBody.appendChild(zAbsRow);
+
+            var zStepRow = document.createElement('div');
+            zStepRow.style.cssText = 'display:flex;gap:4px;margin-bottom:8px;';
+
+            var sendBackwardBtn = document.createElement('button');
+            sendBackwardBtn.textContent = 'Send Backward';
+            sendBackwardBtn.style.cssText = zBtnStyle;
+            sendBackwardBtn.addEventListener('click', function() {
+                if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                var cur = parseInt(es.nodes[nodeId].zOrder, 10) || 0;
+                es.nodes[nodeId].zOrder = String(cur - 1);
+                self._pushUndo();
+                self.invalidateUpdateView();
+            });
+
+            var bringForwardBtn = document.createElement('button');
+            bringForwardBtn.textContent = 'Bring Forward';
+            bringForwardBtn.style.cssText = zBtnStyle;
+            bringForwardBtn.addEventListener('click', function() {
+                if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                var cur = parseInt(es.nodes[nodeId].zOrder, 10) || 0;
+                es.nodes[nodeId].zOrder = String(cur + 1);
+                self._pushUndo();
+                self.invalidateUpdateView();
+            });
+
+            zStepRow.appendChild(sendBackwardBtn);
+            zStepRow.appendChild(bringForwardBtn);
+            appearBody.appendChild(zStepRow);
 
             // Position + Size
             var computedNode = self._computedNodeMap ? self._computedNodeMap[nodeId] : null;
