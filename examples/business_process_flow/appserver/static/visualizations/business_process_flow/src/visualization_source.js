@@ -4544,8 +4544,8 @@ define([
                         for (var epni = 0; epni < self._computedNodes.length; epni++) {
                             var epnd = self._computedNodes[epni];
                             if (hitTestNode(mx, my, epnd)) {
-                                if (!es.nodes[epnd.id]) es.nodes[epnd.id] = {};
-                                var epndState = es.nodes[epnd.id];
+                                if (!self._editorState.nodes[epnd.id]) self._editorState.nodes[epnd.id] = {};
+                                var epndState = self._editorState.nodes[epnd.id];
                                 // Convert standard shapes to custom path if needed
                                 if (epndState.shape !== 'custom' || !epndState.customPath) {
                                     // Read shape from computed node (works for data-driven nodes too)
@@ -4576,6 +4576,7 @@ define([
                                     }
                                     epndState.shape = 'custom';
                                     epndState.customPath = genPath;
+                                    self._statusMessage = 'Converting ' + epnd.id;
                                     self._pushUndo();
                                 }
                                 self._editingCustomNode = epnd.id;
@@ -8194,11 +8195,6 @@ define([
             // ── Render canvas ──
             ctx.clearRect(0, 0, w, h);
 
-            // Draw toolbar if edit mode (toolbar is NOT panned)
-            if (this._editMode) {
-                drawToolbar(ctx, w, theme, toolbarH, this._toolbarButtons, this._hoverItem, this._lockMode, this._saveFlash, this._saveError, this._saveMessage, this._statusMessage, this._drawMode);
-            }
-
             // Apply pan offset for world-space drawing
             ctx.save();
             ctx.translate(this._panX, this._panY);
@@ -8696,6 +8692,11 @@ define([
 
             // Restore from pan translate — everything below is in screen space
             ctx.restore();
+
+            // Draw toolbar AFTER restore so it's always on top of nodes (screen space)
+            if (this._editMode) {
+                drawToolbar(ctx, w, theme, toolbarH, this._toolbarButtons, this._hoverItem, this._lockMode, this._saveFlash, this._saveError, this._saveMessage, this._statusMessage, this._drawMode);
+            }
 
             // Hover tooltips in view mode
             if (!this._editMode && this._hoverItem) {
