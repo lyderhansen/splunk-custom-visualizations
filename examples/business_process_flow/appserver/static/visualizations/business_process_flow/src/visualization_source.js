@@ -2507,6 +2507,15 @@ define([
             startAngle = Math.atan2(p1.y - startPt.y, p1.x - startPt.x);
         }
 
+        // Override endpoint angles using rendered points — these reflect the actual
+        // geometry (L-turn corners for orthogonal, waypoints for curved) so arrow
+        // directions always match the visual path at the endpoint.
+        var rp = conn._renderedPoints;
+        if (rp && rp.length >= 2) {
+            endAngle = Math.atan2(rp[rp.length - 1].y - rp[rp.length - 2].y, rp[rp.length - 1].x - rp[rp.length - 2].x);
+            startAngle = Math.atan2(rp[1].y - rp[0].y, rp[1].x - rp[0].x);
+        }
+
         ctx.setLineDash([]);
         ctx.lineWidth = 1;
         // Reset glow
@@ -2631,10 +2640,13 @@ define([
         for (var sci = 0; sci < connections.length; sci++) {
             var sc = connections[sci];
             if (sc._renderedPoints && sc._renderedPoints.length >= 2 && sc.style === 'curved') {
-                // Sample the curve into ~20 straight segments for intersection testing
+                // Sample the curve into segments for intersection testing.
+                // Use more samples for complex multi-waypoint curves to preserve curvature.
+                var rp = sc._renderedPoints;
+                var sampleCount = Math.max(20, rp.length * 5);
                 var sampled = [];
-                for (var st = 0; st <= 20; st++) {
-                    sampled.push(interpolateConnectionPath(sc._renderedPoints, sc.style, st / 20));
+                for (var st = 0; st <= sampleCount; st++) {
+                    sampled.push(interpolateConnectionPath(rp, sc.style, st / sampleCount));
                 }
                 sc._sampledPoints = sampled;
             } else {
