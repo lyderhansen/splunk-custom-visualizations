@@ -3596,6 +3596,52 @@ define([
 
             this.el.appendChild(this._panelStrip);
 
+            // ── Add-Node Shape Dropdown ──
+            this._addNodeDropdown = document.createElement('div');
+            this._addNodeDropdown.style.cssText = 'position:absolute;display:none;background:#0f172a;border:1px solid #334155;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:20;padding:4px;min-width:140px;';
+            this._addNodeDropdown.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+            this._addNodeDropdown.addEventListener('click', function(e) { e.stopPropagation(); });
+
+            var selfDd = this;
+            var shapeOptions = [
+                { value: 'rect',     label: 'Rectangle', icon: '\u25AD' },
+                { value: 'circle',   label: 'Circle',    icon: '\u25CB' },
+                { value: 'diamond',  label: 'Diamond',   icon: '\u25C7' },
+                { value: 'hexagon',  label: 'Hexagon',   icon: '\u2B21' },
+                { value: 'triangle', label: 'Triangle',  icon: '\u25B3' },
+                { value: 'cylinder', label: 'Cylinder',  icon: '\u2312' },
+                { value: 'cloud',    label: 'Cloud',     icon: '\u2601' },
+                { value: 'pill',     label: 'Pill',      icon: '\u2B2D' },
+                { value: 'textbox',  label: 'Text Box',  icon: '\u2637' }
+            ];
+            for (var ddsi = 0; ddsi < shapeOptions.length; ddsi++) {
+                (function(opt) {
+                    var row = document.createElement('div');
+                    row.style.cssText = 'padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;border-radius:4px;font:11px sans-serif;color:#cbd5e1;';
+                    row.addEventListener('mouseenter', function() { row.style.background = panelTheme.sectionBg; });
+                    row.addEventListener('mouseleave', function() { row.style.background = 'transparent'; });
+
+                    var icon = document.createElement('span');
+                    icon.textContent = opt.icon;
+                    icon.style.cssText = 'font-size:16px;width:20px;text-align:center;';
+                    icon.setAttribute('data-dd-icon', '1');
+
+                    var lbl = document.createElement('span');
+                    lbl.textContent = opt.label;
+
+                    row.appendChild(icon);
+                    row.appendChild(lbl);
+
+                    row.addEventListener('click', function() {
+                        selfDd._createNodeWithShape(opt.value);
+                        selfDd._addNodeDropdown.style.display = 'none';
+                    });
+
+                    selfDd._addNodeDropdown.appendChild(row);
+                })(shapeOptions[ddsi]);
+            }
+            this.el.appendChild(this._addNodeDropdown);
+
             // State
             this._lastGoodData = null;
             this._editorState = { nodes: {}, connections: [], lock: false };
@@ -3891,6 +3937,45 @@ define([
                 }, 1500);
             };
 
+            // ── Create a new node with a specific shape ──
+            this._createNodeWithShape = function(shape) {
+                var es = self._editorState;
+                var cRect = self.canvas ? self.canvas.getBoundingClientRect() : { width: 800, height: 600 };
+                var cw = cRect.width;
+                var ch = cRect.height;
+
+                var nodeId = '_node_' + Date.now();
+                if (!es.nodes) { es.nodes = {}; }
+
+                var nodeW = 180, nodeH = 100;
+                if (shape === 'textbox') {
+                    nodeW = 200; nodeH = 120;
+                } else if (shape === 'circle') {
+                    nodeW = 120; nodeH = 120;
+                }
+
+                var node = {
+                    manual: true,
+                    shape: shape,
+                    label: shape === 'textbox' ? '' : 'New Node',
+                    x: (cw / 2) - (nodeW / 2) - self._panX,
+                    y: (ch / 2) - (nodeH / 2) - self._panY,
+                    w: nodeW,
+                    h: nodeH
+                };
+
+                if (shape === 'textbox') {
+                    node.markdownContent = '## Title\n\nDescription text here';
+                    node.hideValue = true;
+                }
+
+                es.nodes[nodeId] = node;
+                self._pushUndo();
+                self._selectedNodeIds = [nodeId];
+                self._updatePanel();
+                self.invalidateUpdateView();
+            };
+
             // ── Delete selected element ──
             this._deleteSelected = function() {
                 // 0. Delete point in custom node point-editing mode
@@ -4012,22 +4097,31 @@ define([
                     self._saveEditorState();
                     return;
                 } else if (action === 'addNode') {
-                    // Create a new manual node at center of visible canvas
-                    var newId = 'manual_' + Date.now();
-                    var rect = self.canvas.getBoundingClientRect();
-                    var cx = (rect.width / 2 - 90) - self._panX;
-                    var cy = (rect.height / 2 - 60) - self._panY;
-                    self._editorState.nodes[newId] = {
-                        x: cx,
-                        y: cy,
-                        w: 180,
-                        h: 120,
-                        shape: 'rect',
-                        label: 'New Node',
-                        manual: true,
-                        color: ''
-                    };
-                    self.invalidateUpdateView();
+                    // Toggle the shape-picker dropdown below the + button
+                    if (self._addNodeDropdown.style.display !== 'none') {
+                        self._addNodeDropdown.style.display = 'none';
+                    } else {
+                        // Find the + button's x position from toolbar button list
+                        var addBtnX = 0;
+                        for (var tbi = 0; tbi < self._toolbarButtons.length; tbi++) {
+                            if (self._toolbarButtons[tbi].action === 'addNode') {
+                                addBtnX = self._toolbarButtons[tbi].x;
+                                break;
+                            }
+                        }
+                        // Update dropdown theme colors
+                        self._addNodeDropdown.style.background = panelTheme.bg;
+                        self._addNodeDropdown.style.borderColor = panelTheme.border;
+                        var ddRows = self._addNodeDropdown.childNodes;
+                        for (var dri = 0; dri < ddRows.length; dri++) {
+                            var ddRow = ddRows[dri];
+                            if (ddRow.style) ddRow.style.color = panelTheme.text;
+                        }
+                        self._addNodeDropdown.style.left = addBtnX + 'px';
+                        self._addNodeDropdown.style.top = '40px';
+                        self._addNodeDropdown.style.display = 'block';
+                    }
+                    return;
                 } else if (action === 'addText') {
                     // Create a new textbox (markdown) node at center of visible canvas
                     var textNodeId = '_text_' + Date.now();
@@ -4350,6 +4444,10 @@ define([
 
             // ── Mouse Down ──
             this._onMouseDown = function(e) {
+                // Close shape dropdown on canvas click
+                if (self._addNodeDropdown && self._addNodeDropdown.style.display !== 'none') {
+                    self._addNodeDropdown.style.display = 'none';
+                }
                 // Don't process canvas clicks if a DOM panel element was clicked
                 if (e.target !== self.canvas) return;
                 var rect = self.canvas.getBoundingClientRect();
@@ -6324,6 +6422,11 @@ define([
                     return;
                 }
                 if (e.key === 'Escape') {
+                    // Close shape picker dropdown if open
+                    if (self._addNodeDropdown && self._addNodeDropdown.style.display !== 'none') {
+                        self._addNodeDropdown.style.display = 'none';
+                        return;
+                    }
                     if (self._drawMode) {
                         self._drawMode = null;
                         self._isDrawingRect = false;
@@ -8753,6 +8856,17 @@ define([
                     this._panelStrip.style.borderLeftColor = panelBorder;
                     this._panelStripIcon.style.color = panelText;
                     this._panelStripLabel.style.color = panelText;
+
+                    // Theme the add-node shape dropdown
+                    if (this._addNodeDropdown) {
+                        this._addNodeDropdown.style.background = panelTheme.bg;
+                        this._addNodeDropdown.style.borderColor = panelTheme.border;
+                        var ddThemeRows = this._addNodeDropdown.childNodes;
+                        for (var ddti = 0; ddti < ddThemeRows.length; ddti++) {
+                            var ddtr = ddThemeRows[ddti];
+                            if (ddtr.style) { ddtr.style.color = panelTheme.text; }
+                        }
+                    }
 
                     if (this._panelCollapsed) {
                         this._panelEl.style.display = 'none';
