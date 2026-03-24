@@ -1348,8 +1348,30 @@ define([
                 var cp = node.customPath;
                 ctx.beginPath();
                 ctx.moveTo(x + cp[0].x * w, y + cp[0].y * h);
-                for (var cpi = 1; cpi < cp.length; cpi++) {
-                    ctx.lineTo(x + cp[cpi].x * w, y + cp[cpi].y * h);
+                for (var cpi = 1; cpi <= cp.length; cpi++) {
+                    var prevPt = cp[cpi - 1];
+                    var curPt = cp[cpi % cp.length];
+                    var hasHandleOut = prevPt.hOutX !== undefined;
+                    var hasHandleIn = curPt.hInX !== undefined;
+                    if (hasHandleOut && hasHandleIn) {
+                        ctx.bezierCurveTo(
+                            x + prevPt.hOutX * w, y + prevPt.hOutY * h,
+                            x + curPt.hInX * w, y + curPt.hInY * h,
+                            x + curPt.x * w, y + curPt.y * h
+                        );
+                    } else if (hasHandleOut) {
+                        ctx.quadraticCurveTo(
+                            x + prevPt.hOutX * w, y + prevPt.hOutY * h,
+                            x + curPt.x * w, y + curPt.y * h
+                        );
+                    } else if (hasHandleIn) {
+                        ctx.quadraticCurveTo(
+                            x + curPt.hInX * w, y + curPt.hInY * h,
+                            x + curPt.x * w, y + curPt.y * h
+                        );
+                    } else {
+                        ctx.lineTo(x + curPt.x * w, y + curPt.y * h);
+                    }
                 }
                 ctx.closePath();
             } else {
@@ -3617,6 +3639,11 @@ define([
             this._drawMode = null; // 'rect', 'pen', null
             this._penPoints = [];
             this._penMousePos = null;
+            this._penDraggingHandle = false;
+            this._penDragHandleIdx = -1;
+            this._editingCustomNode = null;
+            this._editingPointIdx = -1;
+            this._editingHandleType = null;
             this._isDraggingWaypoint = false;
             this._dragWpConnIdx = null;
             this._dragWpIdx = null;
@@ -3759,13 +3786,25 @@ define([
                 var pts = self._penPoints;
                 if (pts.length < 3) { self._penPoints = []; return; }
 
-                // Calculate bounding box
+                // Calculate bounding box (include bezier handles)
                 var minX = pts[0].x, maxX = pts[0].x, minY = pts[0].y, maxY = pts[0].y;
-                for (var i = 1; i < pts.length; i++) {
+                for (var i = 0; i < pts.length; i++) {
                     if (pts[i].x < minX) minX = pts[i].x;
                     if (pts[i].x > maxX) maxX = pts[i].x;
                     if (pts[i].y < minY) minY = pts[i].y;
                     if (pts[i].y > maxY) maxY = pts[i].y;
+                    if (pts[i].hOutX !== undefined) {
+                        if (pts[i].hOutX < minX) minX = pts[i].hOutX;
+                        if (pts[i].hOutX > maxX) maxX = pts[i].hOutX;
+                        if (pts[i].hOutY < minY) minY = pts[i].hOutY;
+                        if (pts[i].hOutY > maxY) maxY = pts[i].hOutY;
+                    }
+                    if (pts[i].hInX !== undefined) {
+                        if (pts[i].hInX < minX) minX = pts[i].hInX;
+                        if (pts[i].hInX > maxX) maxX = pts[i].hInX;
+                        if (pts[i].hInY < minY) minY = pts[i].hInY;
+                        if (pts[i].hInY > maxY) maxY = pts[i].hInY;
+                    }
                 }
                 var w = maxX - minX;
                 var h = maxY - minY;
@@ -3774,10 +3813,16 @@ define([
                 // Normalize points relative to bounding box (0-1 range)
                 var normalizedPts = [];
                 for (var j = 0; j < pts.length; j++) {
-                    normalizedPts.push({
-                        x: (pts[j].x - minX) / w,
-                        y: (pts[j].y - minY) / h
-                    });
+                    var nPt = { x: (pts[j].x - minX) / w, y: (pts[j].y - minY) / h };
+                    if (pts[j].hOutX !== undefined) {
+                        nPt.hOutX = (pts[j].hOutX - minX) / w;
+                        nPt.hOutY = (pts[j].hOutY - minY) / h;
+                    }
+                    if (pts[j].hInX !== undefined) {
+                        nPt.hInX = (pts[j].hInX - minX) / w;
+                        nPt.hInY = (pts[j].hInY - minY) / h;
+                    }
+                    normalizedPts.push(nPt);
                 }
 
                 var penNodeId = '_pen_' + Date.now();
@@ -3846,6 +3891,40 @@ define([
 
             // ── Delete selected element ──
             this._deleteSelected = function() {
+                // 0. Delete point in custom node point-editing mode
+                if (self._editingCustomNode) {
+                    var delPath = self._editorState.nodes[self._editingCustomNode] ? self._editorState.nodes[self._editingCustomNode].customPath : null;
+                    if (delPath && delPath.length > 3) {
+                        // Find closest point to mouse
+                        var delEcn = self._computedNodeMap[self._editingCustomNode];
+                        if (delEcn) {
+                            var delMx = self._mouseX - self._panX;
+                            var delMy = self._mouseY - self._panY;
+                            var delClosestIdx = -1;
+                            var delClosestDist = Infinity;
+                            for (var dpi = 0; dpi < delPath.length; dpi++) {
+                                var dpx = delEcn.x + delPath[dpi].x * delEcn.w;
+                                var dpy = delEcn.y + delPath[dpi].y * delEcn.h;
+                                var dpDist = Math.sqrt((delMx - dpx) * (delMx - dpx) + (delMy - dpy) * (delMy - dpy));
+                                if (dpDist < delClosestDist) {
+                                    delClosestDist = dpDist;
+                                    delClosestIdx = dpi;
+                                }
+                            }
+                            if (delClosestIdx >= 0 && delClosestDist < 20) {
+                                delPath.splice(delClosestIdx, 1);
+                                self._editingPointIdx = -1;
+                                self._pushUndo();
+                                self.invalidateUpdateView();
+                                self._showStatus('Point deleted');
+                                return;
+                            }
+                        }
+                    } else if (delPath && delPath.length <= 3) {
+                        self._showStatus('Minimum 3 points required');
+                        return;
+                    }
+                }
                 // 1. Check waypoint under cursor
                 var edcWp = self._editorState.connections || [];
                 for (var dwci = 0; dwci < edcWp.length; dwci++) {
@@ -4281,6 +4360,76 @@ define([
                         }
                     }
 
+                    // Point editing mode for custom shapes
+                    if (self._editingCustomNode) {
+                        var ecn = self._computedNodeMap[self._editingCustomNode];
+                        var ecs = self._editorState.nodes[self._editingCustomNode];
+                        if (ecn && ecs && ecs.customPath) {
+                            var ecp = ecs.customPath;
+                            var enx = ecn.x, eny = ecn.y, enw = ecn.w, enh = ecn.h;
+
+                            // Check if clicking on an existing point
+                            for (var epi = 0; epi < ecp.length; epi++) {
+                                var epScreenX = enx + ecp[epi].x * enw;
+                                var epScreenY = eny + ecp[epi].y * enh;
+                                if (Math.sqrt((mx - epScreenX) * (mx - epScreenX) + (my - epScreenY) * (my - epScreenY)) < 8) {
+                                    self._editingPointIdx = epi;
+                                    self._editingHandleType = 'point';
+                                    e.preventDefault();
+                                    return;
+                                }
+                                // Check bezier handle out
+                                if (ecp[epi].hOutX !== undefined) {
+                                    var hosx = enx + ecp[epi].hOutX * enw;
+                                    var hosy = eny + ecp[epi].hOutY * enh;
+                                    if (Math.sqrt((mx - hosx) * (mx - hosx) + (my - hosy) * (my - hosy)) < 6) {
+                                        self._editingPointIdx = epi;
+                                        self._editingHandleType = 'handleOut';
+                                        e.preventDefault();
+                                        return;
+                                    }
+                                }
+                                // Check bezier handle in
+                                if (ecp[epi].hInX !== undefined) {
+                                    var hisx = enx + ecp[epi].hInX * enw;
+                                    var hisy = eny + ecp[epi].hInY * enh;
+                                    if (Math.sqrt((mx - hisx) * (mx - hisx) + (my - hisy) * (my - hisy)) < 6) {
+                                        self._editingPointIdx = epi;
+                                        self._editingHandleType = 'handleIn';
+                                        e.preventDefault();
+                                        return;
+                                    }
+                                }
+                            }
+
+                            // Check if clicking on a midpoint (add new point)
+                            for (var emi = 0; emi < ecp.length; emi++) {
+                                var emiNext = (emi + 1) % ecp.length;
+                                var midX = enx + (ecp[emi].x + ecp[emiNext].x) / 2 * enw;
+                                var midY = eny + (ecp[emi].y + ecp[emiNext].y) / 2 * enh;
+                                if (Math.sqrt((mx - midX) * (mx - midX) + (my - midY) * (my - midY)) < 8) {
+                                    var newPt = {
+                                        x: (ecp[emi].x + ecp[emiNext].x) / 2,
+                                        y: (ecp[emi].y + ecp[emiNext].y) / 2
+                                    };
+                                    ecp.splice(emi + 1, 0, newPt);
+                                    self._pushUndo();
+                                    self._editingPointIdx = emi + 1;
+                                    self._editingHandleType = 'point';
+                                    self.invalidateUpdateView();
+                                    e.preventDefault();
+                                    return;
+                                }
+                            }
+
+                            // Click on empty space = exit editing
+                            self._editingCustomNode = null;
+                            self._editingPointIdx = -1;
+                            self._editingHandleType = null;
+                            self.invalidateUpdateView();
+                        }
+                    }
+
                     // Pen mode: place points on EMPTY space
                     if (self._drawMode === 'pen') {
                         var penHitNode = false;
@@ -4302,8 +4451,10 @@ define([
                                     return;
                                 }
                             }
-                            // Add point
+                            // Add point and start potential handle drag
                             self._penPoints.push({ x: mx, y: my });
+                            self._penDraggingHandle = true;
+                            self._penDragHandleIdx = self._penPoints.length - 1;
                             self.invalidateUpdateView();
                             e.preventDefault();
                             e.stopPropagation();
@@ -4992,7 +5143,47 @@ define([
                 // Handle pen preview line
                 if (self._drawMode === 'pen' && self._penPoints.length > 0) {
                     self._penMousePos = { x: mx, y: my };
+                    // Handle pen tool bezier handle drag
+                    if (self._penDraggingHandle && self._penDragHandleIdx >= 0) {
+                        var dhPt = self._penPoints[self._penDragHandleIdx];
+                        var dhDist = Math.sqrt((mx - dhPt.x) * (mx - dhPt.x) + (my - dhPt.y) * (my - dhPt.y));
+                        if (dhDist > 5) {
+                            dhPt.hOutX = mx;
+                            dhPt.hOutY = my;
+                            dhPt.hInX = dhPt.x * 2 - mx;
+                            dhPt.hInY = dhPt.y * 2 - my;
+                        }
+                    }
                     self.invalidateUpdateView();
+                }
+
+                // Handle custom node point editing drag
+                if (self._editingCustomNode && self._editingPointIdx >= 0) {
+                    var ecnm = self._computedNodeMap[self._editingCustomNode];
+                    var ecsm = self._editorState.nodes[self._editingCustomNode];
+                    if (ecnm && ecsm && ecsm.customPath) {
+                        var normX = (mx - ecnm.x) / ecnm.w;
+                        var normY = (my - ecnm.y) / ecnm.h;
+                        normX = Math.max(0, Math.min(1, normX));
+                        normY = Math.max(0, Math.min(1, normY));
+                        var ept = ecsm.customPath[self._editingPointIdx];
+                        if (self._editingHandleType === 'point') {
+                            ept.x = normX;
+                            ept.y = normY;
+                        } else if (self._editingHandleType === 'handleOut') {
+                            ept.hOutX = normX;
+                            ept.hOutY = normY;
+                            ept.hInX = ept.x * 2 - normX;
+                            ept.hInY = ept.y * 2 - normY;
+                        } else if (self._editingHandleType === 'handleIn') {
+                            ept.hInX = normX;
+                            ept.hInY = normY;
+                            ept.hOutX = ept.x * 2 - normX;
+                            ept.hOutY = ept.y * 2 - normY;
+                        }
+                        self.invalidateUpdateView();
+                    }
+                    return;
                 }
 
                 // Handle rect drawing drag
@@ -5448,6 +5639,19 @@ define([
                     return;
                 }
 
+                // Handle pen tool handle drag end
+                if (self._penDraggingHandle) {
+                    self._penDraggingHandle = false;
+                    self._penDragHandleIdx = -1;
+                }
+
+                // Handle custom node point editing drag end
+                if (self._editingPointIdx >= 0) {
+                    self._pushUndo();
+                    self._editingPointIdx = -1;
+                    self._editingHandleType = null;
+                }
+
                 // Handle draw-rect end
                 if (self._isDrawingRect) {
                     self._isDrawingRect = false;
@@ -5778,10 +5982,24 @@ define([
                     return;
                 }
 
-                // Double-click on node → open inline label editor
+                // Double-click on node → check custom shape first, then inline label editor
                 for (var dni = 0; dni < self._computedNodes.length; dni++) {
                     var dnd = self._computedNodes[dni];
                     if (hitTestNode(mx, my, dnd)) {
+                        // Check if this is a custom shape node — enter point editing mode
+                        var dndState = self._editorState.nodes[dnd.id];
+                        if (dndState && dndState.shape === 'custom' && dndState.customPath) {
+                            if (self._editingCustomNode === dnd.id) {
+                                self._editingCustomNode = null;
+                            } else {
+                                self._editingCustomNode = dnd.id;
+                            }
+                            self._editingPointIdx = -1;
+                            self._editingHandleType = null;
+                            self.invalidateUpdateView();
+                            return;
+                        }
+
                         self._selectedNodeIds = [dnd.id];
                         self._selectedConnection = null;
                         self._showConnPopup = false;
@@ -8059,21 +8277,64 @@ define([
                     ctx.lineWidth = 2;
                     ctx.setLineDash([6, 4]);
 
-                    // Draw lines between placed points
+                    // Draw lines/curves between placed points
                     ctx.beginPath();
                     ctx.moveTo(pp[0].x, pp[0].y);
                     for (var ppi = 1; ppi < pp.length; ppi++) {
-                        ctx.lineTo(pp[ppi].x, pp[ppi].y);
+                        var ppPrev = pp[ppi - 1];
+                        var ppCur = pp[ppi];
+                        var ppHasOut = ppPrev.hOutX !== undefined;
+                        var ppHasIn = ppCur.hInX !== undefined;
+                        if (ppHasOut && ppHasIn) {
+                            ctx.bezierCurveTo(ppPrev.hOutX, ppPrev.hOutY, ppCur.hInX, ppCur.hInY, ppCur.x, ppCur.y);
+                        } else if (ppHasOut) {
+                            ctx.quadraticCurveTo(ppPrev.hOutX, ppPrev.hOutY, ppCur.x, ppCur.y);
+                        } else if (ppHasIn) {
+                            ctx.quadraticCurveTo(ppCur.hInX, ppCur.hInY, ppCur.x, ppCur.y);
+                        } else {
+                            ctx.lineTo(ppCur.x, ppCur.y);
+                        }
                     }
                     // Line to cursor
                     if (this._penMousePos) {
-                        ctx.lineTo(this._penMousePos.x, this._penMousePos.y);
+                        var ppLast = pp[pp.length - 1];
+                        if (ppLast.hOutX !== undefined) {
+                            ctx.quadraticCurveTo(ppLast.hOutX, ppLast.hOutY, this._penMousePos.x, this._penMousePos.y);
+                        } else {
+                            ctx.lineTo(this._penMousePos.x, this._penMousePos.y);
+                        }
                     }
                     ctx.stroke();
                     ctx.setLineDash([]);
 
-                    // Draw dots at each placed point
+                    // Draw dots at each placed point and bezier handles
                     for (var ppd = 0; ppd < pp.length; ppd++) {
+                        // Draw handle lines and dots
+                        if (pp[ppd].hOutX !== undefined) {
+                            ctx.beginPath();
+                            ctx.moveTo(pp[ppd].x, pp[ppd].y);
+                            ctx.lineTo(pp[ppd].hOutX, pp[ppd].hOutY);
+                            ctx.strokeStyle = '#f59e0b';
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.arc(pp[ppd].hOutX, pp[ppd].hOutY, 3, 0, Math.PI * 2);
+                            ctx.fillStyle = '#f59e0b';
+                            ctx.fill();
+                        }
+                        if (pp[ppd].hInX !== undefined) {
+                            ctx.beginPath();
+                            ctx.moveTo(pp[ppd].x, pp[ppd].y);
+                            ctx.lineTo(pp[ppd].hInX, pp[ppd].hInY);
+                            ctx.strokeStyle = '#f59e0b';
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.arc(pp[ppd].hInX, pp[ppd].hInY, 3, 0, Math.PI * 2);
+                            ctx.fillStyle = '#f59e0b';
+                            ctx.fill();
+                        }
+                        // Point dot
                         ctx.beginPath();
                         ctx.arc(pp[ppd].x, pp[ppd].y, 4, 0, Math.PI * 2);
                         ctx.fillStyle = ppd === 0 ? '#22c55e' : '#3b82f6';
@@ -8095,6 +8356,72 @@ define([
                             ctx.strokeStyle = '#22c55e';
                             ctx.lineWidth = 2;
                             ctx.stroke();
+                        }
+                    }
+                }
+                // Draw custom node point editing overlay
+                if (this._editingCustomNode) {
+                    var editNode = this._computedNodeMap[this._editingCustomNode];
+                    var editState = this._editorState.nodes[this._editingCustomNode];
+                    if (editNode && editState && editState.customPath) {
+                        var ecp = editState.customPath;
+                        var enx = editNode.x, eny = editNode.y, enw = editNode.w, enh = editNode.h;
+
+                        // Draw points and handles
+                        for (var epi = 0; epi < ecp.length; epi++) {
+                            var epx = enx + ecp[epi].x * enw;
+                            var epy = eny + ecp[epi].y * enh;
+
+                            // Bezier control handle out
+                            if (ecp[epi].hOutX !== undefined) {
+                                var hox = enx + ecp[epi].hOutX * enw;
+                                var hoy = eny + ecp[epi].hOutY * enh;
+                                ctx.beginPath();
+                                ctx.moveTo(epx, epy);
+                                ctx.lineTo(hox, hoy);
+                                ctx.strokeStyle = '#f59e0b';
+                                ctx.lineWidth = 1;
+                                ctx.stroke();
+                                ctx.beginPath();
+                                ctx.arc(hox, hoy, 3, 0, Math.PI * 2);
+                                ctx.fillStyle = '#f59e0b';
+                                ctx.fill();
+                            }
+                            // Bezier control handle in
+                            if (ecp[epi].hInX !== undefined) {
+                                var hix = enx + ecp[epi].hInX * enw;
+                                var hiy = eny + ecp[epi].hInY * enh;
+                                ctx.beginPath();
+                                ctx.moveTo(epx, epy);
+                                ctx.lineTo(hix, hiy);
+                                ctx.strokeStyle = '#f59e0b';
+                                ctx.lineWidth = 1;
+                                ctx.stroke();
+                                ctx.beginPath();
+                                ctx.arc(hix, hiy, 3, 0, Math.PI * 2);
+                                ctx.fillStyle = '#f59e0b';
+                                ctx.fill();
+                            }
+
+                            // Point dot
+                            ctx.beginPath();
+                            ctx.arc(epx, epy, 5, 0, Math.PI * 2);
+                            ctx.fillStyle = '#3b82f6';
+                            ctx.fill();
+                            ctx.strokeStyle = '#fff';
+                            ctx.lineWidth = 1.5;
+                            ctx.stroke();
+                        }
+
+                        // Draw edge midpoints for adding new points
+                        for (var emi = 0; emi < ecp.length; emi++) {
+                            var emiNext = (emi + 1) % ecp.length;
+                            var midPx = enx + (ecp[emi].x + ecp[emiNext].x) / 2 * enw;
+                            var midPy = eny + (ecp[emi].y + ecp[emiNext].y) / 2 * enh;
+                            ctx.beginPath();
+                            ctx.arc(midPx, midPy, 3, 0, Math.PI * 2);
+                            ctx.fillStyle = 'rgba(59,130,246,0.4)';
+                            ctx.fill();
                         }
                     }
                 }
