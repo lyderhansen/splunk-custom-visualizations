@@ -4204,14 +4204,25 @@ define([
                         }
                     }
 
-                    // Draw-rect mode: start drawing
+                    // Draw-rect mode: only start drawing on EMPTY space
+                    // If clicking on a node, allow normal drag/select instead
                     if (self._drawMode === 'rect') {
-                        self._isDrawingRect = true;
-                        self._drawRectStart = { x: mx, y: my };
-                        self._drawRectEnd = { x: mx, y: my };
-                        e.preventDefault();
-                        e.stopPropagation();
-                        return;
+                        var drawHitNode = false;
+                        for (var dhni = 0; dhni < self._computedNodes.length; dhni++) {
+                            if (hitTestNode(mx, my, self._computedNodes[dhni])) {
+                                drawHitNode = true;
+                                break;
+                            }
+                        }
+                        if (!drawHitNode) {
+                            self._isDrawingRect = true;
+                            self._drawRectStart = { x: mx, y: my };
+                            self._drawRectEnd = { x: mx, y: my };
+                            e.preventDefault();
+                            e.stopPropagation();
+                            return;
+                        }
+                        // Fall through to normal node handling below
                     }
 
                     // Check node popup hits
@@ -5261,9 +5272,13 @@ define([
                 } else {
                     self.canvas.style.cursor = 'default';
                 }
-                // Draw mode always shows crosshair regardless of hover
+                // Draw mode: crosshair on empty space, move cursor on nodes
                 if (self._drawMode) {
-                    self.canvas.style.cursor = 'crosshair';
+                    if (self._hoverItem && self._hoverItem.type === 'node') {
+                        self.canvas.style.cursor = 'move';
+                    } else {
+                        self.canvas.style.cursor = 'crosshair';
+                    }
                 }
 
                 // Sparkline hover check (only when not dragging/panning)
