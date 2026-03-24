@@ -2663,14 +2663,42 @@ define([
             var lineColor = conn._resolvedLineColor || conn.color || '#94a3b8';
             var lineWidth = conn._resolvedLineWidth || conn.width || 2;
 
+            // Resolve stroke pattern for this connection
+            var hopConnPattern = conn.strokePattern || (conn.dash ? 'dashed' : 'solid');
+            var hopCustomDash = parseInt(conn.strokeDash, 10);
+            var hopCustomGap = parseInt(conn.strokeGap, 10);
+            var hopBasePattern = STROKE_PATTERNS[hopConnPattern] || [];
+            var hopDashPattern;
+            if ((hopCustomDash > 0 || hopCustomGap > 0) && hopBasePattern.length > 0) {
+                hopDashPattern = [];
+                for (var hdpi = 0; hdpi < hopBasePattern.length; hdpi++) {
+                    if (hdpi % 2 === 0) {
+                        hopDashPattern.push(hopCustomDash > 0 ? hopCustomDash : hopBasePattern[hdpi]);
+                    } else {
+                        hopDashPattern.push(hopCustomGap > 0 ? hopCustomGap : hopBasePattern[hdpi]);
+                    }
+                }
+            } else if (hopCustomDash > 0 || hopCustomGap > 0) {
+                hopDashPattern = [hopCustomDash > 0 ? hopCustomDash : 8, hopCustomGap > 0 ? hopCustomGap : 4];
+            } else {
+                hopDashPattern = hopBasePattern;
+            }
+
             if (intersections.length === 0) {
                 // No intersections — draw normal line since main stroke was skipped
                 ctx.strokeStyle = lineColor;
                 ctx.lineWidth = lineWidth;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
-                buildConnectionPath(ctx, conn, points);
+                ctx.setLineDash(hopDashPattern);
+                // Use sampled points for curved (consistent with hop rendering)
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for (var nhi = 1; nhi < points.length; nhi++) {
+                    ctx.lineTo(points[nhi].x, points[nhi].y);
+                }
                 ctx.stroke();
+                ctx.setLineDash([]);
                 continue;
             }
 
@@ -2685,7 +2713,7 @@ define([
             ctx.lineWidth = lineWidth;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            ctx.setLineDash([]);
+            ctx.setLineDash(hopDashPattern);
 
             // Draw entire line with hops at intersections
             ctx.beginPath();
@@ -2735,6 +2763,7 @@ define([
                 }
             }
             ctx.stroke();
+            ctx.setLineDash([]);
         }
     }
 
@@ -4918,7 +4947,7 @@ define([
                     // Calculate alignment guides (visual only, no snapping)
                     self._alignGuides = [];
                     if (self._editMode) {
-                        var agThreshold = 5;
+                        var agThreshold = 3;
                         var agDraggedNodes = [];
                         for (var dgi = 0; dgi < self._selectedNodeIds.length; dgi++) {
                             var dgn = self._computedNodeMap[self._selectedNodeIds[dgi]];
