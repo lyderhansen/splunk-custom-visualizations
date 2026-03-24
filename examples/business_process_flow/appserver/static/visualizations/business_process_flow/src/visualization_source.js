@@ -3873,6 +3873,7 @@ define([
             this._dragGroupIdx = -1;
             this._dragGroupStartX = 0;
             this._dragGroupStartY = 0;
+            this._selectedGroupIdx = -1;
             this._resetZoomRect = null;
             this._hitNodes = [];
             this._hitConnections = [];
@@ -4333,6 +4334,7 @@ define([
                         self._selectedNodeIds = [];
                         self._selectedConnection = null;
                         self._connPopupIdx = null;
+                        self._selectedGroupIdx = -1;
                     }
                     self.invalidateUpdateView();
                     self._updatePanel();
@@ -4352,6 +4354,7 @@ define([
                         self._selectedNodeIds = [];
                         self._selectedConnection = null;
                         self._connPopupIdx = null;
+                        self._selectedGroupIdx = -1;
                         self._editingCustomNode = null;
                     }
                     self.invalidateUpdateView();
@@ -4466,6 +4469,7 @@ define([
                     if (self._codeEditorEl) self._codeEditorEl.style.display = 'none';
                     self._selectedNodeIds = [];
                     self._selectedConnection = null;
+                    self._selectedGroupIdx = -1;
                     self._showNodePopup = false;
                     self._showConnPopup = false;
                     self._isConnecting = false;
@@ -5394,6 +5398,7 @@ define([
                             self._dragNodeStartY = nd.y;
                             self._selectedConnection = null;
                             self._showConnPopup = false;
+                            self._selectedGroupIdx = -1;
                             self._updatePanel();
                             self.invalidateUpdateView();
                             return;
@@ -5459,6 +5464,7 @@ define([
                         self._showConnPopup = true;
                         self._connPopupIdx = edConnIdx;
                         self._connPopupPos = { x: mx, y: my };
+                        self._selectedGroupIdx = -1;
                         self._updatePanel();
                         self.invalidateUpdateView();
                         return;
@@ -5496,7 +5502,9 @@ define([
                                 self._dragGroupStartY = my;
                                 self._selectedNodeIds = grp.nodeIds.slice();
                                 self._selectedConnection = null;
+                                self._connPopupIdx = null;
                                 self._showConnPopup = false;
+                                self._selectedGroupIdx = ghi;
                                 self._updatePanel();
                                 self.invalidateUpdateView();
                                 e.preventDefault();
@@ -5515,6 +5523,7 @@ define([
                         self._selectedNodeIds = [];
                     }
                     self._selectedConnection = null;
+                    self._selectedGroupIdx = -1;
                     self._showNodePopup = false;
                     self._showConnPopup = false;
                     self._updatePanel();
@@ -6772,6 +6781,10 @@ define([
                         self._selectedConnection = null;
                         changed = true;
                     }
+                    if (self._selectedGroupIdx >= 0) {
+                        self._selectedGroupIdx = -1;
+                        changed = true;
+                    }
                     if (changed) {
                         self._updatePanel();
                         self.invalidateUpdateView();
@@ -6869,6 +6882,17 @@ define([
             } else if (this._selectedNodeIds.length > 1) {
                 this._panelTitle.textContent = this._selectedNodeIds.length + ' nodes';
                 this._buildMultiSelectPanel(body);
+            } else if (this._selectedGroupIdx >= 0) {
+                var groups = this._editorState.groups || [];
+                var grp = groups[this._selectedGroupIdx];
+                if (grp) {
+                    this._panelTitle.textContent = grp.label || 'Group';
+                    this._buildGroupPanel(body, this._selectedGroupIdx, grp);
+                } else {
+                    this._selectedGroupIdx = -1;
+                    this._panelTitle.textContent = 'Canvas Tools';
+                    this._buildCanvasToolsPanel(body);
+                }
             } else if (this._selectedConnection !== null && this._selectedConnection !== undefined) {
                 this._panelTitle.textContent = 'Connection';
                 this._buildConnectionPanel(body);
@@ -8159,6 +8183,106 @@ define([
             }
         },
 
+        _buildGroupPanel: function(body, groupIdx, grp) {
+            var self = this;
+            var es = this._editorState;
+            var colors = PALETTES[this._currentPalette || 'corporate'] || PALETTES.corporate;
+
+            var sec = createPanelSection('Group Properties', '', true);
+            var secBody = sec._body;
+
+            // Label
+            secBody.appendChild(createTextRow('Label', grp.label || '', function(val) {
+                grp.label = val;
+                self._pushUndo();
+                self.invalidateUpdateView();
+            }));
+
+            // Color
+            secBody.appendChild(createColorRow('Color', colors, grp.color || '#3b82f6', function(val) {
+                grp.color = val;
+                self._pushUndo();
+                self.invalidateUpdateView();
+            }));
+
+            // Background opacity
+            secBody.appendChild(createTextRow('BG Opacity %', String(Math.round((grp.bgOpacity !== undefined ? grp.bgOpacity : 0.08) * 100)), function(val) {
+                var pct = parseInt(val, 10);
+                if (!isNaN(pct)) {
+                    grp.bgOpacity = Math.max(0, Math.min(100, pct)) / 100;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                }
+            }, { numeric: true, min: 0, max: 100, step: 5 }));
+
+            // Border style
+            secBody.appendChild(createToggleRow('Border', [
+                {value: 'dashed', label: 'Dashed'}, {value: 'solid', label: 'Solid'},
+                {value: 'dotted', label: 'Dotted'}, {value: 'none', label: 'None'}
+            ], grp.borderStyle || 'dashed', function(val) {
+                grp.borderStyle = val;
+                self._pushUndo();
+                self.invalidateUpdateView();
+            }));
+
+            // Border width
+            secBody.appendChild(createTextRow('Border Width', String(grp.borderWidth || 1.5), function(val) {
+                var w = parseFloat(val);
+                if (!isNaN(w)) { grp.borderWidth = w; self._pushUndo(); self.invalidateUpdateView(); }
+            }, { numeric: true, min: 0, max: 6, step: 0.5 }));
+
+            // Border radius
+            secBody.appendChild(createTextRow('Radius', String(grp.borderRadius || 8), function(val) {
+                var r = parseInt(val, 10);
+                if (!isNaN(r)) { grp.borderRadius = r; self._pushUndo(); self.invalidateUpdateView(); }
+            }, { numeric: true, min: 0, max: 30, step: 2 }));
+
+            // Padding
+            secBody.appendChild(createTextRow('Padding', String(grp.padding || 20), function(val) {
+                var p = parseInt(val, 10);
+                if (!isNaN(p)) { grp.padding = p; self._pushUndo(); self.invalidateUpdateView(); }
+            }, { numeric: true, min: 0, max: 60, step: 5 }));
+
+            // Label position
+            secBody.appendChild(createToggleRow('Label Position', [
+                {value: 'top-left', label: 'Top Left'}, {value: 'top-center', label: 'Top Center'},
+                {value: 'bottom-left', label: 'Bottom Left'}, {value: 'bottom-center', label: 'Bottom Center'}
+            ], grp.labelPosition || 'top-left', function(val) {
+                grp.labelPosition = val;
+                self._pushUndo();
+                self.invalidateUpdateView();
+            }));
+
+            // Label font size
+            secBody.appendChild(createTextRow('Label Size', String(grp.labelFontSize || 11), function(val) {
+                var s = parseInt(val, 10);
+                if (!isNaN(s)) { grp.labelFontSize = s; self._pushUndo(); self.invalidateUpdateView(); }
+            }, { numeric: true, min: 8, max: 24, step: 1 }));
+
+            // Node count info
+            var infoEl = document.createElement('div');
+            infoEl.textContent = grp.nodeIds.length + ' nodes in group';
+            infoEl.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:10px;padding:4px 0;';
+            secBody.appendChild(infoEl);
+
+            // Ungroup button
+            var ungroupBtn = document.createElement('button');
+            ungroupBtn.textContent = 'Ungroup';
+            ungroupBtn.style.cssText = 'width:100%;padding:6px;border-radius:4px;border:1px solid #dc2626;background:rgba(220,38,38,0.1);color:#ef4444;font-size:11px;cursor:pointer;margin-top:8px;';
+            ungroupBtn.addEventListener('click', function() {
+                var groups2 = self._editorState.groups || [];
+                groups2.splice(groupIdx, 1);
+                self._selectedGroupIdx = -1;
+                self._pushUndo();
+                self.invalidateUpdateView();
+                self._updatePanel();
+            });
+            ungroupBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+            secBody.appendChild(ungroupBtn);
+
+            body.appendChild(sec);
+        },
+
         _buildConnectionPanel: function(body) {
             var idx = this._connPopupIdx;
             var conns = this._editorState.connections || [];
@@ -8822,20 +8946,48 @@ define([
                 var gw = gMaxX - gMinX + gPad * 2;
                 var gh = gMaxY - gMinY + gPad * 2 + 20;
 
-                roundRect(ctx, gx, gy, gw, gh, 8);
-                ctx.fillStyle = hexToRgba(grp.color || '#3b82f6', 0.08);
+                var gBorderRadius = grp.borderRadius || 8;
+                roundRect(ctx, gx, gy, gw, gh, gBorderRadius);
+                ctx.fillStyle = hexToRgba(grp.color || '#3b82f6', grp.bgOpacity !== undefined ? grp.bgOpacity : 0.08);
                 ctx.fill();
-                ctx.strokeStyle = hexToRgba(grp.color || '#3b82f6', 0.3);
-                ctx.lineWidth = 1.5;
-                ctx.setLineDash([8, 4]);
-                ctx.stroke();
-                ctx.setLineDash([]);
 
+                var gBorderStyle = grp.borderStyle || 'dashed';
+                if (gBorderStyle !== 'none') {
+                    ctx.strokeStyle = hexToRgba(grp.color || '#3b82f6', 0.3);
+                    ctx.lineWidth = grp.borderWidth || 1.5;
+                    if (gBorderStyle === 'dashed') { ctx.setLineDash([8, 4]); }
+                    else if (gBorderStyle === 'dotted') { ctx.setLineDash([2, 3]); }
+                    else { ctx.setLineDash([]); }
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+
+                var gLabelPos = grp.labelPosition || 'top-left';
+                var gLabelSize = grp.labelFontSize || 11;
                 ctx.fillStyle = grp.color || '#3b82f6';
-                ctx.font = 'bold 11px sans-serif';
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'top';
-                ctx.fillText(grp.label || 'Group', gx + 8, gy + 4);
+                ctx.font = 'bold ' + gLabelSize + 'px sans-serif';
+                if (gLabelPos === 'top-left') {
+                    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+                    ctx.fillText(grp.label || 'Group', gx + 8, gy + 4);
+                } else if (gLabelPos === 'top-center') {
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+                    ctx.fillText(grp.label || 'Group', gx + gw / 2, gy + 4);
+                } else if (gLabelPos === 'bottom-left') {
+                    ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+                    ctx.fillText(grp.label || 'Group', gx + 8, gy + gh - 4);
+                } else if (gLabelPos === 'bottom-center') {
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                    ctx.fillText(grp.label || 'Group', gx + gw / 2, gy + gh - 4);
+                }
+
+                // Selected group highlight
+                if (this._selectedGroupIdx === gi) {
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([]);
+                    roundRect(ctx, gx - 1, gy - 1, gw + 2, gh + 2, gBorderRadius + 1);
+                    ctx.stroke();
+                }
             }
 
             // Build unified draw list: nodes and connections interleaved by z-order.
