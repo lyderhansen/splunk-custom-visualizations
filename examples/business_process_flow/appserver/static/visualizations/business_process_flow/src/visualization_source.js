@@ -6063,6 +6063,67 @@ define([
             zBtnRow.appendChild(bringFwdBtn);
             appearBody.appendChild(zBtnRow);
 
+            // Position + Size
+            var computedNode = self._computedNodeMap ? self._computedNodeMap[nodeId] : null;
+            var curX = ns.x !== undefined ? ns.x : (computedNode ? computedNode.x : 0);
+            var curY = ns.y !== undefined ? ns.y : (computedNode ? computedNode.y : 0);
+            var posRow = document.createElement('div');
+            posRow.style.cssText = 'display:flex;gap:6px;margin-bottom:4px;';
+            var xInput = createTextRow('X', String(Math.round(curX)), function(val) {
+                var v = parseInt(val, 10);
+                if (!isNaN(v)) {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].x = v;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                }
+            }, { numeric: true, min: -2000, max: 4000, step: 10 });
+            xInput.style.flex = '1';
+            xInput.style.minWidth = '0';
+            var yInput = createTextRow('Y', String(Math.round(curY)), function(val) {
+                var v = parseInt(val, 10);
+                if (!isNaN(v)) {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].y = v;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                }
+            }, { numeric: true, min: -2000, max: 4000, step: 10 });
+            yInput.style.flex = '1';
+            yInput.style.minWidth = '0';
+            posRow.appendChild(xInput);
+            posRow.appendChild(yInput);
+            appearBody.appendChild(posRow);
+            var curW = ns.w || (computedNode ? computedNode.w : 180);
+            var curH = ns.h || (computedNode ? computedNode.h : 100);
+            var sizeRow = document.createElement('div');
+            sizeRow.style.cssText = 'display:flex;gap:6px;margin-bottom:8px;';
+            var wInput = createTextRow('Width', String(Math.round(curW)), function(val) {
+                var v = parseInt(val, 10);
+                if (!isNaN(v) && v >= 40) {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].w = v;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                }
+            }, { numeric: true, min: 40, max: 800, step: 10 });
+            wInput.style.flex = '1';
+            wInput.style.minWidth = '0';
+            var hInput = createTextRow('Height', String(Math.round(curH)), function(val) {
+                var v = parseInt(val, 10);
+                if (!isNaN(v) && v >= 30) {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].h = v;
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                }
+            }, { numeric: true, min: 30, max: 600, step: 10 });
+            hInput.style.flex = '1';
+            hInput.style.minWidth = '0';
+            sizeRow.appendChild(wInput);
+            sizeRow.appendChild(hInput);
+            appearBody.appendChild(sizeRow);
+
             // Shape
             var currentShape = ns.shape || 'rect';
             appearBody.appendChild(createToggleRow('Shape', [
