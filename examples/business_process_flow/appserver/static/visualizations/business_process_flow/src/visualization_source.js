@@ -2840,7 +2840,7 @@ define([
 
     // ── Toolbar Drawing ───────────────────────────────────────────
 
-    function drawToolbar(ctx, w, theme, toolbarH, buttons, hoverItem, lockMode, saveFlash, saveError, saveMessage, statusMessage) {
+    function drawToolbar(ctx, w, theme, toolbarH, buttons, hoverItem, lockMode, saveFlash, saveError, saveMessage, statusMessage, drawMode) {
         // Background
         ctx.fillStyle = theme.toolbarBg;
         ctx.fillRect(0, 0, w, toolbarH);
@@ -2865,6 +2865,7 @@ define([
             { label: 'Copy Layout', icon: '', action: 'save',       w: 90 },
             { label: '+',     icon: '+',     action: 'addNode',        w: 36 },
             { label: 'T',     icon: 'T',     action: 'addText',         w: 36 },
+            { label: '\u25A1', icon: '',  action: 'drawRect',       w: 36 },
             { label: '\u2192', icon: '', action: 'addConnection',  w: 36 },
             { label: '\u2715', icon: '', action: 'deleteSelected',  w: 36, tint: 'red' },
             { label: '\u229E', icon: '', action: 'fit',            w: 36 },
@@ -2878,10 +2879,13 @@ define([
             var def = btnDefs[i];
             var bw = def.w;
             var isHovered = hoverItem && hoverItem.type === 'button' && hoverItem.index === i;
+            var isActive = (def.action === 'drawRect' && drawMode === 'rect');
 
             // Button background
             roundRect(ctx, btnX, btnY, bw, btnH, 4);
-            if (isHovered) {
+            if (isActive) {
+                ctx.fillStyle = '#3b82f6';
+            } else if (isHovered) {
                 ctx.fillStyle = theme.nodeBorder;
             } else {
                 ctx.fillStyle = theme.nodeBg;
@@ -3596,6 +3600,10 @@ define([
             this._redoStack = [];
             this._statusMessage = '';
             this._statusTimeout = null;
+            this._isDrawingRect = false;
+            this._drawRectStart = null;
+            this._drawRectEnd = null;
+            this._drawMode = null; // 'rect', null
             this._isDraggingWaypoint = false;
             this._dragWpConnIdx = null;
             this._dragWpIdx = null;
@@ -3886,6 +3894,23 @@ define([
                     self._editorState.nodes[textNodeId].h = 120;
                     self._pushUndo();
                     self.invalidateUpdateView();
+                } else if (action === 'drawRect') {
+                    if (self._drawMode === 'rect') {
+                        self._drawMode = null;
+                        self.canvas.style.cursor = 'default';
+                        self._statusMessage = '';
+                    } else {
+                        self._drawMode = 'rect';
+                        self.canvas.style.cursor = 'crosshair';
+                        self._statusMessage = 'Draw: click and drag to create a rectangle';
+                        // Deselect everything
+                        self._selectedNodeIds = [];
+                        self._selectedConnection = null;
+                        self._connPopupIdx = null;
+                    }
+                    self.invalidateUpdateView();
+                    self._updatePanel();
+                    return;
                 } else if (action === 'addConnection') {
                     // Start connection mode — user picks from/to nodes
                     self._isConnecting = true;
@@ -4176,6 +4201,16 @@ define([
                             self._pendingToolbarAction = btn.action;
                             return;
                         }
+                    }
+
+                    // Draw-rect mode: start drawing
+                    if (self._drawMode === 'rect') {
+                        self._isDrawingRect = true;
+                        self._drawRectStart = { x: mx, y: my };
+                        self._drawRectEnd = { x: mx, y: my };
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
                     }
 
                     // Check node popup hits
@@ -4809,7 +4844,7 @@ define([
             // ── Mouse Move ──
             this._onMouseMove = function(e) {
                 // Stop event propagation during modal interactions
-                if (self._isDragging || self._isResizing || self._isConnecting || self._editMode || self._isPanning) {
+                if (self._isDragging || self._isResizing || self._isConnecting || self._editMode || self._isPanning || self._isDrawingRect) {
                     e.preventDefault();
                     e.stopPropagation();
                 }
@@ -4833,6 +4868,21 @@ define([
                 var my = rawMy - self._panY;
                 self._mouseX = rawMx;
                 self._mouseY = rawMy;
+
+                // Handle rect drawing drag
+                if (self._isDrawingRect) {
+                    self._drawRectEnd = { x: mx, y: my };
+                    // Shift = constrain to square
+                    if (e.shiftKey) {
+                        var dw = Math.abs(mx - self._drawRectStart.x);
+                        var dh = Math.abs(my - self._drawRectStart.y);
+                        var maxDim = Math.max(dw, dh);
+                        self._drawRectEnd.x = self._drawRectStart.x + (mx > self._drawRectStart.x ? maxDim : -maxDim);
+                        self._drawRectEnd.y = self._drawRectStart.y + (my > self._drawRectStart.y ? maxDim : -maxDim);
+                    }
+                    self.invalidateUpdateView();
+                    return;
+                }
 
                 // Handle anchor dragging — snap to nearest node edge
                 if (self._isDraggingAnchor && self._dragAnchorNode) {
@@ -5262,6 +5312,43 @@ define([
                     return;
                 }
 
+                // Handle draw-rect end
+                if (self._isDrawingRect) {
+                    self._isDrawingRect = false;
+                    var rx = Math.min(self._drawRectStart.x, self._drawRectEnd.x);
+                    var ry = Math.min(self._drawRectStart.y, self._drawRectEnd.y);
+                    var rw = Math.abs(self._drawRectEnd.x - self._drawRectStart.x);
+                    var rh = Math.abs(self._drawRectEnd.y - self._drawRectStart.y);
+
+                    // Minimum size check — don't create tiny accidental rects
+                    if (rw > 20 && rh > 20) {
+                        var rectNodeId = '_rect_' + Date.now();
+                        if (!self._editorState.nodes) self._editorState.nodes = {};
+                        self._editorState.nodes[rectNodeId] = {
+                            manual: true,
+                            shape: 'rect',
+                            label: '',
+                            hideValue: true,
+                            x: rx,
+                            y: ry,
+                            w: rw,
+                            h: rh,
+                            bgColor: 'transparent',
+                            borderWidth: '1',
+                            borderColor: '#334155'
+                        };
+                        self._pushUndo();
+                        self._selectedNodeIds = [rectNodeId];
+                        self._updatePanel();
+                    }
+
+                    // Stay in draw mode so user can draw more
+                    self._drawRectStart = null;
+                    self._drawRectEnd = null;
+                    self.invalidateUpdateView();
+                    return;
+                }
+
                 if (self._editMode || self._isDragging || self._isResizing || self._isRubberBanding) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -5645,6 +5732,16 @@ define([
                     return;
                 }
                 if (e.key === 'Escape') {
+                    if (self._drawMode) {
+                        self._drawMode = null;
+                        self._isDrawingRect = false;
+                        self._drawRectStart = null;
+                        self._drawRectEnd = null;
+                        self.canvas.style.cursor = 'default';
+                        self._statusMessage = '';
+                        self.invalidateUpdateView();
+                        return;
+                    }
                     var changed = false;
                     if (self._isConnecting) {
                         self._isConnecting = false;
@@ -7499,7 +7596,7 @@ define([
 
             // Draw toolbar if edit mode (toolbar is NOT panned)
             if (this._editMode) {
-                drawToolbar(ctx, w, theme, toolbarH, this._toolbarButtons, this._hoverItem, this._lockMode, this._saveFlash, this._saveError, this._saveMessage, this._statusMessage);
+                drawToolbar(ctx, w, theme, toolbarH, this._toolbarButtons, this._hoverItem, this._lockMode, this._saveFlash, this._saveError, this._saveMessage, this._statusMessage, this._drawMode);
             }
 
             // Apply pan offset for world-space drawing
@@ -7743,6 +7840,24 @@ define([
                     ctx.strokeRect(rbsx, rbsy, rbsw, rbsh);
                     ctx.setLineDash([]);
                     ctx.restore();
+                }
+                // Draw-rect preview
+                if (this._isDrawingRect && this._drawRectStart && this._drawRectEnd) {
+                    var drx = Math.min(this._drawRectStart.x, this._drawRectEnd.x);
+                    var dry = Math.min(this._drawRectStart.y, this._drawRectEnd.y);
+                    var drw = Math.abs(this._drawRectEnd.x - this._drawRectStart.x);
+                    var drh = Math.abs(this._drawRectEnd.y - this._drawRectStart.y);
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([6, 4]);
+                    ctx.strokeRect(drx, dry, drw, drh);
+                    ctx.setLineDash([]);
+                    // Show dimensions
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.font = '10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(Math.round(drw) + ' x ' + Math.round(drh), drx + drw / 2, dry + drh + 4);
                 }
                 // Node popup replaced by DOM panel (_updatePanel / _buildNodePanel)
                 // Connection popup replaced by DOM panel (_updatePanel / _buildConnectionPanel)
