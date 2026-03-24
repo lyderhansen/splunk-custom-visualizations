@@ -6029,38 +6029,32 @@ define([
             var appearSec = createPanelSection('Appearance', '', true);
             var appearBody = appearSec._body;
 
-            // Z-Order (Layer)
-            appearBody.appendChild(createToggleRow('Layer', [
-                {value: 'back', label: 'Back'}, {value: 'default', label: 'Default'}, {value: 'front', label: 'Front'}
-            ], ns.zOrder || 'default', makeOnChange('zOrder')));
-
+            // Arrange (z-order)
             var zBtnRow = document.createElement('div');
             zBtnRow.style.cssText = 'display:flex;gap:4px;margin-bottom:8px;';
 
-            var bringFwdBtn = document.createElement('button');
-            bringFwdBtn.textContent = 'Bring Forward';
-            bringFwdBtn.style.cssText = 'flex:1;padding:4px;border-radius:4px;border:1px solid ' + panelTheme.border + ';background:' + panelTheme.sectionBg + ';color:' + panelTheme.sectionText + ';font-size:10px;cursor:pointer;';
-            bringFwdBtn.addEventListener('click', function() {
+            var sendToBackBtn = document.createElement('button');
+            sendToBackBtn.textContent = 'Send to Back';
+            sendToBackBtn.style.cssText = 'flex:1;padding:5px;border-radius:4px;border:1px solid ' + panelTheme.border + ';background:' + panelTheme.sectionBg + ';color:' + panelTheme.sectionText + ';font-size:10px;cursor:pointer;';
+            sendToBackBtn.addEventListener('click', function() {
                 if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
-                var cur = parseInt(es.nodes[nodeId].zOrder, 10) || 0;
-                es.nodes[nodeId].zOrder = String(cur + 1);
+                es.nodes[nodeId].zOrder = '-100';
                 self._pushUndo();
                 self.invalidateUpdateView();
             });
 
-            var sendBackBtn = document.createElement('button');
-            sendBackBtn.textContent = 'Send Back';
-            sendBackBtn.style.cssText = 'flex:1;padding:4px;border-radius:4px;border:1px solid ' + panelTheme.border + ';background:' + panelTheme.sectionBg + ';color:' + panelTheme.sectionText + ';font-size:10px;cursor:pointer;';
-            sendBackBtn.addEventListener('click', function() {
+            var sendToFrontBtn = document.createElement('button');
+            sendToFrontBtn.textContent = 'Send to Front';
+            sendToFrontBtn.style.cssText = 'flex:1;padding:5px;border-radius:4px;border:1px solid ' + panelTheme.border + ';background:' + panelTheme.sectionBg + ';color:' + panelTheme.sectionText + ';font-size:10px;cursor:pointer;';
+            sendToFrontBtn.addEventListener('click', function() {
                 if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
-                var cur = parseInt(es.nodes[nodeId].zOrder, 10) || 0;
-                es.nodes[nodeId].zOrder = String(cur - 1);
+                es.nodes[nodeId].zOrder = '100';
                 self._pushUndo();
                 self.invalidateUpdateView();
             });
 
-            zBtnRow.appendChild(sendBackBtn);
-            zBtnRow.appendChild(bringFwdBtn);
+            zBtnRow.appendChild(sendToBackBtn);
+            zBtnRow.appendChild(sendToFrontBtn);
             appearBody.appendChild(zBtnRow);
 
             // Position + Size
