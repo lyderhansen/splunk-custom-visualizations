@@ -2414,6 +2414,9 @@ define([
 
         var midX, midY, endAngle, startAngle;
 
+        // Skip main stroke for hop-enabled connections — drawConnectionHops will draw the full line
+        var skipMainStroke = conn.lineHop && conn.lineHop !== '';
+
         if (conn.style === 'curved' && points.length === 2) {
             // Simple curve (no waypoints): quadratic bezier
             var mx = (startPt.x + endPt.x) / 2;
@@ -2429,7 +2432,7 @@ define([
             ctx.beginPath();
             ctx.moveTo(points[0].x, points[0].y);
             ctx.quadraticCurveTo(cpx, cpy, points[1].x, points[1].y);
-            ctx.stroke();
+            if (!skipMainStroke) { ctx.stroke(); }
             midX = 0.25 * points[0].x + 0.5 * cpx + 0.25 * points[1].x;
             midY = 0.25 * points[0].y + 0.5 * cpy + 0.25 * points[1].y;
             endAngle = Math.atan2(endPt.y - cpy, endPt.x - cpx);
@@ -2445,7 +2448,7 @@ define([
                 ctx.quadraticCurveTo(points[cpi].x, points[cpi].y, xc, yc);
             }
             ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
-            ctx.stroke();
+            if (!skipMainStroke) { ctx.stroke(); }
             var midIdx = Math.floor(points.length / 2);
             midX = points[midIdx].x;
             midY = points[midIdx].y;
@@ -2472,7 +2475,7 @@ define([
                     ctx.lineTo(opCur.x, opCur.y);
                 }
             }
-            ctx.stroke();
+            if (!skipMainStroke) { ctx.stroke(); }
             midX = (oStart.x + oEnd.x) / 2;
             midY = (oStart.y + oEnd.y) / 2;
             endAngle = Math.atan2(oEnd.y - oStart.y, oEnd.x - oStart.x);
@@ -2484,7 +2487,7 @@ define([
             for (var lpi = 1; lpi < points.length; lpi++) {
                 ctx.lineTo(points[lpi].x, points[lpi].y);
             }
-            ctx.stroke();
+            if (!skipMainStroke) { ctx.stroke(); }
             var midIdx2 = Math.floor(points.length / 2);
             midX = (points[midIdx2 - 1].x + points[midIdx2].x) / 2;
             midY = (points[midIdx2 - 1].y + points[midIdx2].y) / 2;
@@ -2609,7 +2612,7 @@ define([
      * Only processes connections with lineHop === 'over' or lineHop === 'gap'.
      * Skips curved connections (hops only work on straight/orthogonal polylines).
      */
-    function drawConnectionHops(ctx, connections, bgColor) {
+    function drawConnectionHops(ctx, connections) {
         var hopRadius = 8;
 
         // Pre-compute sampled points for curved connections (for intersection testing)
@@ -2654,7 +2657,20 @@ define([
                 }
             }
 
-            if (intersections.length === 0) continue;
+            // Redraw the connection line with hops in place of the original straight stroke
+            var lineColor = conn.color || '#94a3b8';
+            var lineWidth = conn.width || 2;
+
+            if (intersections.length === 0) {
+                // No intersections — draw normal line since main stroke was skipped
+                ctx.strokeStyle = lineColor;
+                ctx.lineWidth = lineWidth;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                buildConnectionPath(ctx, conn, points);
+                ctx.stroke();
+                continue;
+            }
 
             // Sort by segment index then by t parameter
             intersections.sort(function(a, b) {
@@ -2662,47 +2678,16 @@ define([
                 return a.t - b.t;
             });
 
-            // Redraw the connection line with hops in place of the original straight stroke
-            var lineColor = conn.color || '#94a3b8';
-            var lineWidth = conn.width || 2;
-
-            // First pass: erase the original line at each crossing point with background color
-            ctx.strokeStyle = bgColor || '#0f172a';
-            ctx.lineWidth = lineWidth + 6;
-            ctx.lineCap = 'round';
-            ctx.setLineDash([]);
-
-            for (var ei = 0; ei < intersections.length; ei++) {
-                var eIsct = intersections[ei];
-                var sp = points[eIsct.seg];
-                var spn = points[Math.min(eIsct.seg + 1, points.length - 1)];
-                var edx = spn.x - sp.x;
-                var edy = spn.y - sp.y;
-                var elen = Math.sqrt(edx * edx + edy * edy);
-                var enx = elen > 0 ? edx / elen : 0;
-                var eny = elen > 0 ? edy / elen : 0;
-
-                ctx.beginPath();
-                ctx.moveTo(eIsct.x - enx * (hopRadius + 3), eIsct.y - eny * (hopRadius + 3));
-                ctx.lineTo(eIsct.x + enx * (hopRadius + 3), eIsct.y + eny * (hopRadius + 3));
-                ctx.stroke();
-            }
-
-            // Second pass: redraw the line with hops
+            // Draw the line with hops (main stroke was skipped in drawConnection)
             ctx.strokeStyle = lineColor;
             ctx.lineWidth = lineWidth;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.setLineDash([]);
 
-            // First, paint over the existing line with background color to erase it
-            // (draw in two passes: erase then redraw with hops)
-            // We draw the hop line on top; for 'gap' we need to actually erase at crossing.
-            // Simplest approach: redraw entire line with hops.
+            // Draw entire line with hops at intersections
             ctx.beginPath();
             ctx.moveTo(points[0].x, points[0].y);
-
-            var prevSegEnd = points[0]; // track current drawing position implicitly via lineTo
 
             // We'll iterate segment by segment, emitting hops where needed
             for (var sj = 0; sj < points.length - 1; sj++) {
@@ -7301,8 +7286,7 @@ define([
             }
 
             // Draw line hops (bridges) where hop-enabled connections cross others
-            var bgColor = isDark ? '#0f172a' : '#ffffff';
-            drawConnectionHops(ctx, connections, bgColor);
+            drawConnectionHops(ctx, connections);
 
             // Sort nodes by zOrder before drawing (lower first = drawn underneath)
             var drawOrder = [];
