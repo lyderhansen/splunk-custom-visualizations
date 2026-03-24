@@ -2365,12 +2365,22 @@ define([
         // Store rendered points for hop detection by other connections.
         // For orthogonal connections with waypoints, expand to include all L-turn corners
         // so that hop detection and intersection tests use the actual rendered path segments.
-        if (conn.style === 'orthogonal' && points.length > 2) {
+        if (conn.style === 'orthogonal' && points.length === 2) {
+            // 2-point auto-route: expand to 4-point path (horizontal-first-then-vertical)
+            var oMidX2 = (points[0].x + points[1].x) / 2;
+            conn._renderedPoints = [
+                points[0],
+                { x: oMidX2, y: points[0].y },
+                { x: oMidX2, y: points[1].y },
+                points[1]
+            ];
+        } else if (conn.style === 'orthogonal' && points.length > 2) {
+            // Multi-point: expand each segment with L-turn corners
             var orthoRendered = [points[0]];
             for (var ori = 1; ori < points.length; ori++) {
                 var oprev = points[ori - 1];
                 var ocur = points[ori];
-                orthoRendered.push({ x: ocur.x, y: oprev.y }); // L-turn corner
+                orthoRendered.push({ x: ocur.x, y: oprev.y });
                 orthoRendered.push(ocur);
             }
             conn._renderedPoints = orthoRendered;
@@ -3577,6 +3587,8 @@ define([
             this._lastAnimTime = 0;
             this._hasActiveAnimations = false;
             this._alignGuides = [];
+            this._guideSnapX = null;
+            this._guideSnapY = null;
 
             var self = this;
 
@@ -4961,8 +4973,9 @@ define([
                             var dn = agDraggedNodes[0];
                             var dnCx = dn.x + dn.w / 2;
                             var dnCy = dn.y + dn.h / 2;
-                            var snapDx = 0, snapDy = 0;
-                            var snappedX = false, snappedY = false;
+                            // Store closest snap targets for mouseup snap
+                            var bestSnapX = null, bestDistX = agThreshold;
+                            var bestSnapY = null, bestDistY = agThreshold;
                             for (var ogi = 0; ogi < self._computedNodes.length; ogi++) {
                                 var on = self._computedNodes[ogi];
                                 if (arrContains(self._selectedNodeIds, on.id)) continue;
@@ -4970,55 +4983,27 @@ define([
                                 var onCx = on.x + on.w / 2;
                                 var onCy = on.y + on.h / 2;
                                 // Left edge
-                                if (!snappedX && Math.abs(dn.x - on.x) < agThreshold) {
-                                    self._alignGuides.push({ type: 'v', x: on.x });
-                                    snapDx = on.x - dn.x; snappedX = true;
-                                }
+                                var dLeft = Math.abs(dn.x - on.x);
+                                if (dLeft < bestDistX) { bestDistX = dLeft; bestSnapX = { edge: 'left', val: on.x }; self._alignGuides.push({ type: 'v', x: on.x }); }
                                 // Right edge
-                                if (!snappedX && Math.abs((dn.x + dn.w) - (on.x + on.w)) < agThreshold) {
-                                    self._alignGuides.push({ type: 'v', x: on.x + on.w });
-                                    snapDx = (on.x + on.w) - (dn.x + dn.w); snappedX = true;
-                                }
+                                var dRight = Math.abs((dn.x + dn.w) - (on.x + on.w));
+                                if (dRight < bestDistX) { bestDistX = dRight; bestSnapX = { edge: 'right', val: on.x + on.w }; self._alignGuides.push({ type: 'v', x: on.x + on.w }); }
                                 // Center X
-                                if (!snappedX && Math.abs(dnCx - onCx) < agThreshold) {
-                                    self._alignGuides.push({ type: 'v', x: onCx });
-                                    snapDx = onCx - dnCx; snappedX = true;
-                                }
+                                var dCx = Math.abs(dnCx - onCx);
+                                if (dCx < bestDistX) { bestDistX = dCx; bestSnapX = { edge: 'cx', val: onCx }; self._alignGuides.push({ type: 'v', x: onCx }); }
                                 // Top edge
-                                if (!snappedY && Math.abs(dn.y - on.y) < agThreshold) {
-                                    self._alignGuides.push({ type: 'h', y: on.y });
-                                    snapDy = on.y - dn.y; snappedY = true;
-                                }
+                                var dTop = Math.abs(dn.y - on.y);
+                                if (dTop < bestDistY) { bestDistY = dTop; bestSnapY = { edge: 'top', val: on.y }; self._alignGuides.push({ type: 'h', y: on.y }); }
                                 // Bottom edge
-                                if (!snappedY && Math.abs((dn.y + dn.h) - (on.y + on.h)) < agThreshold) {
-                                    self._alignGuides.push({ type: 'h', y: on.y + on.h });
-                                    snapDy = (on.y + on.h) - (dn.y + dn.h); snappedY = true;
-                                }
+                                var dBottom = Math.abs((dn.y + dn.h) - (on.y + on.h));
+                                if (dBottom < bestDistY) { bestDistY = dBottom; bestSnapY = { edge: 'bottom', val: on.y + on.h }; self._alignGuides.push({ type: 'h', y: on.y + on.h }); }
                                 // Center Y
-                                if (!snappedY && Math.abs(dnCy - onCy) < agThreshold) {
-                                    self._alignGuides.push({ type: 'h', y: onCy });
-                                    snapDy = onCy - dnCy; snappedY = true;
-                                }
+                                var dCy = Math.abs(dnCy - onCy);
+                                if (dCy < bestDistY) { bestDistY = dCy; bestSnapY = { edge: 'cy', val: onCy }; self._alignGuides.push({ type: 'h', y: onCy }); }
                             }
-                            // Apply snap offset to all dragged nodes
-                            if (snapDx !== 0 || snapDy !== 0) {
-                                for (var sni = 0; sni < self._selectedNodeIds.length; sni++) {
-                                    var snId = self._selectedNodeIds[sni];
-                                    var snState = es.nodes[snId];
-                                    if (snState) {
-                                        if (snapDx !== 0) snState.x = (snState.x || 0) + snapDx;
-                                        if (snapDy !== 0) snState.y = (snState.y || 0) + snapDy;
-                                    }
-                                }
-                                // Also snap single drag node
-                                if (self._selectedNodeIds.length === 0 && self._dragNodeId) {
-                                    var sdState = es.nodes[self._dragNodeId];
-                                    if (sdState) {
-                                        if (snapDx !== 0) sdState.x = (sdState.x || 0) + snapDx;
-                                        if (snapDy !== 0) sdState.y = (sdState.y || 0) + snapDy;
-                                    }
-                                }
-                            }
+                            // Store for mouseup snap (don't apply during drag — visual only)
+                            self._guideSnapX = bestSnapX;
+                            self._guideSnapY = bestSnapY;
                         }
                     }
 
@@ -5393,6 +5378,34 @@ define([
                                         snapNode.y = Math.round(snapNode.y / self._gridSize) * self._gridSize;
                                     }
                                 }
+                            }
+                            // Guide snap on mouseup — apply closest alignment guide
+                            if (self._guideSnapX || self._guideSnapY) {
+                                var gsNode = self._computedNodeMap[self._selectedNodeIds[0]] || self._computedNodeMap[self._dragNodeId];
+                                if (gsNode) {
+                                    var gsDx = 0, gsDy = 0;
+                                    if (self._guideSnapX) {
+                                        if (self._guideSnapX.edge === 'left') gsDx = self._guideSnapX.val - gsNode.x;
+                                        else if (self._guideSnapX.edge === 'right') gsDx = self._guideSnapX.val - (gsNode.x + gsNode.w);
+                                        else if (self._guideSnapX.edge === 'cx') gsDx = self._guideSnapX.val - (gsNode.x + gsNode.w / 2);
+                                    }
+                                    if (self._guideSnapY) {
+                                        if (self._guideSnapY.edge === 'top') gsDy = self._guideSnapY.val - gsNode.y;
+                                        else if (self._guideSnapY.edge === 'bottom') gsDy = self._guideSnapY.val - (gsNode.y + gsNode.h);
+                                        else if (self._guideSnapY.edge === 'cy') gsDy = self._guideSnapY.val - (gsNode.y + gsNode.h / 2);
+                                    }
+                                    if (gsDx !== 0 || gsDy !== 0) {
+                                        for (var gsi = 0; gsi < self._selectedNodeIds.length; gsi++) {
+                                            var gsState = self._editorState.nodes[self._selectedNodeIds[gsi]];
+                                            if (gsState) {
+                                                if (gsDx !== 0) gsState.x = (gsState.x || 0) + gsDx;
+                                                if (gsDy !== 0) gsState.y = (gsState.y || 0) + gsDy;
+                                            }
+                                        }
+                                    }
+                                }
+                                self._guideSnapX = null;
+                                self._guideSnapY = null;
                             }
                         }
                     } else {
