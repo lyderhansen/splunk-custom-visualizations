@@ -193,6 +193,28 @@ define([
     /**
      * Stroke pattern lookup and helper.
      */
+    var NODE_ICONS = {
+        'none': '',
+        'server': '\u2395',
+        'database': '\u2261',
+        'cloud': '\u2601',
+        'shield': '\u2766',
+        'lock': '\u2302',
+        'globe': '\u2295',
+        'warning': '\u26A0',
+        'check': '\u2713',
+        'error': '\u2717',
+        'user': '\u2302',
+        'star': '\u2605',
+        'gear': '\u2699',
+        'arrow-right': '\u2192',
+        'arrow-down': '\u2193',
+        'circle': '\u25CF',
+        'square': '\u25A0',
+        'triangle': '\u25B2',
+        'diamond': '\u25C6'
+    };
+
     var STROKE_PATTERNS = {
         solid: [],
         dashed: [8, 4],
@@ -947,7 +969,8 @@ define([
                 sparkOverrideX: edState ? edState.sparkOverrideX : undefined,
                 sparkOverrideY: edState ? edState.sparkOverrideY : undefined,
                 sparkOverrideW: edState ? edState.sparkOverrideW : undefined,
-                sparkOverrideH: edState ? edState.sparkOverrideH : undefined
+                sparkOverrideH: edState ? edState.sparkOverrideH : undefined,
+                nodeIcon: edState ? edState.nodeIcon : undefined
             };
 
             if (edState && edState.x !== undefined && edState.y !== undefined) {
@@ -2015,6 +2038,17 @@ define([
                 } else {
                     dfLabelY = ty0 + (th0 - textBlockH) / 2;
                     dfValueY = dfLabelY + labelFontSize + 4;
+                }
+            }
+            // Node Icon (drawn above label)
+            if (node.nodeIcon && node.nodeIcon !== 'none') {
+                var iconChar = NODE_ICONS[node.nodeIcon] || node.nodeIcon;
+                if (iconChar) {
+                    ctx.font = (labelFontSize + 4) + 'px sans-serif';
+                    ctx.fillStyle = condResults.label || node.labelColor || theme.textMuted;
+                    ctx.textAlign = tAlign;
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(iconChar, textX, dfLabelY - 2);
                 }
             }
             // Label
@@ -3856,6 +3890,7 @@ define([
             this._snapEnabled = false;
             this._panX = 0;
             this._panY = 0;
+            this._zoom = 1.0;
             this._isPanning = false;
             this._spaceHeld = false;
             this._animationFrame = null;
@@ -3867,6 +3902,17 @@ define([
             this._guideSnapY = null;
 
             var self = this;
+
+            // ── Zoom via Cmd/Ctrl+scroll ──
+            this._onWheel = function(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    var delta = e.deltaY > 0 ? -0.05 : 0.05;
+                    self._zoom = Math.max(0.25, Math.min(3, self._zoom + delta));
+                    self.invalidateUpdateView();
+                }
+            };
+            this.canvas.addEventListener('wheel', this._onWheel, { passive: false });
 
             // ── localStorage key for caching ──
             this._getStorageKey = function() {
@@ -4077,8 +4123,8 @@ define([
                     manual: true,
                     shape: shape,
                     label: shape === 'textbox' ? '' : 'New Node',
-                    x: (cw / 2) - (nodeW / 2) - self._panX,
-                    y: (ch / 2) - (nodeH / 2) - self._panY,
+                    x: ((cw / 2) - self._panX) / self._zoom - (nodeW / 2),
+                    y: ((ch / 2) - self._panY) / self._zoom - (nodeH / 2),
                     w: nodeW,
                     h: nodeH
                 };
@@ -4104,8 +4150,8 @@ define([
                         // Find closest point to mouse
                         var delEcn = self._computedNodeMap[self._editingCustomNode];
                         if (delEcn) {
-                            var delMx = self._mouseX - self._panX;
-                            var delMy = self._mouseY - self._panY;
+                            var delMx = (self._mouseX - self._panX) / self._zoom;
+                            var delMy = (self._mouseY - self._panY) / self._zoom;
                             var delClosestIdx = -1;
                             var delClosestDist = Infinity;
                             for (var dpi = 0; dpi < delPath.length; dpi++) {
@@ -4137,7 +4183,7 @@ define([
                     var dwps = edcWp[dwci].waypoints;
                     if (!dwps) continue;
                     for (var dwpi = 0; dwpi < dwps.length; dwpi++) {
-                        if (pointInCircle(self._mouseX - self._panX, self._mouseY - self._panY, dwps[dwpi].x, dwps[dwpi].y, 16)) {
+                        if (pointInCircle((self._mouseX - self._panX) / self._zoom, (self._mouseY - self._panY) / self._zoom, dwps[dwpi].x, dwps[dwpi].y, 16)) {
                             self._pushUndo();
                             dwps.splice(dwpi, 1);
                             if (dwps.length === 0) delete edcWp[dwci].waypoints;
@@ -4245,8 +4291,8 @@ define([
                     // Create a new textbox (markdown) node at center of visible canvas
                     var textNodeId = '_text_' + Date.now();
                     var tRect = self.canvas.getBoundingClientRect();
-                    var tCx = (tRect.width / 2 - 100) - self._panX;
-                    var tCy = (tRect.height / 2 - 60) - self._panY;
+                    var tCx = ((tRect.width / 2) - self._panX) / self._zoom - 100;
+                    var tCy = ((tRect.height / 2) - self._panY) / self._zoom - 60;
                     if (!self._editorState.nodes[textNodeId]) self._editorState.nodes[textNodeId] = {};
                     self._editorState.nodes[textNodeId].manual = true;
                     self._editorState.nodes[textNodeId].shape = 'textbox';
@@ -4350,9 +4396,10 @@ define([
                         self.invalidateUpdateView();
                     }
                 } else if (action === 'fit') {
-                    // Reset pan offset
+                    // Reset pan and zoom
                     self._panX = 0;
                     self._panY = 0;
+                    self._zoom = 1.0;
                     // Fit all nodes within canvas
                     var fitNodes = self._computedNodes;
                     if (fitNodes.length === 0) return;
@@ -4572,8 +4619,8 @@ define([
                 var rect = self.canvas.getBoundingClientRect();
                 var rawMx = e.clientX - rect.left;
                 var rawMy = e.clientY - rect.top;
-                var mx = rawMx - self._panX;
-                var my = rawMy - self._panY;
+                var mx = (rawMx - self._panX) / self._zoom;
+                var my = (rawMy - self._panY) / self._zoom;
                 self._mouseX = rawMx;
                 self._mouseY = rawMy;
                 self._didDrag = false;
@@ -5462,8 +5509,8 @@ define([
                 var rect = self.canvas.getBoundingClientRect();
                 var rawMx = e.clientX - rect.left;
                 var rawMy = e.clientY - rect.top;
-                var mx = rawMx - self._panX;
-                var my = rawMy - self._panY;
+                var mx = (rawMx - self._panX) / self._zoom;
+                var my = (rawMy - self._panY) / self._zoom;
                 self._mouseX = rawMx;
                 self._mouseY = rawMy;
 
@@ -6145,8 +6192,8 @@ define([
                 // Handle port-based drag-to-connect end
                 if (self._isConnecting && self._connectFromPort) {
                     self._isConnecting = false;
-                    var cmx = self._mouseX - self._panX;
-                    var cmy = self._mouseY - self._panY;
+                    var cmx = (self._mouseX - self._panX) / self._zoom;
+                    var cmy = (self._mouseY - self._panY) / self._zoom;
                     // Find target node under cursor
                     for (var tni = 0; tni < self._computedNodes.length; tni++) {
                         var tn = self._computedNodes[tni];
@@ -6360,8 +6407,8 @@ define([
                     }
                 } else if (!self._editMode) {
                     // View mode click on node (lock mode — no drag started)
-                    var vmx = self._mouseX - self._panX;
-                    var vmy = self._mouseY - self._panY;
+                    var vmx = (self._mouseX - self._panX) / self._zoom;
+                    var vmy = (self._mouseY - self._panY) / self._zoom;
                     for (var vhi = 0; vhi < self._computedNodes.length; vhi++) {
                         var vhNode = self._computedNodes[vhi];
                         if (hitTestNode(vmx, vmy, vhNode)) {
@@ -6388,8 +6435,8 @@ define([
             this._onDblClick = function(e) {
                 if (!self._editMode) return;
                 var rect = self.canvas.getBoundingClientRect();
-                var mx = (e.clientX - rect.left) - self._panX;
-                var my = (e.clientY - rect.top) - self._panY;
+                var mx = ((e.clientX - rect.left) - self._panX) / self._zoom;
+                var my = ((e.clientY - rect.top) - self._panY) / self._zoom;
 
                 // Pen mode: close shape on double-click
                 if (self._drawMode === 'pen' && self._penPoints.length >= 3) {
@@ -6445,11 +6492,11 @@ define([
                         var inlineInput = document.createElement('input');
                         inlineInput.type = 'text';
                         inlineInput.value = es.nodes[dnd.id] ? (es.nodes[dnd.id].label || dnd.label || '') : (dnd.label || '');
-                        var nodeScreenX = dnd.x + self._panX;
-                        var nodeScreenY = dnd.y + self._panY;
-                        inlineInput.style.cssText = 'position:absolute;left:' + (nodeScreenX + dnd.w * 0.1) + 'px;' +
-                            'top:' + (nodeScreenY + dnd.h * 0.3) + 'px;' +
-                            'width:' + (dnd.w * 0.8) + 'px;' +
+                        var nodeScreenX = dnd.x * self._zoom + self._panX;
+                        var nodeScreenY = dnd.y * self._zoom + self._panY;
+                        inlineInput.style.cssText = 'position:absolute;left:' + (nodeScreenX + dnd.w * self._zoom * 0.1) + 'px;' +
+                            'top:' + (nodeScreenY + dnd.h * self._zoom * 0.3) + 'px;' +
+                            'width:' + (dnd.w * self._zoom * 0.8) + 'px;' +
                             'height:28px;' +
                             'background:rgba(15,23,42,0.95);color:#f1f5f9;border:2px solid #3b82f6;' +
                             'border-radius:4px;padding:2px 8px;font-size:14px;outline:none;' +
@@ -6879,6 +6926,63 @@ define([
             }
             selBody.appendChild(distRow);
 
+            // Group Selected button
+            var groupLabel = document.createElement('div');
+            groupLabel.textContent = 'GROUP';
+            groupLabel.style.cssText = 'color:#64748b;font-size:8px;padding:6px 10px 2px;text-transform:uppercase;letter-spacing:0.5px;';
+            selBody.appendChild(groupLabel);
+            var groupRow = document.createElement('div');
+            groupRow.style.cssText = 'display:flex;gap:4px;padding:2px 10px 6px 10px;';
+            var groupBtn = document.createElement('button');
+            groupBtn.textContent = '\u25A3 Group Selected';
+            groupBtn.style.cssText = 'flex:1;padding:5px 2px;border-radius:4px;border:1px solid #334155;background:rgba(30,41,59,0.8);color:#cbd5e1;font:10px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;transition:background 0.15s;';
+            groupBtn.addEventListener('mouseenter', function() { groupBtn.style.background = '#334155'; });
+            groupBtn.addEventListener('mouseleave', function() { groupBtn.style.background = 'rgba(30,41,59,0.8)'; });
+            groupBtn.addEventListener('click', function() {
+                if (!self._editorState.groups) self._editorState.groups = [];
+                self._editorState.groups.push({
+                    id: '_group_' + Date.now(),
+                    label: 'Group',
+                    nodeIds: self._selectedNodeIds.slice(),
+                    color: '#3b82f6',
+                    padding: 20
+                });
+                self._pushUndo();
+                self.invalidateUpdateView();
+                self._showStatus('Group created');
+            });
+            groupBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+            groupRow.appendChild(groupBtn);
+
+            // Ungroup button (if any selected nodes are in a group)
+            var ungroupBtn = document.createElement('button');
+            ungroupBtn.textContent = '\u25A1 Ungroup';
+            ungroupBtn.style.cssText = 'flex:1;padding:5px 2px;border-radius:4px;border:1px solid #334155;background:rgba(30,41,59,0.8);color:#cbd5e1;font:10px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;transition:background 0.15s;';
+            ungroupBtn.addEventListener('mouseenter', function() { ungroupBtn.style.background = '#334155'; });
+            ungroupBtn.addEventListener('mouseleave', function() { ungroupBtn.style.background = 'rgba(30,41,59,0.8)'; });
+            ungroupBtn.addEventListener('click', function() {
+                var groups = self._editorState.groups || [];
+                var remaining = [];
+                for (var ugi = 0; ugi < groups.length; ugi++) {
+                    var grp = groups[ugi];
+                    var hasSelected = false;
+                    for (var ugni = 0; ugni < grp.nodeIds.length; ugni++) {
+                        if (arrContains(self._selectedNodeIds, grp.nodeIds[ugni])) {
+                            hasSelected = true;
+                            break;
+                        }
+                    }
+                    if (!hasSelected) remaining.push(grp);
+                }
+                self._editorState.groups = remaining;
+                self._pushUndo();
+                self.invalidateUpdateView();
+                self._showStatus('Ungrouped');
+            });
+            ungroupBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+            groupRow.appendChild(ungroupBtn);
+            selBody.appendChild(groupRow);
+
             body.appendChild(selSec);
 
             // ── Shared Properties Section ──
@@ -7241,6 +7345,15 @@ define([
             } else {
                 var textSec = createPanelSection('Text & Value', '', false);
                 var textBody = textSec._body;
+
+                // Icon
+                textBody.appendChild(createToggleRow('Icon', [
+                    {value: 'none', label: 'None'}, {value: 'server', label: '\u2395'},
+                    {value: 'cloud', label: '\u2601'}, {value: 'warning', label: '\u26A0'},
+                    {value: 'check', label: '\u2713'}, {value: 'error', label: '\u2717'},
+                    {value: 'star', label: '\u2605'}, {value: 'gear', label: '\u2699'},
+                    {value: 'globe', label: '\u2295'}, {value: 'diamond', label: '\u25C6'}
+                ], ns.nodeIcon || 'none', makeOnChange('nodeIcon')));
 
                 // Label
                 textBody.appendChild(createTextRow('Label', ns.label || '', makeOnChange('label')));
@@ -8515,13 +8628,51 @@ define([
             // ── Render canvas ──
             ctx.clearRect(0, 0, w, h);
 
-            // Apply pan offset for world-space drawing
+            // Apply pan offset and zoom for world-space drawing
             ctx.save();
             ctx.translate(this._panX, this._panY);
+            ctx.scale(this._zoom, this._zoom);
 
             // Draw grid (in world space, scrolls with canvas)
             if (this._editMode && this._gridEnabled) {
                 drawGrid(ctx, w, h, this._gridSize, this._panX, this._panY, isDark);
+            }
+
+            // Draw grouping boxes (behind everything)
+            var groups = this._editorState.groups || [];
+            for (var gi = 0; gi < groups.length; gi++) {
+                var grp = groups[gi];
+                var gMinX = Infinity, gMaxX = -Infinity, gMinY = Infinity, gMaxY = -Infinity;
+                for (var gni = 0; gni < grp.nodeIds.length; gni++) {
+                    var gNode = nodeMap[grp.nodeIds[gni]];
+                    if (gNode) {
+                        if (gNode.x < gMinX) gMinX = gNode.x;
+                        if (gNode.x + gNode.w > gMaxX) gMaxX = gNode.x + gNode.w;
+                        if (gNode.y < gMinY) gMinY = gNode.y;
+                        if (gNode.y + gNode.h > gMaxY) gMaxY = gNode.y + gNode.h;
+                    }
+                }
+                if (gMinX === Infinity) continue;
+                var gPad = grp.padding || 20;
+                var gx = gMinX - gPad;
+                var gy = gMinY - gPad - 20;
+                var gw = gMaxX - gMinX + gPad * 2;
+                var gh = gMaxY - gMinY + gPad * 2 + 20;
+
+                roundRect(ctx, gx, gy, gw, gh, 8);
+                ctx.fillStyle = hexToRgba(grp.color || '#3b82f6', 0.08);
+                ctx.fill();
+                ctx.strokeStyle = hexToRgba(grp.color || '#3b82f6', 0.3);
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([8, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = grp.color || '#3b82f6';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillText(grp.label || 'Group', gx + 8, gy + 4);
             }
 
             // Build unified draw list: nodes and connections interleaved by z-order.
@@ -8567,8 +8718,8 @@ define([
                     var connSelected = this._editMode && this._selectedConnection !== null &&
                         this._selectedConnection.index === ci;
                     var connHovered = this._hoverItem && this._hoverItem.type === 'connection' && this._hoverItem.index === ci;
-                    conn._mouseX = this._mouseX - this._panX;
-                    conn._mouseY = this._mouseY - this._panY;
+                    conn._mouseX = (this._mouseX - this._panX) / this._zoom;
+                    conn._mouseY = (this._mouseY - this._panY) / this._zoom;
                     drawConnection(ctx, fromNd, toNd, conn, theme, connSelected, this._editMode, connHovered, this._animationOffset);
                     // Draw this connection's overlays (endpoints/arrows) immediately
                     // so they share the same z-level as the connection
@@ -8766,8 +8917,8 @@ define([
                         else if (this._connectFromPort === 'bottom') { clStartX = fromConnNode.x + fromConnNode.w / 2; clStartY = fromConnNode.y + fromConnNode.h; }
                         else if (this._connectFromPort === 'left') { clStartX = fromConnNode.x; clStartY = fromConnNode.y + fromConnNode.h / 2; }
                         else if (this._connectFromPort === 'right') { clStartX = fromConnNode.x + fromConnNode.w; clStartY = fromConnNode.y + fromConnNode.h / 2; }
-                        var clEndX = this._connectFromPort ? this._connectMouseX : (this._mouseX - this._panX);
-                        var clEndY = this._connectFromPort ? this._connectMouseY : (this._mouseY - this._panY);
+                        var clEndX = this._connectFromPort ? this._connectMouseX : ((this._mouseX - this._panX) / this._zoom);
+                        var clEndY = this._connectFromPort ? this._connectMouseY : ((this._mouseY - this._panY) / this._zoom);
                         ctx.save();
                         ctx.setLineDash([6, 3]);
                         ctx.strokeStyle = '#6366f1';
@@ -9057,6 +9208,62 @@ define([
                 drawToolbar(ctx, w, theme, toolbarH, this._toolbarButtons, this._hoverItem, this._lockMode, this._saveFlash, this._saveError, this._saveMessage, this._statusMessage, this._drawMode);
             }
 
+            // Zoom indicator
+            if (this._zoom !== 1.0) {
+                ctx.fillStyle = theme.textMuted;
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'top';
+                ctx.fillText(Math.round(this._zoom * 100) + '%', w - 10, toolbarH + 6);
+            }
+
+            // Mini-map (only when zoomed or panned)
+            if (positioned.length > 0 && (this._zoom !== 1.0 || this._panX !== 0 || this._panY !== 0)) {
+                var mmW = 150, mmH = 100;
+                var mmX = 10, mmY = h - mmH - 10;
+                var mmPad = 5;
+
+                var worldMinX = Infinity, worldMaxX = -Infinity;
+                var worldMinY = Infinity, worldMaxY = -Infinity;
+                for (var mmi = 0; mmi < positioned.length; mmi++) {
+                    var mmn = positioned[mmi];
+                    if (mmn.x < worldMinX) worldMinX = mmn.x;
+                    if (mmn.x + mmn.w > worldMaxX) worldMaxX = mmn.x + mmn.w;
+                    if (mmn.y < worldMinY) worldMinY = mmn.y;
+                    if (mmn.y + mmn.h > worldMaxY) worldMaxY = mmn.y + mmn.h;
+                }
+                var worldW = worldMaxX - worldMinX + 100;
+                var worldH = worldMaxY - worldMinY + 100;
+                var mmScale = Math.min((mmW - mmPad * 2) / worldW, (mmH - mmPad * 2) / worldH);
+
+                ctx.fillStyle = 'rgba(15,23,42,0.8)';
+                roundRect(ctx, mmX, mmY, mmW, mmH, 6);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                for (var mmni = 0; mmni < positioned.length; mmni++) {
+                    var mn = positioned[mmni];
+                    var mnx = mmX + mmPad + (mn.x - worldMinX + 50) * mmScale;
+                    var mny = mmY + mmPad + (mn.y - worldMinY + 50) * mmScale;
+                    var mnw = Math.max(3, mn.w * mmScale);
+                    var mnh = Math.max(2, mn.h * mmScale);
+                    ctx.fillStyle = mn.color || '#3b82f6';
+                    ctx.globalAlpha = 0.6;
+                    ctx.fillRect(mnx, mny, mnw, mnh);
+                }
+                ctx.globalAlpha = 1;
+
+                var vpX = mmX + mmPad + (-this._panX / this._zoom - worldMinX + 50) * mmScale;
+                var vpY = mmY + mmPad + (-this._panY / this._zoom - worldMinY + 50) * mmScale;
+                var vpW = (w / this._zoom) * mmScale;
+                var vpH = (h / this._zoom) * mmScale;
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(vpX, vpY, vpW, vpH);
+            }
+
             // Hover tooltips in view mode
             if (!this._editMode && this._hoverItem) {
                 if (this._hoverItem.type === 'node' && nodeMap[this._hoverItem.id]) {
@@ -9167,6 +9374,9 @@ define([
                 this.canvas.removeEventListener('dblclick', this._onDblClick);
                 this.canvas.removeEventListener('contextmenu', this._onContextMenu);
                 this.canvas.removeEventListener('mouseleave', this._onMouseLeave);
+                if (this._onWheel) {
+                    this.canvas.removeEventListener('wheel', this._onWheel);
+                }
             }
 
             // Stop animation loop
