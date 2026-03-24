@@ -4932,6 +4932,8 @@ define([
                             var dn = agDraggedNodes[0];
                             var dnCx = dn.x + dn.w / 2;
                             var dnCy = dn.y + dn.h / 2;
+                            var snapDx = 0, snapDy = 0;
+                            var snappedX = false, snappedY = false;
                             for (var ogi = 0; ogi < self._computedNodes.length; ogi++) {
                                 var on = self._computedNodes[ogi];
                                 if (arrContains(self._selectedNodeIds, on.id)) continue;
@@ -4939,28 +4941,53 @@ define([
                                 var onCx = on.x + on.w / 2;
                                 var onCy = on.y + on.h / 2;
                                 // Left edge
-                                if (Math.abs(dn.x - on.x) < agThreshold) {
+                                if (!snappedX && Math.abs(dn.x - on.x) < agThreshold) {
                                     self._alignGuides.push({ type: 'v', x: on.x });
+                                    snapDx = on.x - dn.x; snappedX = true;
                                 }
                                 // Right edge
-                                if (Math.abs((dn.x + dn.w) - (on.x + on.w)) < agThreshold) {
+                                if (!snappedX && Math.abs((dn.x + dn.w) - (on.x + on.w)) < agThreshold) {
                                     self._alignGuides.push({ type: 'v', x: on.x + on.w });
+                                    snapDx = (on.x + on.w) - (dn.x + dn.w); snappedX = true;
                                 }
                                 // Center X
-                                if (Math.abs(dnCx - onCx) < agThreshold) {
+                                if (!snappedX && Math.abs(dnCx - onCx) < agThreshold) {
                                     self._alignGuides.push({ type: 'v', x: onCx });
+                                    snapDx = onCx - dnCx; snappedX = true;
                                 }
                                 // Top edge
-                                if (Math.abs(dn.y - on.y) < agThreshold) {
+                                if (!snappedY && Math.abs(dn.y - on.y) < agThreshold) {
                                     self._alignGuides.push({ type: 'h', y: on.y });
+                                    snapDy = on.y - dn.y; snappedY = true;
                                 }
                                 // Bottom edge
-                                if (Math.abs((dn.y + dn.h) - (on.y + on.h)) < agThreshold) {
+                                if (!snappedY && Math.abs((dn.y + dn.h) - (on.y + on.h)) < agThreshold) {
                                     self._alignGuides.push({ type: 'h', y: on.y + on.h });
+                                    snapDy = (on.y + on.h) - (dn.y + dn.h); snappedY = true;
                                 }
                                 // Center Y
-                                if (Math.abs(dnCy - onCy) < agThreshold) {
+                                if (!snappedY && Math.abs(dnCy - onCy) < agThreshold) {
                                     self._alignGuides.push({ type: 'h', y: onCy });
+                                    snapDy = onCy - dnCy; snappedY = true;
+                                }
+                            }
+                            // Apply snap offset to all dragged nodes
+                            if (snapDx !== 0 || snapDy !== 0) {
+                                for (var sni = 0; sni < self._selectedNodeIds.length; sni++) {
+                                    var snId = self._selectedNodeIds[sni];
+                                    var snState = es.nodes[snId];
+                                    if (snState) {
+                                        if (snapDx !== 0) snState.x = (snState.x || 0) + snapDx;
+                                        if (snapDy !== 0) snState.y = (snState.y || 0) + snapDy;
+                                    }
+                                }
+                                // Also snap single drag node
+                                if (self._selectedNodeIds.length === 0 && self._dragNodeId) {
+                                    var sdState = es.nodes[self._dragNodeId];
+                                    if (sdState) {
+                                        if (snapDx !== 0) sdState.x = (sdState.x || 0) + snapDx;
+                                        if (snapDy !== 0) sdState.y = (sdState.y || 0) + snapDy;
+                                    }
                                 }
                             }
                         }
