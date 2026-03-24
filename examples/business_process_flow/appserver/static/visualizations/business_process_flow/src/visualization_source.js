@@ -973,7 +973,8 @@ define([
                 sparkOverrideY: edState ? edState.sparkOverrideY : undefined,
                 sparkOverrideW: edState ? edState.sparkOverrideW : undefined,
                 sparkOverrideH: edState ? edState.sparkOverrideH : undefined,
-                nodeIcon: edState ? edState.nodeIcon : undefined
+                nodeIcon: edState ? edState.nodeIcon : undefined,
+                customIcon: edState ? edState.customIcon : undefined
             };
 
             if (edState && edState.x !== undefined && edState.y !== undefined) {
@@ -2052,7 +2053,7 @@ define([
                 dfValueY += _iconH / 2;
             }
             if (_hasIcon) {
-                var iconChar = NODE_ICONS[node.nodeIcon] || node.nodeIcon;
+                var iconChar = node.nodeIcon === 'custom' ? (node.customIcon || '') : (NODE_ICONS[node.nodeIcon] || node.nodeIcon);
                 if (iconChar) {
                     ctx.font = _iconH + 'px sans-serif';
                     ctx.fillStyle = condResults.label || node.labelColor || theme.textMuted;
@@ -7484,7 +7485,8 @@ define([
                     { value: 'triangle', label: '\u25B2 Triangle' },
                     { value: 'diamond', label: '\u25C6 Diamond' },
                     { value: 'arrow-right', label: '\u2192 Arrow Right' },
-                    { value: 'arrow-down', label: '\u2193 Arrow Down' }
+                    { value: 'arrow-down', label: '\u2193 Arrow Down' },
+                    { value: 'custom', label: '\u270D Custom (type below)' }
                 ];
                 var iconLabel = document.createElement('div');
                 iconLabel.textContent = 'ICON';
@@ -7504,6 +7506,17 @@ define([
                 });
                 iconSelect.addEventListener('mousedown', function(e) { e.stopPropagation(); });
                 textBody.appendChild(iconSelect);
+
+                // Custom icon (emoji or text)
+                textBody.appendChild(createTextRow('Custom Icon', ns.customIcon || '', function(val) {
+                    if (!self._editorState.nodes[nodeId]) self._editorState.nodes[nodeId] = {};
+                    self._editorState.nodes[nodeId].customIcon = val;
+                    if (val) {
+                        self._editorState.nodes[nodeId].nodeIcon = 'custom';
+                    }
+                    self._pushUndo();
+                    self.invalidateUpdateView();
+                }));
 
                 // Label
                 textBody.appendChild(createTextRow('Label', ns.label || '', makeOnChange('label')));
