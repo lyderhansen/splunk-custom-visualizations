@@ -8760,22 +8760,22 @@ define([
                                 midPx = enx + (prevPt.x + nextPt.x) / 2 * enw;
                                 midPy = eny + (prevPt.y + nextPt.y) / 2 * enh;
                             }
-                            // Circle background
+                            // Solid circle with white fill + blue border + blue plus
                             ctx.beginPath();
-                            ctx.arc(midPx, midPy, 7, 0, Math.PI * 2);
-                            ctx.fillStyle = 'rgba(59,130,246,0.15)';
+                            ctx.arc(midPx, midPy, 8, 0, Math.PI * 2);
+                            ctx.fillStyle = '#fff';
                             ctx.fill();
-                            ctx.strokeStyle = 'rgba(59,130,246,0.5)';
-                            ctx.lineWidth = 1;
+                            ctx.strokeStyle = '#3b82f6';
+                            ctx.lineWidth = 2;
                             ctx.stroke();
-                            // Plus icon
-                            ctx.strokeStyle = 'rgba(59,130,246,0.7)';
-                            ctx.lineWidth = 1.5;
+                            // Plus icon — solid blue
+                            ctx.strokeStyle = '#3b82f6';
+                            ctx.lineWidth = 2;
                             ctx.beginPath();
-                            ctx.moveTo(midPx - 3, midPy);
-                            ctx.lineTo(midPx + 3, midPy);
-                            ctx.moveTo(midPx, midPy - 3);
-                            ctx.lineTo(midPx, midPy + 3);
+                            ctx.moveTo(midPx - 4, midPy);
+                            ctx.lineTo(midPx + 4, midPy);
+                            ctx.moveTo(midPx, midPy - 4);
+                            ctx.lineTo(midPx, midPy + 4);
                             ctx.stroke();
                         }
                     }
