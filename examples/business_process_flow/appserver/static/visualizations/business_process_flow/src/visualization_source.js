@@ -5416,15 +5416,42 @@ define([
                             if (cpArr[rni].hInX !== undefined && (cpArr[rni].hInX < -0.5 || cpArr[rni].hInX > 1.5)) { needsRenorm = true; break; }
                         }
                         if (needsRenorm) {
-                            // Recalculate bounding box from all points (in world coords)
+                            // Recalculate bounding box by sampling bezier curves (not just control points)
                             var wMinX = Infinity, wMaxX = -Infinity, wMinY = Infinity, wMaxY = -Infinity;
                             for (var wpi = 0; wpi < cpArr.length; wpi++) {
-                                var wpx = ecnm.x + cpArr[wpi].x * ecnm.w;
-                                var wpy = ecnm.y + cpArr[wpi].y * ecnm.h;
+                                var wpNext = cpArr[(wpi + 1) % cpArr.length];
+                                var wpCur = cpArr[wpi];
+                                // Include the point itself
+                                var wpx = ecnm.x + wpCur.x * ecnm.w;
+                                var wpy = ecnm.y + wpCur.y * ecnm.h;
                                 if (wpx < wMinX) wMinX = wpx;
                                 if (wpx > wMaxX) wMaxX = wpx;
                                 if (wpy < wMinY) wMinY = wpy;
                                 if (wpy > wMaxY) wMaxY = wpy;
+                                // Sample the bezier curve to next point (10 samples)
+                                var wHO = wpCur.hOutX !== undefined;
+                                var wHI = wpNext.hInX !== undefined;
+                                if (wHO || wHI) {
+                                    for (var wst = 1; wst <= 10; wst++) {
+                                        var wt = wst / 10;
+                                        var wmt = 1 - wt;
+                                        var wsx, wsy;
+                                        if (wHO && wHI) {
+                                            wsx = ecnm.x + (wmt*wmt*wmt*wpCur.x + 3*wmt*wmt*wt*wpCur.hOutX + 3*wmt*wt*wt*wpNext.hInX + wt*wt*wt*wpNext.x) * ecnm.w;
+                                            wsy = ecnm.y + (wmt*wmt*wmt*wpCur.y + 3*wmt*wmt*wt*wpCur.hOutY + 3*wmt*wt*wt*wpNext.hInY + wt*wt*wt*wpNext.y) * ecnm.h;
+                                        } else if (wHO) {
+                                            wsx = ecnm.x + (wmt*wmt*wpCur.x + 2*wmt*wt*wpCur.hOutX + wt*wt*wpNext.x) * ecnm.w;
+                                            wsy = ecnm.y + (wmt*wmt*wpCur.y + 2*wmt*wt*wpCur.hOutY + wt*wt*wpNext.y) * ecnm.h;
+                                        } else {
+                                            wsx = ecnm.x + (wmt*wmt*wpCur.x + 2*wmt*wt*wpNext.hInX + wt*wt*wpNext.x) * ecnm.w;
+                                            wsy = ecnm.y + (wmt*wmt*wpCur.y + 2*wmt*wt*wpNext.hInY + wt*wt*wpNext.y) * ecnm.h;
+                                        }
+                                        if (wsx < wMinX) wMinX = wsx;
+                                        if (wsx > wMaxX) wMaxX = wsx;
+                                        if (wsy < wMinY) wMinY = wsy;
+                                        if (wsy > wMaxY) wMaxY = wsy;
+                                    }
+                                }
                             }
                             var newW = Math.max(20, wMaxX - wMinX);
                             var newH = Math.max(20, wMaxY - wMinY);
@@ -8407,8 +8434,8 @@ define([
                 ctx.setLineDash([]);
             }
 
-            // ── Connection Ports on Selected Nodes ──
-            if (this._editMode) {
+            // ── Connection Ports on Selected Nodes (hide during point editing) ──
+            if (this._editMode && !this._editingCustomNode) {
                 for (var cpi = 0; cpi < positioned.length; cpi++) {
                     var cpn = positioned[cpi];
                     if (arrContains(this._selectedNodeIds, cpn.id)) {
