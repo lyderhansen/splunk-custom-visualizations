@@ -3001,13 +3001,13 @@ define([
      * Draw deferred connection overlays (endpoints, waypoints, labels).
      * Called AFTER nodes are drawn so they appear on top.
      */
-    function drawConnectionOverlays(ctx, connections, theme) {
+    function drawConnectionOverlays(ctx, connections, theme, skipEndpoints) {
         for (var oi = 0; oi < connections.length; oi++) {
             connections[oi]._wpDeleteHits = null; // reset each frame
             var dd = connections[oi]._deferredDraw;
             if (!dd) continue;
-            // End endpoint — when flipped, shift outward along line so it doesn't overlap node
-            if (dd.endEp !== 'none') {
+            // End endpoint — skip if already drawn inline in z-order pass
+            if (!skipEndpoints && dd.endEp !== 'none') {
                 var endA = dd.endFlipped ? dd.endAngle + Math.PI : dd.endAngle;
                 var edx = dd.endPtX;
                 var edy = dd.endPtY;
@@ -3017,8 +3017,8 @@ define([
                 }
                 drawEndpoint(ctx, edx, edy, endA, dd.endEp, dd.epSize, dd.lineColor);
             }
-            // Start endpoint — when flipped, shift outward along line
-            if (dd.startEp !== 'none') {
+            // Start endpoint — skip if already drawn inline
+            if (!skipEndpoints && dd.startEp !== 'none') {
                 var startA = dd.startFlipped ? dd.startAngle : dd.startAngle + Math.PI;
                 var sdx = dd.startPtX;
                 var sdy = dd.startPtY;
@@ -8353,6 +8353,24 @@ define([
                     conn._mouseX = this._mouseX - this._panX;
                     conn._mouseY = this._mouseY - this._panY;
                     drawConnection(ctx, fromNd, toNd, conn, theme, connSelected, this._editMode, connHovered, this._animationOffset);
+                    // Draw this connection's overlays (endpoints/arrows) immediately
+                    // so they share the same z-level as the connection
+                    conn._wpDeleteHits = null;
+                    var dd = conn._deferredDraw;
+                    if (dd) {
+                        if (dd.endEp !== 'none') {
+                            var endA = dd.endFlipped ? dd.endAngle + Math.PI : dd.endAngle;
+                            var edx = dd.endPtX, edy = dd.endPtY;
+                            if (dd.endFlipped) { edx -= Math.cos(dd.endAngle) * dd.epSize * 0.8; edy -= Math.sin(dd.endAngle) * dd.epSize * 0.8; }
+                            drawEndpoint(ctx, edx, edy, endA, dd.endEp, dd.epSize, dd.lineColor);
+                        }
+                        if (dd.startEp !== 'none') {
+                            var startA = dd.startFlipped ? dd.startAngle : dd.startAngle + Math.PI;
+                            var sdx = dd.startPtX, sdy = dd.startPtY;
+                            if (dd.startFlipped) { sdx += Math.cos(dd.startAngle) * dd.epSize * 0.8; sdy += Math.sin(dd.startAngle) * dd.epSize * 0.8; }
+                            drawEndpoint(ctx, sdx, sdy, startA, dd.startEp, dd.epSize, dd.lineColor);
+                        }
+                    }
                 } else {
                     var pn = dwItem.item;
                     var isNodeSelected = this._editMode && arrContains(this._selectedNodeIds, pn.id);
@@ -8489,8 +8507,8 @@ define([
                 }
             }
 
-            // Draw connection overlays (endpoints, waypoints) ON TOP of nodes
-            drawConnectionOverlays(ctx, connections, theme);
+            // Draw connection overlays (waypoints, anchors, labels) — endpoints already drawn inline
+            drawConnectionOverlays(ctx, connections, theme, true);
 
             // Check for active animations and start/stop the animation loop
             var edConns = this._editorState.connections || [];
