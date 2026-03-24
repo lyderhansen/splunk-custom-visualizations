@@ -2898,6 +2898,7 @@ define([
             { label: 'T',     icon: 'T',     action: 'addText',         w: 36 },
             { label: '\u25A1', icon: '',  action: 'drawRect',       w: 36 },
             { label: '\u270E', icon: '',  action: 'drawPen',        w: 36 },
+            { label: '\u270E+', icon: '', action: 'editPoints',    w: 36 },
             { label: '\u2192', icon: '', action: 'addConnection',  w: 36 },
             { label: '\u2715', icon: '', action: 'deleteSelected',  w: 36, tint: 'red' },
             { label: '\u229E', icon: '', action: 'fit',            w: 36 },
@@ -2911,7 +2912,7 @@ define([
             var def = btnDefs[i];
             var bw = def.w;
             var isHovered = hoverItem && hoverItem.type === 'button' && hoverItem.index === i;
-            var isActive = (def.action === 'drawRect' && drawMode === 'rect') || (def.action === 'drawPen' && drawMode === 'pen');
+            var isActive = (def.action === 'drawRect' && drawMode === 'rect') || (def.action === 'drawPen' && drawMode === 'pen') || (def.action === 'editPoints' && drawMode === 'editPoints');
 
             // Button background
             roundRect(ctx, btnX, btnY, bw, btnH, 4);
@@ -4060,10 +4061,26 @@ define([
                         self._drawMode = 'pen';
                         self._penPoints = [];
                         self.canvas.style.cursor = 'crosshair';
-                        self._statusMessage = 'Pen: click to place points, double-click or click start to close shape';
+                        self._statusMessage = 'Pen: click to place points, drag to create curves, close shape to finish';
                         self._selectedNodeIds = [];
                         self._selectedConnection = null;
                         self._connPopupIdx = null;
+                        self._editingCustomNode = null;
+                    }
+                    self.invalidateUpdateView();
+                    self._updatePanel();
+                    return;
+                } else if (action === 'editPoints') {
+                    if (self._drawMode === 'editPoints') {
+                        self._drawMode = null;
+                        self._editingCustomNode = null;
+                        self.canvas.style.cursor = 'default';
+                        self._statusMessage = '';
+                    } else {
+                        self._drawMode = 'editPoints';
+                        self.canvas.style.cursor = 'default';
+                        self._statusMessage = 'Edit Points: click a shape to edit its points, drag points/handles';
+                        self._penPoints = [];
                     }
                     self.invalidateUpdateView();
                     self._updatePanel();
@@ -4482,6 +4499,29 @@ define([
                             return;
                         }
                         // Fall through to normal node handling below
+                    }
+
+                    // Edit Points mode: click custom node to enter point editing
+                    if (self._drawMode === 'editPoints') {
+                        for (var epni = 0; epni < self._computedNodes.length; epni++) {
+                            var epnd = self._computedNodes[epni];
+                            if (hitTestNode(mx, my, epnd)) {
+                                var epndState = es.nodes[epnd.id];
+                                if (epndState && epndState.shape === 'custom' && epndState.customPath) {
+                                    self._editingCustomNode = epnd.id;
+                                    self._selectedNodeIds = [epnd.id];
+                                    self._editingPointIdx = -1;
+                                    self.invalidateUpdateView();
+                                    self._updatePanel();
+                                    e.preventDefault();
+                                    return;
+                                }
+                            }
+                        }
+                        // Click on empty = exit editing
+                        self._editingCustomNode = null;
+                        self.invalidateUpdateView();
+                        // Fall through to allow other interactions
                     }
 
                     // Check node popup hits
@@ -5982,12 +6022,31 @@ define([
                     return;
                 }
 
-                // Double-click on node → check custom shape first, then inline label editor
+                // Double-click on node
                 for (var dni = 0; dni < self._computedNodes.length; dni++) {
                     var dnd = self._computedNodes[dni];
                     if (hitTestNode(mx, my, dnd)) {
-                        // Check if this is a custom shape node — enter point editing mode
                         var dndState = self._editorState.nodes[dnd.id];
+
+                        // Edit Points mode: enter point editing for custom shapes
+                        if (self._drawMode === 'editPoints') {
+                            if (dndState && dndState.shape === 'custom' && dndState.customPath) {
+                                if (self._editingCustomNode === dnd.id) {
+                                    self._editingCustomNode = null;
+                                } else {
+                                    self._editingCustomNode = dnd.id;
+                                }
+                                self._editingPointIdx = -1;
+                                self._editingHandleType = null;
+                                self.invalidateUpdateView();
+                            }
+                            return; // Don't do anything else in editPoints mode
+                        }
+
+                        // Pen mode: don't open text edit
+                        if (self._drawMode === 'pen') return;
+
+                        // Custom shape without editPoints tool: enter point editing
                         if (dndState && dndState.shape === 'custom' && dndState.customPath) {
                             if (self._editingCustomNode === dnd.id) {
                                 self._editingCustomNode = null;
