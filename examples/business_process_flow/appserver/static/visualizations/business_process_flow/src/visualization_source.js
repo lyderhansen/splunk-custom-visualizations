@@ -942,7 +942,12 @@ define([
                 gradientEnd: edState ? edState.gradientEnd : undefined,
                 zOrder: edState ? edState.zOrder : undefined,
                 frostedGlass: edState ? edState.frostedGlass : undefined,
-                customPath: edState ? edState.customPath : undefined
+                customPath: edState ? edState.customPath : undefined,
+                sparkCustomArea: edState ? edState.sparkCustomArea : undefined,
+                sparkOverrideX: edState ? edState.sparkOverrideX : undefined,
+                sparkOverrideY: edState ? edState.sparkOverrideY : undefined,
+                sparkOverrideW: edState ? edState.sparkOverrideW : undefined,
+                sparkOverrideH: edState ? edState.sparkOverrideH : undefined
             };
 
             if (edState && edState.x !== undefined && edState.y !== undefined) {
@@ -1764,8 +1769,21 @@ define([
 
         if (sparkPos === 'behind' && hasSpark) {
             // BEHIND: sparkline fills entire node background, text overlaps on top
-            drawSparkline(ctx, node.series, x, y, w, h, nodeSparkType, condResults.sparkline || node.color);
-            node._sparkBounds = { x: x, y: y, w: w, h: h };
+            var bhSparkX = x, bhSparkY = y, bhSparkW = w, bhSparkH2 = h;
+            if (node.sparkCustomArea === 'on') {
+                bhSparkX = x + (parseFloat(node.sparkOverrideX) || 0.05) * w;
+                bhSparkY = y + (parseFloat(node.sparkOverrideY) || 0.6) * h;
+                bhSparkW = (parseFloat(node.sparkOverrideW) || 0.9) * w;
+                bhSparkH2 = (parseFloat(node.sparkOverrideH) || 0.3) * h;
+            }
+            if (shape === 'custom' && node.customPath && node.customPath.length >= 3) {
+                ctx.save(); shapePath(); ctx.clip();
+                drawSparkline(ctx, node.series, bhSparkX, bhSparkY, bhSparkW, bhSparkH2, nodeSparkType, condResults.sparkline || node.color);
+                ctx.restore();
+            } else {
+                drawSparkline(ctx, node.series, bhSparkX, bhSparkY, bhSparkW, bhSparkH2, nodeSparkType, condResults.sparkline || node.color);
+            }
+            node._sparkBounds = { x: bhSparkX, y: bhSparkY, w: bhSparkW, h: bhSparkH2 };
             node._sparkDataRef = node.series;
             // Compute vertical position for label + value block
             var bhTextBlockH = labelFontSize + valueFontSize + 4;
@@ -1796,8 +1814,21 @@ define([
         } else if (sparkPos === 'above' && hasSpark) {
             // ABOVE: sparkline in top portion, text below
             var abSparkH = Math.min(sparkH, Math.round(th0 * 0.5));
-            drawSparkline(ctx, node.series, tx0 + pad, ty0 + pad, tw0 - pad * 2, abSparkH - pad, nodeSparkType, condResults.sparkline || node.color);
-            node._sparkBounds = { x: tx0 + pad, y: ty0 + pad, w: tw0 - pad * 2, h: abSparkH - pad };
+            var abSX = tx0 + pad, abSY = ty0 + pad, abSW = tw0 - pad * 2, abSH = abSparkH - pad;
+            if (node.sparkCustomArea === 'on') {
+                abSX = x + (parseFloat(node.sparkOverrideX) || 0.05) * w;
+                abSY = y + (parseFloat(node.sparkOverrideY) || 0.6) * h;
+                abSW = (parseFloat(node.sparkOverrideW) || 0.9) * w;
+                abSH = (parseFloat(node.sparkOverrideH) || 0.3) * h;
+            }
+            if (shape === 'custom' && node.customPath && node.customPath.length >= 3) {
+                ctx.save(); shapePath(); ctx.clip();
+                drawSparkline(ctx, node.series, abSX, abSY, abSW, abSH, nodeSparkType, condResults.sparkline || node.color);
+                ctx.restore();
+            } else {
+                drawSparkline(ctx, node.series, abSX, abSY, abSW, abSH, nodeSparkType, condResults.sparkline || node.color);
+            }
+            node._sparkBounds = { x: abSX, y: abSY, w: abSW, h: abSH };
             node._sparkDataRef = node.series;
             // Text area below sparkline
             var abTextAreaY = ty0 + abSparkH;
@@ -1835,8 +1866,21 @@ define([
             var leftSparkAreaX = tx0;
             // Place sparkline at BOTTOM of its column
             var leftSparkAreaY = ty0 + th0 - pad - leftSparkActualH;
-            drawSparkline(ctx, node.series, leftSparkAreaX, leftSparkAreaY, leftSparkW, leftSparkActualH, nodeSparkType, condResults.sparkline || node.color);
-            node._sparkBounds = { x: leftSparkAreaX, y: leftSparkAreaY, w: leftSparkW, h: leftSparkActualH };
+            var lSX = leftSparkAreaX, lSY = leftSparkAreaY, lSW = leftSparkW, lSH = leftSparkActualH;
+            if (node.sparkCustomArea === 'on') {
+                lSX = x + (parseFloat(node.sparkOverrideX) || 0.05) * w;
+                lSY = y + (parseFloat(node.sparkOverrideY) || 0.6) * h;
+                lSW = (parseFloat(node.sparkOverrideW) || 0.9) * w;
+                lSH = (parseFloat(node.sparkOverrideH) || 0.3) * h;
+            }
+            if (shape === 'custom' && node.customPath && node.customPath.length >= 3) {
+                ctx.save(); shapePath(); ctx.clip();
+                drawSparkline(ctx, node.series, lSX, lSY, lSW, lSH, nodeSparkType, condResults.sparkline || node.color);
+                ctx.restore();
+            } else {
+                drawSparkline(ctx, node.series, lSX, lSY, lSW, lSH, nodeSparkType, condResults.sparkline || node.color);
+            }
+            node._sparkBounds = { x: lSX, y: lSY, w: lSW, h: lSH };
             node._sparkDataRef = node.series;
             // Label on right (tAlign applies within right panel)
             var rightX = tx0 + leftSparkW + pad;
@@ -1879,8 +1923,21 @@ define([
             var rightSparkActualH = Math.min(sparkH, rightMaxH);
             // Place sparkline at BOTTOM of its column
             var rightSparkAreaY = ty0 + th0 - pad - rightSparkActualH;
-            drawSparkline(ctx, node.series, rightSparkX, rightSparkAreaY, rightSparkW, rightSparkActualH, nodeSparkType, condResults.sparkline || node.color);
-            node._sparkBounds = { x: rightSparkX, y: rightSparkAreaY, w: rightSparkW, h: rightSparkActualH };
+            var rSX = rightSparkX, rSY = rightSparkAreaY, rSW = rightSparkW, rSH = rightSparkActualH;
+            if (node.sparkCustomArea === 'on') {
+                rSX = x + (parseFloat(node.sparkOverrideX) || 0.05) * w;
+                rSY = y + (parseFloat(node.sparkOverrideY) || 0.6) * h;
+                rSW = (parseFloat(node.sparkOverrideW) || 0.9) * w;
+                rSH = (parseFloat(node.sparkOverrideH) || 0.3) * h;
+            }
+            if (shape === 'custom' && node.customPath && node.customPath.length >= 3) {
+                ctx.save(); shapePath(); ctx.clip();
+                drawSparkline(ctx, node.series, rSX, rSY, rSW, rSH, nodeSparkType, condResults.sparkline || node.color);
+                ctx.restore();
+            } else {
+                drawSparkline(ctx, node.series, rSX, rSY, rSW, rSH, nodeSparkType, condResults.sparkline || node.color);
+            }
+            node._sparkBounds = { x: rSX, y: rSY, w: rSW, h: rSH };
             node._sparkDataRef = node.series;
             // Label on left panel
             var leftTextW = tw0 - rightSparkW - pad * 2;
@@ -2001,9 +2058,22 @@ define([
                     sparkX = x + w / 2 - dHalfW + pad;
                     sparkW = dHalfW * 2 - pad * 2;
                 }
-                if (sparkW > 20) {
-                    drawSparkline(ctx, node.series, sparkX, sparkY, sparkW, sparkH, nodeSparkType, condResults.sparkline || node.color);
-                    node._sparkBounds = { x: sparkX, y: sparkY, w: sparkW, h: sparkH };
+                var dfSX = sparkX, dfSY = sparkY, dfSW = sparkW, dfSH = sparkH;
+                if (node.sparkCustomArea === 'on') {
+                    dfSX = x + (parseFloat(node.sparkOverrideX) || 0.05) * w;
+                    dfSY = y + (parseFloat(node.sparkOverrideY) || 0.6) * h;
+                    dfSW = (parseFloat(node.sparkOverrideW) || 0.9) * w;
+                    dfSH = (parseFloat(node.sparkOverrideH) || 0.3) * h;
+                }
+                if (dfSW > 20) {
+                    if (shape === 'custom' && node.customPath && node.customPath.length >= 3) {
+                        ctx.save(); shapePath(); ctx.clip();
+                        drawSparkline(ctx, node.series, dfSX, dfSY, dfSW, dfSH, nodeSparkType, condResults.sparkline || node.color);
+                        ctx.restore();
+                    } else {
+                        drawSparkline(ctx, node.series, dfSX, dfSY, dfSW, dfSH, nodeSparkType, condResults.sparkline || node.color);
+                    }
+                    node._sparkBounds = { x: dfSX, y: dfSY, w: dfSW, h: dfSH };
                     node._sparkDataRef = node.series;
                 }
             }
@@ -7337,6 +7407,47 @@ define([
             sparkBody.appendChild(createToggleRow('Hover Detail', [
                 {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
             ], ns.sparkHover || 'off', makeOnChange('sparkHover')));
+
+            // Custom sparkline area override
+            sparkBody.appendChild(createToggleRow('Custom Area', [
+                {value: 'off', label: 'Auto'}, {value: 'on', label: 'Manual'}
+            ], ns.sparkCustomArea || 'off', makeOnChangeAndRefresh('sparkCustomArea')));
+
+            if (ns.sparkCustomArea === 'on') {
+                var scRow1 = document.createElement('div');
+                scRow1.style.cssText = 'display:flex;gap:6px;';
+                var scX = createTextRow('X %', String(Math.round((parseFloat(ns.sparkOverrideX) || 0.05) * 100)), function(val) {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].sparkOverrideX = String(parseInt(val, 10) / 100);
+                    self._pushUndo(); self.invalidateUpdateView();
+                }, { numeric: true, min: 0, max: 100, step: 5 });
+                scX.style.flex = '1'; scX.style.minWidth = '0';
+                var scY = createTextRow('Y %', String(Math.round((parseFloat(ns.sparkOverrideY) || 0.6) * 100)), function(val) {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].sparkOverrideY = String(parseInt(val, 10) / 100);
+                    self._pushUndo(); self.invalidateUpdateView();
+                }, { numeric: true, min: 0, max: 100, step: 5 });
+                scY.style.flex = '1'; scY.style.minWidth = '0';
+                scRow1.appendChild(scX); scRow1.appendChild(scY);
+                sparkBody.appendChild(scRow1);
+
+                var scRow2 = document.createElement('div');
+                scRow2.style.cssText = 'display:flex;gap:6px;';
+                var scW = createTextRow('W %', String(Math.round((parseFloat(ns.sparkOverrideW) || 0.9) * 100)), function(val) {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].sparkOverrideW = String(parseInt(val, 10) / 100);
+                    self._pushUndo(); self.invalidateUpdateView();
+                }, { numeric: true, min: 10, max: 100, step: 5 });
+                scW.style.flex = '1'; scW.style.minWidth = '0';
+                var scH = createTextRow('H %', String(Math.round((parseFloat(ns.sparkOverrideH) || 0.3) * 100)), function(val) {
+                    if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                    es.nodes[nodeId].sparkOverrideH = String(parseInt(val, 10) / 100);
+                    self._pushUndo(); self.invalidateUpdateView();
+                }, { numeric: true, min: 10, max: 100, step: 5 });
+                scH.style.flex = '1'; scH.style.minWidth = '0';
+                scRow2.appendChild(scW); scRow2.appendChild(scH);
+                sparkBody.appendChild(scRow2);
+            }
 
             // Trend indicator
             sparkBody.appendChild(createToggleRow('Trend', [
