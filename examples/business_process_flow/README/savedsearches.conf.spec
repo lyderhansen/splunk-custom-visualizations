@@ -24,3 +24,5 @@ display.visualizations.custom.business_process_flow.business_process_flow.defaul
 display.visualizations.custom.business_process_flow.business_process_flow.defaultBorderColor = <string>
 display.visualizations.custom.business_process_flow.business_process_flow.defaultBgColor = <string>
 display.visualizations.custom.business_process_flow.business_process_flow.showEditButton = <boolean>
+display.visualizations.custom.business_process_flow.business_process_flow.connectionWeightField = <string>
+display.visualizations.custom.business_process_flow.business_process_flow.connectionColorField = <string>

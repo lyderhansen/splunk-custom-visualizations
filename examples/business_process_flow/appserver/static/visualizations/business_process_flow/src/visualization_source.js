@@ -916,6 +916,7 @@ define([
                 color: colorOverride || nd.color || '#3b82f6',
                 series: nd.series || [],
                 connectsTo: nd.connectsTo || [],
+                connMeta: nd.connMeta || {},
                 step: nd.step,
                 rowIndex: nd.rowIndex,
                 hideValue: hideValue,
@@ -974,7 +975,8 @@ define([
                 sparkOverrideW: edState ? edState.sparkOverrideW : undefined,
                 sparkOverrideH: edState ? edState.sparkOverrideH : undefined,
                 nodeIcon: edState ? edState.nodeIcon : undefined,
-                customIcon: edState ? edState.customIcon : undefined
+                customIcon: edState ? edState.customIcon : undefined,
+                alertPulse: edState ? edState.alertPulse : undefined
             };
 
             if (edState && edState.x !== undefined && edState.y !== undefined) {
@@ -1138,22 +1140,27 @@ define([
             var nd = nodes[ei];
             if (nd.connectsTo && nd.connectsTo.length > 0) {
                 hasExplicitConnects[nd.id] = true;
+                var meta = nd.connMeta || {};
                 for (var ci = 0; ci < nd.connectsTo.length; ci++) {
                     var targetId = nd.connectsTo[ci];
                     if (targetId && nodeMap[targetId]) {
                         var eKey = nd.id + '|' + targetId;
                         if (!manualSet[eKey]) {
-                            connections.push({
+                            var dataConn = {
                                 from: nd.id,
                                 to: targetId,
                                 style: 'straight',
-                                color: '',
+                                color: meta._dataColor || '',
                                 width: 2,
                                 dash: false,
                                 arrow: 'forward',
                                 label: '',
                                 manual: false
-                            });
+                            };
+                            if (meta._dataWeight !== undefined && !isNaN(meta._dataWeight)) {
+                                dataConn._dataWeight = meta._dataWeight;
+                            }
+                            connections.push(dataConn);
                             manualSet[eKey] = true;
                         }
                     }
@@ -1205,6 +1212,26 @@ define([
                             manual: false
                         });
                         manualSet[aKey] = true;
+                    }
+                }
+            }
+        }
+
+        // Normalize connection weights to line widths (1-8 range)
+        var maxWeight = 0;
+        for (var nwi = 0; nwi < connections.length; nwi++) {
+            if (connections[nwi]._dataWeight && connections[nwi]._dataWeight > maxWeight) {
+                maxWeight = connections[nwi]._dataWeight;
+            }
+        }
+        if (maxWeight > 0) {
+            for (var nwj = 0; nwj < connections.length; nwj++) {
+                if (connections[nwj]._dataWeight) {
+                    var normWeight = connections[nwj]._dataWeight / maxWeight;
+                    connections[nwj].width = Math.round(1 + normWeight * 7);
+                    // Auto-label with formatted weight if no manual label exists
+                    if (!connections[nwj].label) {
+                        connections[nwj].label = formatCount(connections[nwj]._dataWeight);
                     }
                 }
             }
@@ -2287,6 +2314,26 @@ define([
         }
 
         ctx.restore(); // end shape clip
+
+        // ── Threshold Pulse Indicator ──
+        // When conditions match AND alertPulse is on, draw a pulsing glow around the node
+        var pulseCondColor = evalConditions(node.conditions, node.value);
+        if (pulseCondColor && node.alertPulse === 'on') {
+            var pulseT = (Date.now() % 2000) / 2000;
+            var pulseIntensity = 0.3 + 0.7 * Math.abs(Math.sin(pulseT * Math.PI));
+
+            ctx.save();
+            ctx.shadowBlur = 15 + 10 * pulseIntensity;
+            ctx.shadowColor = pulseCondColor;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.globalAlpha = pulseIntensity * 0.6;
+            ctx.strokeStyle = pulseCondColor;
+            ctx.lineWidth = 3;
+            shapePath();
+            ctx.stroke();
+            ctx.restore();
+        }
 
         // Reset
         ctx.globalAlpha = 1;
@@ -7876,6 +7923,10 @@ define([
                 {value: 'all',        label: 'All'}
             ], ns.conditionTarget || 'background', makeOnChange('conditionTarget')));
 
+            condBody.appendChild(createToggleRow('Alert Pulse', [
+                {value: 'off', label: 'Off'}, {value: 'on', label: 'On'}
+            ], ns.alertPulse || 'off', makeOnChange('alertPulse')));
+
             // ── Quick Presets ──
             var presetLabel = document.createElement('div');
             presetLabel.textContent = 'QUICK PRESETS';
@@ -8667,6 +8718,8 @@ define([
             var globalDefaultBorderColor = config[ns + 'defaultBorderColor'] || '';
             var globalDefaultBgColor = config[ns + 'defaultBgColor'] || '';
             var showEditButton = config[ns + 'showEditButton'] !== 'false'; // default true
+            var connectionWeightField = config[ns + 'connectionWeightField'] || '';
+            var connectionColorField = config[ns + 'connectionColorField'] || '';
 
             // Edit mode is session-only — controlled by DOM Edit button, not config
             this._lockMode = lock === 'true';
@@ -8814,6 +8867,8 @@ define([
                 var subtitleIdx = subtitleField && colIdx[subtitleField] !== undefined ? colIdx[subtitleField] : -1;
                 var stepIdx = colIdx['step'] !== undefined ? colIdx['step'] : -1;
                 var connectsIdx = colIdx['connects_to'] !== undefined ? colIdx['connects_to'] : -1;
+                var connWeightIdx = connectionWeightField && colIdx[connectionWeightField] !== undefined ? colIdx[connectionWeightField] : -1;
+                var connColorIdx = connectionColorField && colIdx[connectionColorField] !== undefined ? colIdx[connectionColorField] : -1;
 
                 // Resolve sparkline column index: use configured field, else auto-detect
                 var sparkIdx = -1;
@@ -8853,6 +8908,15 @@ define([
                         }
                     }
 
+                    // Data-driven connection metadata (weight and color)
+                    var connMeta = {};
+                    if (connWeightIdx >= 0 && row[connWeightIdx] !== undefined && row[connWeightIdx] !== null) {
+                        connMeta._dataWeight = parseFloat(row[connWeightIdx]);
+                    }
+                    if (connColorIdx >= 0 && row[connColorIdx]) {
+                        connMeta._dataColor = String(row[connColorIdx]);
+                    }
+
                     var nodeSeries = [];
                     if (sparkIdx >= 0) {
                         var parsed = parseSparklineData(row[sparkIdx]);
@@ -8867,6 +8931,7 @@ define([
                         value: nodeValue,
                         step: nodeStep,
                         connectsTo: nodeConnects,
+                        connMeta: connMeta,
                         series: nodeSeries,
                         subtitle: nodeSub,
                         color: colors[ri % colors.length],
@@ -9210,6 +9275,15 @@ define([
                 if (at !== 'none') {
                     var atr = ac.animationTrigger || 'always';
                     if (atr === 'always' || ac._animActive) {
+                        this._hasActiveAnimations = true;
+                        break;
+                    }
+                }
+            }
+            // Also check for pulsing threshold indicators
+            if (!this._hasActiveAnimations) {
+                for (var api = 0; api < positioned.length; api++) {
+                    if (positioned[api].alertPulse === 'on') {
                         this._hasActiveAnimations = true;
                         break;
                     }
