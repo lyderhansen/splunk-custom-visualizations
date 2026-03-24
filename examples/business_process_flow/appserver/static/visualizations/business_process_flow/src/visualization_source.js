@@ -4424,7 +4424,7 @@ define([
                                 var emiNext = (emi + 1) % ecp.length;
                                 var midX = enx + (ecp[emi].x + ecp[emiNext].x) / 2 * enw;
                                 var midY = eny + (ecp[emi].y + ecp[emiNext].y) / 2 * enh;
-                                if (Math.sqrt((mx - midX) * (mx - midX) + (my - midY) * (my - midY)) < 8) {
+                                if (Math.sqrt((mx - midX) * (mx - midX) + (my - midY) * (my - midY)) < 12) {
                                     var newPt = {
                                         x: (ecp[emi].x + ecp[emiNext].x) / 2,
                                         y: (ecp[emi].y + ecp[emiNext].y) / 2
@@ -8442,9 +8442,12 @@ define([
                                 ctx.lineWidth = 1;
                                 ctx.stroke();
                                 ctx.beginPath();
-                                ctx.arc(hox, hoy, 3, 0, Math.PI * 2);
+                                ctx.arc(hox, hoy, 4, 0, Math.PI * 2);
                                 ctx.fillStyle = '#f59e0b';
                                 ctx.fill();
+                                ctx.strokeStyle = '#fff';
+                                ctx.lineWidth = 1;
+                                ctx.stroke();
                             }
                             // Bezier control handle in
                             if (ecp[epi].hInX !== undefined) {
@@ -8457,30 +8460,53 @@ define([
                                 ctx.lineWidth = 1;
                                 ctx.stroke();
                                 ctx.beginPath();
-                                ctx.arc(hix, hiy, 3, 0, Math.PI * 2);
+                                ctx.arc(hix, hiy, 4, 0, Math.PI * 2);
                                 ctx.fillStyle = '#f59e0b';
                                 ctx.fill();
+                                ctx.strokeStyle = '#fff';
+                                ctx.lineWidth = 1;
+                                ctx.stroke();
                             }
 
-                            // Point dot
+                            // Point dot (larger, with index number)
                             ctx.beginPath();
-                            ctx.arc(epx, epy, 5, 0, Math.PI * 2);
+                            ctx.arc(epx, epy, 6, 0, Math.PI * 2);
                             ctx.fillStyle = '#3b82f6';
                             ctx.fill();
                             ctx.strokeStyle = '#fff';
-                            ctx.lineWidth = 1.5;
+                            ctx.lineWidth = 2;
                             ctx.stroke();
                         }
 
-                        // Draw edge midpoints for adding new points
+                        // Hint text
+                        ctx.fillStyle = 'rgba(59,130,246,0.8)';
+                        ctx.font = '9px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText('Drag points \u2022 Click + to add \u2022 Del to remove', enx + enw / 2, eny - 6);
+
+                        // Draw edge midpoints for adding new points (+ icons)
                         for (var emi = 0; emi < ecp.length; emi++) {
                             var emiNext = (emi + 1) % ecp.length;
                             var midPx = enx + (ecp[emi].x + ecp[emiNext].x) / 2 * enw;
                             var midPy = eny + (ecp[emi].y + ecp[emiNext].y) / 2 * enh;
+                            // Circle background
                             ctx.beginPath();
-                            ctx.arc(midPx, midPy, 3, 0, Math.PI * 2);
-                            ctx.fillStyle = 'rgba(59,130,246,0.4)';
+                            ctx.arc(midPx, midPy, 7, 0, Math.PI * 2);
+                            ctx.fillStyle = 'rgba(59,130,246,0.15)';
                             ctx.fill();
+                            ctx.strokeStyle = 'rgba(59,130,246,0.5)';
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                            // Plus icon
+                            ctx.strokeStyle = 'rgba(59,130,246,0.7)';
+                            ctx.lineWidth = 1.5;
+                            ctx.beginPath();
+                            ctx.moveTo(midPx - 3, midPy);
+                            ctx.lineTo(midPx + 3, midPy);
+                            ctx.moveTo(midPx, midPy - 3);
+                            ctx.lineTo(midPx, midPy + 3);
+                            ctx.stroke();
                         }
                     }
                 }
