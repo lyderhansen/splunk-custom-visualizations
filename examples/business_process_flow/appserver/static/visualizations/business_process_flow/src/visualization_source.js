@@ -5500,7 +5500,7 @@ define([
                                 self._dragGroupIdx = ghi;
                                 self._dragGroupStartX = mx;
                                 self._dragGroupStartY = my;
-                                self._selectedNodeIds = grp.nodeIds.slice();
+                                self._selectedNodeIds = [];
                                 self._selectedConnection = null;
                                 self._connPopupIdx = null;
                                 self._showConnPopup = false;
