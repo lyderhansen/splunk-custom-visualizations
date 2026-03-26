@@ -134,6 +134,9 @@ define([
         return luminance < 0.5;
     }
 
+    // Shared canvas for normalizeToHex fallback (avoids creating one per call)
+    var _colorCanvas = null;
+
     /**
      * Normalize a color value to a 7-char hex string.
      * Handles hex (#abc, #aabbcc), rgb(), rgba(), and named colors via canvas fallback.
@@ -155,11 +158,13 @@ define([
             var bb = Math.min(255, parseInt(rgbMatch[3], 10));
             return '#' + ((1 << 24) + (rr << 16) + (gg << 8) + bb).toString(16).slice(1);
         }
-        // Fallback: use a temporary canvas to resolve named/any CSS color
+        // Fallback: use cached canvas to resolve named/any CSS color
         try {
-            var tc = document.createElement('canvas');
-            tc.width = 1; tc.height = 1;
-            var tctx = tc.getContext('2d');
+            if (!_colorCanvas) {
+                _colorCanvas = document.createElement('canvas');
+                _colorCanvas.width = 1; _colorCanvas.height = 1;
+            }
+            var tctx = _colorCanvas.getContext('2d');
             tctx.fillStyle = s;
             tctx.fillRect(0, 0, 1, 1);
             var d = tctx.getImageData(0, 0, 1, 1).data;
@@ -225,6 +230,39 @@ define([
         'dash-dot': [8, 4, 2, 4],
         'long-dash': [16, 6]
     };
+    /**
+     * Resolve a dash pattern from a stroke pattern name + optional custom dash/gap overrides.
+     */
+    function resolveDashPattern(patternName, strokeDash, strokeGap) {
+        var base = STROKE_PATTERNS[patternName] || [];
+        var cd = parseInt(strokeDash, 10);
+        var cg = parseInt(strokeGap, 10);
+        if ((cd > 0 || cg > 0) && base.length > 0) {
+            var result = [];
+            for (var i = 0; i < base.length; i++) {
+                result.push(i % 2 === 0 ? (cd > 0 ? cd : base[i]) : (cg > 0 ? cg : base[i]));
+            }
+            return result;
+        }
+        if (cd > 0 || cg > 0) {
+            return [cd > 0 ? cd : 8, cg > 0 ? cg : 4];
+        }
+        return base;
+    }
+    /**
+     * Resolve sparkline custom area overrides. Returns {sx, sy, sw, sh}.
+     */
+    function resolveSparkArea(node, x, y, w, h, defaultSX, defaultSY, defaultSW, defaultSH) {
+        if (node.sparkCustomArea === 'on') {
+            return {
+                sx: x + (parseFloat(node.sparkOverrideX) || 0.05) * w,
+                sy: y + (parseFloat(node.sparkOverrideY) || 0.6) * h,
+                sw: (parseFloat(node.sparkOverrideW) || 0.9) * w,
+                sh: (parseFloat(node.sparkOverrideH) || 0.3) * h
+            };
+        }
+        return { sx: defaultSX, sy: defaultSY, sw: defaultSW, sh: defaultSH };
+    }
     /**
      * Rounded rectangle path (does not fill or stroke).
      */
@@ -574,7 +612,6 @@ define([
         } else if (conn.style === 'curved' && points.length > 2) {
             // Multi-point smooth curve — matches drawConnection quadratic bezier through waypoints
             // Sample the curve to get line segments for distance testing
-            var segIdx = 0;
             for (var cpi = 1; cpi < points.length - 1; cpi++) {
                 var p0x = (cpi === 1) ? points[0].x : (points[cpi - 1].x + points[cpi].x) / 2;
                 var p0y = (cpi === 1) ? points[0].y : (points[cpi - 1].y + points[cpi].y) / 2;
@@ -976,7 +1013,8 @@ define([
                 sparkOverrideH: edState ? edState.sparkOverrideH : undefined,
                 nodeIcon: edState ? edState.nodeIcon : undefined,
                 customIcon: edState ? edState.customIcon : undefined,
-                alertPulse: edState ? edState.alertPulse : undefined
+                alertPulse: edState ? edState.alertPulse : undefined,
+                _hidden: nd._hidden || (edState ? edState.hidden : false)
             };
 
             if (edState && edState.x !== undefined && edState.y !== undefined) {
@@ -1038,14 +1076,7 @@ define([
 
         // Nodes without step: grid at bottom or fill area
         if (noStepNodes.length > 0) {
-            var cols;
-            if (stepValues.length > 0) {
-                // Place below the step-based nodes
-                cols = Math.max(1, Math.floor((w - padX * 2) / (defaultW + padX)));
-            } else {
-                // No steps at all — grid the whole area
-                cols = Math.max(1, Math.floor((w - padX * 2) / (defaultW + padX)));
-            }
+            var cols = Math.max(1, Math.floor((w - padX * 2) / (defaultW + padX)));
             var startX = padX;
             var gridStartY;
             if (stepValues.length > 0) {
@@ -1075,13 +1106,22 @@ define([
 
     // ── Connection Building ───────────────────────────────────────
 
-    function buildConnections(nodes, editorState) {
+    function buildConnections(nodes, editorState, extraNodeMap) {
         var connections = [];
         var nodeMap = {};
         var manualSet = {};
 
         for (var i = 0; i < nodes.length; i++) {
             nodeMap[nodes[i].id] = nodes[i];
+        }
+        // Merge group pseudo-nodes so connections can reference group IDs
+        if (extraNodeMap) {
+            var extraKeys = Object.keys(extraNodeMap);
+            for (var ek = 0; ek < extraKeys.length; ek++) {
+                if (!nodeMap[extraKeys[ek]]) {
+                    nodeMap[extraKeys[ek]] = extraNodeMap[extraKeys[ek]];
+                }
+            }
         }
 
         // Manual connections from editorState
@@ -1575,28 +1615,7 @@ define([
             shapePath();
             var borderColor = nodeBorderColor || theme.nodeBorder;
             var nodeStrokePattern = node.strokePattern || ge.defaultStrokePattern || 'solid';
-            var dashPattern;
-            var customDash = parseInt(node.strokeDash, 10);
-            var customGap = parseInt(node.strokeGap, 10);
-            var basePattern = STROKE_PATTERNS[nodeStrokePattern] || [];
-            if ((customDash > 0 || customGap > 0) && basePattern.length > 0) {
-                // Scale the base pattern: replace dash segments with customDash, gap segments with customGap
-                dashPattern = [];
-                for (var dpi = 0; dpi < basePattern.length; dpi++) {
-                    if (dpi % 2 === 0) {
-                        // Dash segment (even indices: 0, 2, 4...)
-                        dashPattern.push(customDash > 0 ? customDash : basePattern[dpi]);
-                    } else {
-                        // Gap segment (odd indices: 1, 3, 5...)
-                        dashPattern.push(customGap > 0 ? customGap : basePattern[dpi]);
-                    }
-                }
-            } else if (customDash > 0 || customGap > 0) {
-                // No base pattern (solid) but custom values set — create simple dash
-                dashPattern = [customDash > 0 ? customDash : 8, customGap > 0 ? customGap : 4];
-            } else {
-                dashPattern = basePattern;
-            }
+            var dashPattern = resolveDashPattern(nodeStrokePattern, node.strokeDash, node.strokeGap);
             // condBorderColor: explicit border target overrides background-based fallback
             var condBorderColor = condResults.border || null;
             var actualBorderWidth = (condColor || condBorderColor) ? Math.max(borderWidth, 2) : borderWidth;
@@ -1823,13 +1842,8 @@ define([
 
         if (sparkPos === 'behind' && hasSpark) {
             // BEHIND: sparkline fills entire node background, text overlaps on top
-            var bhSparkX = x, bhSparkY = y, bhSparkW = w, bhSparkH2 = h;
-            if (node.sparkCustomArea === 'on') {
-                bhSparkX = x + (parseFloat(node.sparkOverrideX) || 0.05) * w;
-                bhSparkY = y + (parseFloat(node.sparkOverrideY) || 0.6) * h;
-                bhSparkW = (parseFloat(node.sparkOverrideW) || 0.9) * w;
-                bhSparkH2 = (parseFloat(node.sparkOverrideH) || 0.3) * h;
-            }
+            var bhArea = resolveSparkArea(node, x, y, w, h, x, y, w, h);
+            var bhSparkX = bhArea.sx, bhSparkY = bhArea.sy, bhSparkW = bhArea.sw, bhSparkH2 = bhArea.sh;
             if (shape === 'custom' && node.customPath && node.customPath.length >= 3) {
                 ctx.save(); shapePath(); ctx.clip();
                 drawSparkline(ctx, node.series, bhSparkX, bhSparkY, bhSparkW, bhSparkH2, nodeSparkType, condResults.sparkline || node.color);
@@ -1868,13 +1882,8 @@ define([
         } else if (sparkPos === 'above' && hasSpark) {
             // ABOVE: sparkline in top portion, text below
             var abSparkH = Math.min(sparkH, Math.round(th0 * 0.5));
-            var abSX = tx0 + pad, abSY = ty0 + pad, abSW = tw0 - pad * 2, abSH = abSparkH - pad;
-            if (node.sparkCustomArea === 'on') {
-                abSX = x + (parseFloat(node.sparkOverrideX) || 0.05) * w;
-                abSY = y + (parseFloat(node.sparkOverrideY) || 0.6) * h;
-                abSW = (parseFloat(node.sparkOverrideW) || 0.9) * w;
-                abSH = (parseFloat(node.sparkOverrideH) || 0.3) * h;
-            }
+            var abArea = resolveSparkArea(node, x, y, w, h, tx0 + pad, ty0 + pad, tw0 - pad * 2, abSparkH - pad);
+            var abSX = abArea.sx, abSY = abArea.sy, abSW = abArea.sw, abSH = abArea.sh;
             if (shape === 'custom' && node.customPath && node.customPath.length >= 3) {
                 ctx.save(); shapePath(); ctx.clip();
                 drawSparkline(ctx, node.series, abSX, abSY, abSW, abSH, nodeSparkType, condResults.sparkline || node.color);
@@ -1920,13 +1929,8 @@ define([
             var leftSparkAreaX = tx0;
             // Place sparkline at BOTTOM of its column
             var leftSparkAreaY = ty0 + th0 - pad - leftSparkActualH;
-            var lSX = leftSparkAreaX, lSY = leftSparkAreaY, lSW = leftSparkW, lSH = leftSparkActualH;
-            if (node.sparkCustomArea === 'on') {
-                lSX = x + (parseFloat(node.sparkOverrideX) || 0.05) * w;
-                lSY = y + (parseFloat(node.sparkOverrideY) || 0.6) * h;
-                lSW = (parseFloat(node.sparkOverrideW) || 0.9) * w;
-                lSH = (parseFloat(node.sparkOverrideH) || 0.3) * h;
-            }
+            var lArea = resolveSparkArea(node, x, y, w, h, leftSparkAreaX, leftSparkAreaY, leftSparkW, leftSparkActualH);
+            var lSX = lArea.sx, lSY = lArea.sy, lSW = lArea.sw, lSH = lArea.sh;
             if (shape === 'custom' && node.customPath && node.customPath.length >= 3) {
                 ctx.save(); shapePath(); ctx.clip();
                 drawSparkline(ctx, node.series, lSX, lSY, lSW, lSH, nodeSparkType, condResults.sparkline || node.color);
@@ -1977,13 +1981,8 @@ define([
             var rightSparkActualH = Math.min(sparkH, rightMaxH);
             // Place sparkline at BOTTOM of its column
             var rightSparkAreaY = ty0 + th0 - pad - rightSparkActualH;
-            var rSX = rightSparkX, rSY = rightSparkAreaY, rSW = rightSparkW, rSH = rightSparkActualH;
-            if (node.sparkCustomArea === 'on') {
-                rSX = x + (parseFloat(node.sparkOverrideX) || 0.05) * w;
-                rSY = y + (parseFloat(node.sparkOverrideY) || 0.6) * h;
-                rSW = (parseFloat(node.sparkOverrideW) || 0.9) * w;
-                rSH = (parseFloat(node.sparkOverrideH) || 0.3) * h;
-            }
+            var rArea = resolveSparkArea(node, x, y, w, h, rightSparkX, rightSparkAreaY, rightSparkW, rightSparkActualH);
+            var rSX = rArea.sx, rSY = rArea.sy, rSW = rArea.sw, rSH = rArea.sh;
             if (shape === 'custom' && node.customPath && node.customPath.length >= 3) {
                 ctx.save(); shapePath(); ctx.clip();
                 drawSparkline(ctx, node.series, rSX, rSY, rSW, rSH, nodeSparkType, condResults.sparkline || node.color);
@@ -2130,13 +2129,8 @@ define([
                     sparkX = x + w / 2 - dHalfW + pad;
                     sparkW = dHalfW * 2 - pad * 2;
                 }
-                var dfSX = sparkX, dfSY = sparkY, dfSW = sparkW, dfSH = sparkH;
-                if (node.sparkCustomArea === 'on') {
-                    dfSX = x + (parseFloat(node.sparkOverrideX) || 0.05) * w;
-                    dfSY = y + (parseFloat(node.sparkOverrideY) || 0.6) * h;
-                    dfSW = (parseFloat(node.sparkOverrideW) || 0.9) * w;
-                    dfSH = (parseFloat(node.sparkOverrideH) || 0.3) * h;
-                }
+                var dfArea = resolveSparkArea(node, x, y, w, h, sparkX, sparkY, sparkW, sparkH);
+                var dfSX = dfArea.sx, dfSY = dfArea.sy, dfSW = dfArea.sw, dfSH = dfArea.sh;
                 if (dfSW > 20) {
                     if (shape === 'custom' && node.customPath && node.customPath.length >= 3) {
                         ctx.save(); shapePath(); ctx.clip();
@@ -2695,24 +2689,7 @@ define([
             ctx.lineWidth += 2;
         }
         var connPattern = conn.strokePattern || (conn.dash ? 'dashed' : 'solid');
-        var connDashPattern;
-        var connCustomDash = parseInt(conn.strokeDash, 10);
-        var connCustomGap = parseInt(conn.strokeGap, 10);
-        var connBasePattern = STROKE_PATTERNS[connPattern] || [];
-        if ((connCustomDash > 0 || connCustomGap > 0) && connBasePattern.length > 0) {
-            connDashPattern = [];
-            for (var cdpi = 0; cdpi < connBasePattern.length; cdpi++) {
-                if (cdpi % 2 === 0) {
-                    connDashPattern.push(connCustomDash > 0 ? connCustomDash : connBasePattern[cdpi]);
-                } else {
-                    connDashPattern.push(connCustomGap > 0 ? connCustomGap : connBasePattern[cdpi]);
-                }
-            }
-        } else if (connCustomDash > 0 || connCustomGap > 0) {
-            connDashPattern = [connCustomDash > 0 ? connCustomDash : 8, connCustomGap > 0 ? connCustomGap : 4];
-        } else {
-            connDashPattern = connBasePattern;
-        }
+        var connDashPattern = resolveDashPattern(connPattern, conn.strokeDash, conn.strokeGap);
         ctx.setLineDash(connDashPattern);
 
         var midX, midY, endAngle, startAngle;
@@ -2978,24 +2955,7 @@ define([
 
             // Resolve stroke pattern for this connection
             var hopConnPattern = conn.strokePattern || (conn.dash ? 'dashed' : 'solid');
-            var hopCustomDash = parseInt(conn.strokeDash, 10);
-            var hopCustomGap = parseInt(conn.strokeGap, 10);
-            var hopBasePattern = STROKE_PATTERNS[hopConnPattern] || [];
-            var hopDashPattern;
-            if ((hopCustomDash > 0 || hopCustomGap > 0) && hopBasePattern.length > 0) {
-                hopDashPattern = [];
-                for (var hdpi = 0; hdpi < hopBasePattern.length; hdpi++) {
-                    if (hdpi % 2 === 0) {
-                        hopDashPattern.push(hopCustomDash > 0 ? hopCustomDash : hopBasePattern[hdpi]);
-                    } else {
-                        hopDashPattern.push(hopCustomGap > 0 ? hopCustomGap : hopBasePattern[hdpi]);
-                    }
-                }
-            } else if (hopCustomDash > 0 || hopCustomGap > 0) {
-                hopDashPattern = [hopCustomDash > 0 ? hopCustomDash : 8, hopCustomGap > 0 ? hopCustomGap : 4];
-            } else {
-                hopDashPattern = hopBasePattern;
-            }
+            var hopDashPattern = resolveDashPattern(hopConnPattern, conn.strokeDash, conn.strokeGap);
 
             if (intersections.length === 0) {
                 // No intersections — draw normal line since main stroke was skipped
@@ -3104,27 +3064,53 @@ define([
         var btnX = 12;
 
         var btnDefs = [
-            { label: 'Copy Layout', icon: '', action: 'save',       w: 90 },
-            { label: '\u2B09', icon: '',     action: 'selectTool',     w: 36 },
-            { label: '+',     icon: '+',     action: 'addNode',        w: 36 },
-            { label: 'T',     icon: 'T',     action: 'addText',         w: 36 },
-            { label: '\u25A1', icon: '',  action: 'drawRect',       w: 36 },
-            { label: '\u270E', icon: '',  action: 'drawPen',        w: 36 },
-            { label: '\u270E+', icon: '', action: 'editPoints',    w: 36 },
-            { label: '\u2192', icon: '', action: 'addConnection',  w: 36 },
-            { label: '\u2715', icon: '', action: 'deleteSelected',  w: 36, tint: 'red' },
-            { label: '\u229E', icon: '', action: 'fit',            w: 36 },
-            { label: '\u21A9', icon: '', action: 'undo',            w: 28 },
-            { label: '\u21AA', icon: '', action: 'redo',            w: 28 },
-            { label: '{ }',   icon: '', action: 'code',            w: 40 },
-            { label: 'Close', icon: '', action: 'close',           w: 50, tint: 'gray' }
+            // ── Tools ──
+            { label: '\u2B09', icon: '',     action: 'selectTool',     w: 36, tooltip: 'Select' },
+            { label: '+',     icon: '+',     action: 'addNode',        w: 36, tooltip: 'Add Node' },
+            { label: 'T',     icon: 'T',     action: 'addText',         w: 36, tooltip: 'Add Text' },
+            { label: '\u270E', icon: '',  action: 'drawPen',        w: 36, tooltip: 'Pen Tool' },
+            { label: '\u270E+', icon: '', action: 'editPoints',    w: 36, tooltip: 'Edit Points' },
+            { label: '\u2192', icon: '', action: 'addConnection',  w: 36, tooltip: 'Add Connection' },
+            { sep: true },
+            // ── Actions ──
+            { label: '\u2715', icon: '', action: 'deleteSelected',  w: 36, tint: 'red', tooltip: 'Delete' },
+            { label: '\u229E', icon: '', action: 'fit',            w: 36, tooltip: 'Zoom to Fit' },
+            { label: '\u21A9', icon: '', action: 'undo',            w: 28, tooltip: 'Undo' },
+            { label: '\u21AA', icon: '', action: 'redo',            w: 28, tooltip: 'Redo' },
+            { sep: true },
+            // ── Layout ──
+            { label: 'Copy Layout', icon: '', action: 'save',       w: 90, tooltip: 'Copy to Clipboard' },
+            { label: '{ }',   icon: '', action: 'code',            w: 40, tooltip: 'JSON Editor' },
+            { sep: true },
+            { label: 'Close', icon: '', action: 'close',           w: 50, tint: 'gray', tooltip: 'Exit Edit Mode' }
         ];
+
+        var hoveredDef = null;
+        var hoveredBtnX = 0;
+        var hoveredBtnW = 0;
+        var btnIdx = 0;
 
         for (var i = 0; i < btnDefs.length; i++) {
             var def = btnDefs[i];
+
+            // Separator
+            if (def.sep) {
+                var sepX = btnX + 2;
+                ctx.strokeStyle = theme.nodeBorder;
+                ctx.globalAlpha = 0.4;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(sepX, btnY + 2);
+                ctx.lineTo(sepX, btnY + btnH - 2);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+                btnX += 12;
+                continue;
+            }
+
             var bw = def.w;
-            var isHovered = hoverItem && hoverItem.type === 'button' && hoverItem.index === i;
-            var isActive = (def.action === 'selectTool' && !drawMode) || (def.action === 'drawRect' && drawMode === 'rect') || (def.action === 'drawPen' && drawMode === 'pen') || (def.action === 'editPoints' && drawMode === 'editPoints');
+            var isHovered = hoverItem && hoverItem.type === 'button' && hoverItem.index === btnIdx;
+            var isActive = (def.action === 'selectTool' && !drawMode) || (def.action === 'drawPen' && drawMode === 'pen') || (def.action === 'editPoints' && drawMode === 'editPoints');
 
             // Button background
             roundRect(ctx, btnX, btnY, bw, btnH, 4);
@@ -3151,6 +3137,12 @@ define([
             ctx.textBaseline = 'middle';
             ctx.fillText(def.label, btnX + bw / 2, toolbarH / 2);
 
+            if (isHovered && def.tooltip) {
+                hoveredDef = def;
+                hoveredBtnX = btnX;
+                hoveredBtnW = bw;
+            }
+
             buttons.push({
                 x: btnX,
                 y: btnY,
@@ -3161,6 +3153,32 @@ define([
             });
 
             btnX += bw + btnPad;
+            btnIdx++;
+        }
+
+        // Draw tooltip for hovered button (after all buttons so it renders on top)
+        if (hoveredDef) {
+            ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            var tipText = hoveredDef.tooltip;
+            var tipW = ctx.measureText(tipText).width + 12;
+            var tipH = 22;
+            var tipX = hoveredBtnX + hoveredBtnW / 2 - tipW / 2;
+            var tipY = toolbarH + 4;
+            // Keep tooltip within canvas bounds
+            if (tipX < 4) tipX = 4;
+            if (tipX + tipW > w - 4) tipX = w - 4 - tipW;
+            // Background
+            roundRect(ctx, tipX, tipY, tipW, tipH, 4);
+            ctx.fillStyle = theme.nodeBg;
+            ctx.fill();
+            ctx.strokeStyle = theme.nodeBorder;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            // Text
+            ctx.fillStyle = theme.text;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(tipText, tipX + tipW / 2, tipY + tipH / 2);
         }
 
         // Right-aligned label
@@ -5199,35 +5217,53 @@ define([
 
                     // Connection popup hit-testing removed — DOM panel handles connection edits
 
-                    // In connecting mode, handle node clicks
+                    // In connecting mode, handle node/group clicks
                     if (self._isConnecting) {
+                        var connectTargetId = null;
+                        // Check nodes first
                         for (var cni = 0; cni < self._computedNodes.length; cni++) {
                             var cnd = self._computedNodes[cni];
                             if (hitTestNode(mx, my, cnd)) {
-                                if (!self._connectFromId) {
-                                    self._connectFromId = cnd.id;
-                                    self.invalidateUpdateView();
-                                } else if (cnd.id !== self._connectFromId) {
-                                    // Create the connection
-                                    if (!self._editorState.connections) self._editorState.connections = [];
-                                    self._editorState.connections.push({
-                                        from: self._connectFromId,
-                                        to: cnd.id,
-                                        style: 'straight',
-                                        color: '',
-                                        width: 2,
-                                        dash: false,
-                                        arrow: 'forward',
-                                        label: '',
-                                        manual: true
-                                    });
-                                    self._isConnecting = false;
-                                    self._connectFromId = null;
-                                    self._connectFromPort = null;
-                                    self.canvas.style.cursor = 'default';
-                                    self.invalidateUpdateView();
+                                connectTargetId = cnd.id;
+                                break;
+                            }
+                        }
+                        // If no node hit, check groups
+                        if (!connectTargetId) {
+                            var cGroups = (self._editorState && self._editorState.groups) ? self._editorState.groups : [];
+                            for (var cgi = 0; cgi < cGroups.length; cgi++) {
+                                var cGrp = cGroups[cgi];
+                                if (cGrp.id) {
+                                    var cGb = self._getGroupBounds(cGrp, self._computedNodeMap);
+                                    if (cGb && mx >= cGb.x && mx <= cGb.x + cGb.w && my >= cGb.y && my <= cGb.y + cGb.h) {
+                                        connectTargetId = cGrp.id;
+                                        break;
+                                    }
                                 }
-                                return;
+                            }
+                        }
+                        if (connectTargetId) {
+                            if (!self._connectFromId) {
+                                self._connectFromId = connectTargetId;
+                                self.invalidateUpdateView();
+                            } else if (connectTargetId !== self._connectFromId) {
+                                if (!self._editorState.connections) self._editorState.connections = [];
+                                self._editorState.connections.push({
+                                    from: self._connectFromId,
+                                    to: connectTargetId,
+                                    style: 'straight',
+                                    color: '',
+                                    width: 2,
+                                    dash: false,
+                                    arrow: 'forward',
+                                    label: '',
+                                    manual: true
+                                });
+                                self._isConnecting = false;
+                                self._connectFromId = null;
+                                self._connectFromPort = null;
+                                self.canvas.style.cursor = 'default';
+                                self.invalidateUpdateView();
                             }
                         }
                         return;
@@ -5379,7 +5415,7 @@ define([
                         }
                     }
 
-                    // Check connection port hits — start drag-to-connect
+                    // Check connection port hits — start drag-to-connect (nodes + groups)
                     for (var npi = 0; npi < self._computedNodes.length; npi++) {
                         var pn = self._computedNodes[npi];
                         if (pn._ports && arrContains(self._selectedNodeIds, pn.id)) {
@@ -5396,6 +5432,31 @@ define([
                                     self.canvas.style.cursor = 'crosshair';
                                     e.preventDefault();
                                     return;
+                                }
+                            }
+                        }
+                    }
+                    // Check group port hits
+                    if (self._selectedGroupIdx >= 0) {
+                        var gpPortArr = (self._editorState && self._editorState.groups) ? self._editorState.groups : [];
+                        var gpPortGrp = gpPortArr[self._selectedGroupIdx];
+                        if (gpPortGrp && gpPortGrp.id && self._computedNodeMap[gpPortGrp.id]) {
+                            var gpPorts = self._computedNodeMap[gpPortGrp.id]._ports;
+                            if (gpPorts) {
+                                for (var gppi = 0; gppi < gpPorts.length; gppi++) {
+                                    var gPort = gpPorts[gppi];
+                                    var gpdx = mx - gPort.px;
+                                    var gpdy = my - gPort.py;
+                                    if (gpdx * gpdx + gpdy * gpdy <= 64) {
+                                        self._isConnecting = true;
+                                        self._connectFromId = gpPortGrp.id;
+                                        self._connectFromPort = gPort.side;
+                                        self._connectMouseX = mx;
+                                        self._connectMouseY = my;
+                                        self.canvas.style.cursor = 'crosshair';
+                                        e.preventDefault();
+                                        return;
+                                    }
                                 }
                             }
                         }
@@ -6366,28 +6427,45 @@ define([
                     self._isConnecting = false;
                     var cmx = (self._mouseX - self._panX) / self._zoom;
                     var cmy = (self._mouseY - self._panY) / self._zoom;
+                    var dragTargetId = null;
                     // Find target node under cursor
                     for (var tni = 0; tni < self._computedNodes.length; tni++) {
                         var tn = self._computedNodes[tni];
                         if (tn.id !== self._connectFromId && hitTestNode(cmx, cmy, tn)) {
-                            // Create connection
-                            var newConn = {
-                                from: self._connectFromId,
-                                to: tn.id,
-                                endEndpoint: 'filledArrow',
-                                sourceAnchor: self._connectFromPort || 'auto',
-                                targetAnchor: 'auto',
-                                style: 'straight',
-                                color: '',
-                                width: 2,
-                                manual: true
-                            };
-                            if (!self._editorState.connections) self._editorState.connections = [];
-                            self._pushUndo();
-                            self._editorState.connections.push(newConn);
-                            self.invalidateUpdateView();
+                            dragTargetId = tn.id;
                             break;
                         }
+                    }
+                    // If no node hit, check groups
+                    if (!dragTargetId) {
+                        var dtGroups = (self._editorState && self._editorState.groups) ? self._editorState.groups : [];
+                        for (var dtgi = 0; dtgi < dtGroups.length; dtgi++) {
+                            var dtGrp = dtGroups[dtgi];
+                            if (dtGrp.id && dtGrp.id !== self._connectFromId) {
+                                var dtGb = self._getGroupBounds(dtGrp, self._computedNodeMap);
+                                if (dtGb && cmx >= dtGb.x && cmx <= dtGb.x + dtGb.w && cmy >= dtGb.y && cmy <= dtGb.y + dtGb.h) {
+                                    dragTargetId = dtGrp.id;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (dragTargetId) {
+                        var newConn = {
+                            from: self._connectFromId,
+                            to: dragTargetId,
+                            endEndpoint: 'filledArrow',
+                            sourceAnchor: self._connectFromPort || 'auto',
+                            targetAnchor: 'auto',
+                            style: 'straight',
+                            color: '',
+                            width: 2,
+                            manual: true
+                        };
+                        if (!self._editorState.connections) self._editorState.connections = [];
+                        self._pushUndo();
+                        self._editorState.connections.push(newConn);
+                        self.invalidateUpdateView();
                     }
                     self._connectFromId = null;
                     self._connectFromPort = null;
@@ -7539,6 +7617,82 @@ define([
                 contentSection._body.appendChild(ta);
                 body.appendChild(contentSection);
             } else {
+                // ── Data Override Section ── (only for data-driven nodes)
+                var isDataNode = !ns.manual;
+                if (isDataNode && self._dataColumns && self._dataColumns.length > 0) {
+                    var dataSec = createPanelSection('Data', '', false);
+                    var dataBody = dataSec._body;
+
+                    // Data Source — single dropdown that sets both value and label
+                    var srcSelect = document.createElement('div');
+                    srcSelect.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;';
+                    var srcLabel = document.createElement('span');
+                    srcLabel.textContent = 'Data Source';
+                    srcLabel.style.cssText = 'font-size:11px;color:' + panelTheme.text + ';min-width:80px;';
+                    var srcDd = document.createElement('select');
+                    srcDd.style.cssText = 'flex:1;background:' + panelTheme.inputBg + ';color:' + panelTheme.text + ';border:1px solid ' + panelTheme.border + ';border-radius:3px;padding:3px 4px;font-size:11px;';
+                    var srcDefault = document.createElement('option');
+                    srcDefault.value = '';
+                    srcDefault.textContent = '(default)';
+                    srcDd.appendChild(srcDefault);
+                    for (var dci = 0; dci < self._dataColumns.length; dci++) {
+                        var dcName = self._dataColumns[dci];
+                        if (dcName === '_time') continue;
+                        var dcOpt = document.createElement('option');
+                        dcOpt.value = dcName;
+                        dcOpt.textContent = dcName;
+                        if (ns.overrideValueField === dcName) dcOpt.selected = true;
+                        srcDd.appendChild(dcOpt);
+                    }
+                    srcDd.addEventListener('change', function() {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        if (srcDd.value) {
+                            es.nodes[nodeId].overrideValueField = srcDd.value;
+                        } else {
+                            delete es.nodes[nodeId].overrideValueField;
+                        }
+                        // Clear separate label overrides — data source controls both
+                        delete es.nodes[nodeId].overrideLabelField;
+                        delete es.nodes[nodeId].overrideLabelText;
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                        self._refreshPanel();
+                    });
+                    srcDd.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                    srcSelect.appendChild(srcLabel);
+                    srcSelect.appendChild(srcDd);
+                    dataBody.appendChild(srcSelect);
+
+                    // Label Override — free text to rename the node display label
+                    dataBody.appendChild(createTextRow('Label Override', ns.overrideLabelText || '', function(val) {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        if (val) {
+                            es.nodes[nodeId].overrideLabelText = val;
+                        } else {
+                            delete es.nodes[nodeId].overrideLabelText;
+                        }
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                    }));
+
+                    // Hide node toggle
+                    dataBody.appendChild(createToggleRow('Visibility', [
+                        {value: false, label: 'Visible'}, {value: true, label: 'Hidden'}
+                    ], !!ns.hidden, function(val) {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        if (val === true || val === 'true') {
+                            es.nodes[nodeId].hidden = true;
+                        } else {
+                            delete es.nodes[nodeId].hidden;
+                        }
+                        self._pushUndo();
+                        self.invalidateUpdateView();
+                        self._refreshPanel();
+                    }));
+
+                    body.appendChild(dataSec);
+                }
+
                 var textSec = createPanelSection('Text & Value', '', false);
                 var textBody = textSec._body;
 
@@ -8712,7 +8866,7 @@ define([
             var globalGlowEnabled = config[ns + 'glowEnabled'] === 'true';
             var globalGlowBlur = parseInt(config[ns + 'glowBlur'], 10) || 12;
             var globalGlowColor = config[ns + 'glowColor'] || '#3b82f6';
-            var globalDefaultOpacity = config[ns + 'defaultOpacity'] || '1';
+            var globalDefaultOpacity = config[ns + 'defaultOpacity'] || '100';
             var globalDefaultStrokePattern = config[ns + 'defaultStrokePattern'] || 'solid';
             var globalDefaultBorderWidth = config[ns + 'defaultBorderWidth'] || '1';
             var globalDefaultBorderColor = config[ns + 'defaultBorderColor'] || '';
@@ -8843,21 +8997,50 @@ define([
             var resolvedNodes = [];
             var colIdx = data.colIdx || {};
             var rows = data.rows || [];
+            // Store available column names for per-node override dropdowns
+            this._dataColumns = Object.keys(colIdx);
 
             if (data.isTimechart) {
                 // Timechart nodes are already resolved
+                // Build column→latest-value lookup for overrideValueField
+                var tcLastRow = rows.length > 0 ? rows[rows.length - 1] : [];
                 for (var ti = 0; ti < data.nodes.length; ti++) {
                     var tn = data.nodes[ti];
+                    var tcEdState = this._editorState.nodes[tn.id] || {};
+                    var tcValue = tn.value;
+                    var tcLabel = tn.label;
+                    var tcSeries = tn.series;
+
+                    // Override value column: read latest row from different column
+                    if (tcEdState.overrideValueField && colIdx[tcEdState.overrideValueField] !== undefined) {
+                        tcValue = Number(tcLastRow[colIdx[tcEdState.overrideValueField]]) || 0;
+                        // Build series from that column
+                        tcSeries = [];
+                        var ovColIdx = colIdx[tcEdState.overrideValueField];
+                        for (var ovr = 0; ovr < rows.length; ovr++) {
+                            var ovVal = Number(rows[ovr][ovColIdx]);
+                            tcSeries.push(isNaN(ovVal) ? null : ovVal);
+                        }
+                        // Label auto-follows data source unless manually overridden
+                        if (!tcEdState.overrideLabelText) {
+                            tcLabel = tcEdState.overrideValueField;
+                        }
+                    }
+                    if (tcEdState.overrideLabelText) {
+                        tcLabel = tcEdState.overrideLabelText;
+                    }
+
                     resolvedNodes.push({
                         id: tn.id,
-                        label: tn.label,
-                        value: tn.value,
+                        label: tcLabel,
+                        value: tcValue,
                         step: tn.step,
                         connectsTo: tn.connectsTo,
-                        series: tn.series,
+                        series: tcSeries,
                         subtitle: '',
                         color: colors[ti % colors.length],
-                        rowIndex: tn.rowIndex
+                        rowIndex: tn.rowIndex,
+                        _hidden: !!tcEdState.hidden
                     });
                 }
             } else {
@@ -8895,8 +9078,25 @@ define([
 
                 for (var ri = 0; ri < rows.length; ri++) {
                     var row = rows[ri];
-                    var nodeLabel = labelIdx >= 0 ? String(row[labelIdx] || '') : ('Node ' + (ri + 1));
+                    var origLabel = labelIdx >= 0 ? String(row[labelIdx] || '') : ('Node ' + (ri + 1));
+                    var nodeId = origLabel || ('node_' + ri);
                     var nodeValue = valueIdx >= 0 ? Number(row[valueIdx]) || 0 : 0;
+                    var nodeLabel = origLabel;
+
+                    // Per-node data overrides from editorState
+                    var nodeEdState = this._editorState.nodes[nodeId] || {};
+                    var isHiddenNode = !!nodeEdState.hidden;
+                    if (nodeEdState.overrideValueField && colIdx[nodeEdState.overrideValueField] !== undefined) {
+                        nodeValue = Number(row[colIdx[nodeEdState.overrideValueField]]) || 0;
+                        // Label auto-follows data source unless manually overridden
+                        if (!nodeEdState.overrideLabelText) {
+                            nodeLabel = nodeEdState.overrideValueField;
+                        }
+                    }
+                    if (nodeEdState.overrideLabelText) {
+                        nodeLabel = nodeEdState.overrideLabelText;
+                    }
+
                     var nodeSub = subtitleIdx >= 0 ? String(row[subtitleIdx] || '') : '';
                     var nodeStep = stepIdx >= 0 ? row[stepIdx] : null;
                     var nodeConnects = [];
@@ -8923,8 +9123,6 @@ define([
                         if (parsed) nodeSeries = parsed;
                     }
 
-                    var nodeId = nodeLabel || ('node_' + ri);
-
                     resolvedNodes.push({
                         id: nodeId,
                         label: nodeLabel,
@@ -8935,7 +9133,8 @@ define([
                         series: nodeSeries,
                         subtitle: nodeSub,
                         color: colors[ri % colors.length],
-                        rowIndex: ri
+                        rowIndex: ri,
+                        _hidden: isHiddenNode
                     });
                 }
             }
@@ -8975,14 +9174,46 @@ define([
                 this._computedNodeMap[positioned[ci2].id] = positioned[ci2];
             }
 
-            // 10. Build connections
-            var connections = buildConnections(positioned, this._editorState);
+            // 10. Add group pseudo-nodes to nodeMap so connections can target groups
+            var groups = (this._editorState && this._editorState.groups) ? this._editorState.groups : [];
+            for (var gpi = 0; gpi < groups.length; gpi++) {
+                var gpGrp = groups[gpi];
+                if (gpGrp.id) {
+                    var gpBounds = this._getGroupBounds(gpGrp, this._computedNodeMap);
+                    if (gpBounds) {
+                        this._computedNodeMap[gpGrp.id] = {
+                            id: gpGrp.id,
+                            x: gpBounds.x, y: gpBounds.y,
+                            w: gpBounds.w, h: gpBounds.h,
+                            _isGroup: true,
+                            label: gpGrp.label || gpGrp.id,
+                            shape: 'rect'
+                        };
+                    }
+                }
+            }
+
+            // 11. Build connections (pass group pseudo-nodes as extra map)
+            var groupNodeMap = {};
+            for (var gnb = 0; gnb < groups.length; gnb++) {
+                if (groups[gnb].id && this._computedNodeMap[groups[gnb].id]) {
+                    groupNodeMap[groups[gnb].id] = this._computedNodeMap[groups[gnb].id];
+                }
+            }
+            var connections = buildConnections(positioned, this._editorState, groupNodeMap);
             this._computedConnections = connections;
 
-            // 11. Build node map for connection drawing
+            // 12. Build node map for connection drawing
             var nodeMap = {};
             for (var nm = 0; nm < positioned.length; nm++) {
                 nodeMap[positioned[nm].id] = positioned[nm];
+            }
+            // Include group pseudo-nodes in nodeMap
+            for (var gnm = 0; gnm < groups.length; gnm++) {
+                var gnmGrp = groups[gnm];
+                if (gnmGrp.id && this._computedNodeMap[gnmGrp.id]) {
+                    nodeMap[gnmGrp.id] = this._computedNodeMap[gnmGrp.id];
+                }
             }
 
             // ── Render canvas ──
@@ -9103,6 +9334,8 @@ define([
                     var conn = dwItem.item;
                     var fromNd = dwItem.from;
                     var toNd = dwItem.to;
+                    // Hide connections to/from hidden nodes in view mode
+                    if (!this._editMode && ((fromNd && fromNd._hidden) || (toNd && toNd._hidden))) continue;
                     var connSelected = this._editMode && this._selectedConnection !== null &&
                         this._selectedConnection.index === ci;
                     var connHovered = this._hoverItem && this._hoverItem.type === 'connection' && this._hoverItem.index === ci;
@@ -9129,11 +9362,15 @@ define([
                     }
                 } else {
                     var pn = dwItem.item;
+                    // Hidden nodes: ghost in edit mode, invisible in view mode
+                    if (pn._hidden && !this._editMode) continue;
+                    if (pn._hidden && this._editMode) ctx.globalAlpha = 0.25;
                     var isNodeSelected = this._editMode && arrContains(this._selectedNodeIds, pn.id);
                     var isNodeHovered = this._hoverItem &&
                         this._hoverItem.type === 'node' &&
                         this._hoverItem.id === pn.id;
                     drawNode(ctx, pn, theme, accentLine, sparklineType, nodeRadius, isNodeSelected, isNodeHovered, this._globalEffects || {});
+                    if (pn._hidden && this._editMode) ctx.globalAlpha = 1;
                 }
             }
 
@@ -9188,6 +9425,38 @@ define([
                         cpn._ports = ports;
                     } else {
                         cpn._ports = null;
+                    }
+                }
+
+                // ── Connection Ports on Selected Group ──
+                if (this._selectedGroupIdx >= 0) {
+                    var gpArr = (this._editorState && this._editorState.groups) ? this._editorState.groups : [];
+                    var selGrp = gpArr[this._selectedGroupIdx];
+                    if (selGrp && selGrp.id) {
+                        var sgBounds = this._getGroupBounds(selGrp, this._computedNodeMap);
+                        if (sgBounds) {
+                            var gPortRadius = 6;
+                            var gPortColor = '#6366f1';
+                            var gPorts = [
+                                { side: 'top', px: sgBounds.x + sgBounds.w / 2, py: sgBounds.y },
+                                { side: 'bottom', px: sgBounds.x + sgBounds.w / 2, py: sgBounds.y + sgBounds.h },
+                                { side: 'left', px: sgBounds.x, py: sgBounds.y + sgBounds.h / 2 },
+                                { side: 'right', px: sgBounds.x + sgBounds.w, py: sgBounds.y + sgBounds.h / 2 }
+                            ];
+                            for (var gpdi = 0; gpdi < gPorts.length; gpdi++) {
+                                ctx.beginPath();
+                                ctx.arc(gPorts[gpdi].px, gPorts[gpdi].py, gPortRadius, 0, Math.PI * 2);
+                                ctx.fillStyle = gPortColor;
+                                ctx.fill();
+                                ctx.strokeStyle = '#fff';
+                                ctx.lineWidth = 1.5;
+                                ctx.stroke();
+                            }
+                            // Store ports on the group pseudo-node for drag-to-connect
+                            if (this._computedNodeMap[selGrp.id]) {
+                                this._computedNodeMap[selGrp.id]._ports = gPorts;
+                            }
+                        }
                     }
                 }
             }
