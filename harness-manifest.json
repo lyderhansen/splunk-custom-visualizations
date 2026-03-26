@@ -1,5 +1,6 @@
 {
   "pathTemplate": "examples/{name}/appserver/static/visualizations/{name}",
+  "fontCSS": "shared/fonts.css",
   "vizs": [
     "custom_single_value",
     "component_status_board",
@@ -9,5 +10,7 @@
     "process_mining",
     "live_ticker",
     "business_process_flow"
+    "network_topology",
+    "arcade_leaderboard"
   ]
 }
