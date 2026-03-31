@@ -3746,7 +3746,7 @@ define([
             // Edit button — DOM element, always visible when not in edit mode
             this._editBtn = document.createElement('button');
             this._editBtn.textContent = '\u270E Edit';
-            this._editBtn.style.cssText = 'position:absolute;bottom:8px;right:8px;z-index:5;height:28px;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(30,41,59,0.85);color:rgba(255,255,255,0.7);font:bold 11px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;display:flex;align-items:center;gap:4px;transition:opacity 0.2s;opacity:0.6;';
+            this._editBtn.style.cssText = 'position:absolute;top:8px;right:8px;z-index:5;height:28px;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(30,41,59,0.85);color:rgba(255,255,255,0.7);font:bold 11px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;display:flex;align-items:center;gap:4px;transition:opacity 0.2s;opacity:0.6;';
             var selfBtn = this;
             this._editBtn.addEventListener('mouseenter', function() { selfBtn._editBtn.style.opacity = '1'; });
             this._editBtn.addEventListener('mouseleave', function() { selfBtn._editBtn.style.opacity = '0.6'; });
@@ -7098,6 +7098,211 @@ define([
             }
 
             body.appendChild(alignSec);
+
+            // ── Global Settings Section — field mapping with dynamic dropdowns ──
+            var globalSec = createPanelSection('Global Settings', '', true);
+            var globalBody = globalSec._body;
+
+            // Helper to create a field dropdown from _dataColumns
+            function createFieldDropdown(labelText, currentVal, onChangeCb) {
+                var fRow = document.createElement('div');
+                fRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;';
+                var fLabel = document.createElement('span');
+                fLabel.textContent = labelText;
+                fLabel.style.cssText = 'font-size:11px;color:' + panelTheme.text + ';min-width:90px;';
+                var fDd = document.createElement('select');
+                fDd.style.cssText = 'flex:1;background:' + panelTheme.inputBg + ';color:' + panelTheme.text + ';border:1px solid ' + panelTheme.border + ';border-radius:3px;padding:3px 4px;font-size:11px;';
+                var fDefault = document.createElement('option');
+                fDefault.value = '';
+                fDefault.textContent = '(none)';
+                fDd.appendChild(fDefault);
+                var cols = self._dataColumns || [];
+                for (var fci = 0; fci < cols.length; fci++) {
+                    if (cols[fci] === '_time') continue;
+                    var fOpt = document.createElement('option');
+                    fOpt.value = cols[fci];
+                    fOpt.textContent = cols[fci];
+                    if (currentVal === cols[fci]) fOpt.selected = true;
+                    fDd.appendChild(fOpt);
+                }
+                fDd.addEventListener('change', function() { onChangeCb(fDd.value); });
+                fDd.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                fRow.appendChild(fLabel);
+                fRow.appendChild(fDd);
+                return fRow;
+            }
+
+            // Field mapping — reads/writes live config via _globalFieldOverrides
+            if (!self._globalFieldOverrides) self._globalFieldOverrides = {};
+            var gfo = self._globalFieldOverrides;
+
+            globalBody.appendChild(createFieldDropdown('Label Field', gfo.labelField || self._currentLabelField || '', function(val) {
+                gfo.labelField = val;
+                self.invalidateUpdateView();
+            }));
+            globalBody.appendChild(createFieldDropdown('Value Field', gfo.valueField || self._currentValueField || '', function(val) {
+                gfo.valueField = val;
+                self.invalidateUpdateView();
+            }));
+            globalBody.appendChild(createFieldDropdown('Subtitle Field', gfo.subtitleField || self._currentSubtitleField || '', function(val) {
+                gfo.subtitleField = val;
+                self.invalidateUpdateView();
+            }));
+            globalBody.appendChild(createFieldDropdown('Sparkline Field', gfo.sparklineField || self._currentSparklineField || '', function(val) {
+                gfo.sparklineField = val;
+                self.invalidateUpdateView();
+            }));
+            globalBody.appendChild(createFieldDropdown('Conn Weight', gfo.connectionWeightField || self._currentConnWeightField || '', function(val) {
+                gfo.connectionWeightField = val;
+                self.invalidateUpdateView();
+            }));
+            globalBody.appendChild(createFieldDropdown('Conn Color', gfo.connectionColorField || self._currentConnColorField || '', function(val) {
+                gfo.connectionColorField = val;
+                self.invalidateUpdateView();
+            }));
+
+            body.appendChild(globalSec);
+
+            // ── Node Defaults Section ──
+            var nodeDfSec = createPanelSection('Node Defaults', '', false);
+            var nodeDfBody = nodeDfSec._body;
+            var ge = self._globalEffects || {};
+
+            nodeDfBody.appendChild(createToggleRow('Shape', [
+                {value: 'rect', label: 'Rect'}, {value: 'circle', label: 'Circle'},
+                {value: 'diamond', label: 'Dia'}, {value: 'hexagon', label: 'Hex'}
+            ], ge.defaultShape || 'rect', function(val) {
+                ge.defaultShape = val;
+                self.invalidateUpdateView();
+            }));
+
+            nodeDfBody.appendChild(createTextRow('Border Radius', ge.defaultBorderRadius || '8', function(val) {
+                ge.defaultBorderRadius = val;
+                self.invalidateUpdateView();
+            }, { numeric: true, min: 0, max: 50, step: 2 }));
+
+            nodeDfBody.appendChild(createTextRow('Opacity %', ge.defaultOpacity || '100', function(val) {
+                ge.defaultOpacity = val;
+                self.invalidateUpdateView();
+            }, { numeric: true, min: 0, max: 100, step: 5 }));
+
+            nodeDfBody.appendChild(createTextRow('Border Width', ge.defaultBorderWidth || '1', function(val) {
+                ge.defaultBorderWidth = val;
+                self.invalidateUpdateView();
+            }, { numeric: true, min: 0, max: 10, step: 0.5 }));
+
+            nodeDfBody.appendChild(createToggleRow('Stroke', [
+                {value: 'solid', label: 'Solid'}, {value: 'dashed', label: 'Dash'},
+                {value: 'dotted', label: 'Dot'}, {value: 'dash-dot', label: 'D-D'}
+            ], ge.defaultStrokePattern || 'solid', function(val) {
+                ge.defaultStrokePattern = val;
+                self.invalidateUpdateView();
+            }));
+
+            nodeDfBody.appendChild(createToggleRow('Font Size', [
+                {value: '', label: 'Auto'}, {value: '10', label: 'S'},
+                {value: '14', label: 'M'}, {value: '18', label: 'L'}, {value: '24', label: 'XL'}
+            ], ge.defaultFontSize || '', function(val) {
+                ge.defaultFontSize = val;
+                self.invalidateUpdateView();
+            }));
+
+            nodeDfBody.appendChild(createToggleRow('Text Align', [
+                {value: '', label: 'Center'}, {value: 'left', label: 'Left'}, {value: 'right', label: 'Right'}
+            ], ge.defaultTextAlign || '', function(val) {
+                ge.defaultTextAlign = val;
+                self.invalidateUpdateView();
+            }));
+
+            nodeDfBody.appendChild(createToggleRow('Sparkline Pos', [
+                {value: '', label: 'Default'}, {value: 'behind', label: 'Behind'},
+                {value: 'above', label: 'Above'}, {value: 'left', label: 'Left'}, {value: 'right', label: 'Right'}
+            ], ge.defaultSparkPosition || '', function(val) {
+                ge.defaultSparkPosition = val;
+                self.invalidateUpdateView();
+            }));
+
+            body.appendChild(nodeDfSec);
+
+            // ── Connection Defaults Section ──
+            var connDfSec = createPanelSection('Connection Defaults', '', false);
+            var connDfBody = connDfSec._body;
+
+            connDfBody.appendChild(createToggleRow('Style', [
+                {value: 'straight', label: 'Straight'}, {value: 'curved', label: 'Curved'},
+                {value: 'orthogonal', label: 'Ortho'}
+            ], ge.defaultConnStyle || 'straight', function(val) {
+                ge.defaultConnStyle = val;
+                self.invalidateUpdateView();
+            }));
+
+            connDfBody.appendChild(createToggleRow('End Arrow', [
+                {value: '', label: 'None'}, {value: 'filledArrow', label: 'Arrow'},
+                {value: 'openArrow', label: 'Open'}, {value: 'circle', label: 'Circle'},
+                {value: 'diamond', label: 'Dia'}
+            ], ge.defaultEndEndpoint || '', function(val) {
+                ge.defaultEndEndpoint = val;
+                self.invalidateUpdateView();
+            }));
+
+            connDfBody.appendChild(createTextRow('Line Width', ge.defaultConnWidth || '2', function(val) {
+                ge.defaultConnWidth = val;
+                self.invalidateUpdateView();
+            }, { numeric: true, min: 1, max: 10, step: 0.5 }));
+
+            var defaultColors = PALETTES[self._currentPalette] || PALETTES.corporate;
+            connDfBody.appendChild(createColorRow('Line Color', defaultColors, ge.defaultConnColor || '', function(val) {
+                ge.defaultConnColor = val;
+                self.invalidateUpdateView();
+            }));
+
+            body.appendChild(connDfSec);
+
+            // ── Reset Section ──
+            var resetSec = createPanelSection('Reset', '', false);
+            var resetBody = resetSec._body;
+
+            var resetBtn = document.createElement('button');
+            resetBtn.textContent = 'Reset Layout';
+            resetBtn.style.cssText = 'width:100%;padding:8px;border-radius:4px;border:1px solid #dc2626;background:rgba(220,38,38,0.1);color:#ef4444;font:bold 11px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;transition:background 0.15s;';
+            resetBtn.addEventListener('mouseenter', function() { resetBtn.style.background = 'rgba(220,38,38,0.25)'; });
+            resetBtn.addEventListener('mouseleave', function() { resetBtn.style.background = 'rgba(220,38,38,0.1)'; });
+            resetBtn.addEventListener('click', function() {
+                if (confirm('Reset all node positions and sizes? This will clear your layout and run auto-layout.')) {
+                    self._pushUndo();
+                    // Clear position/size overrides but keep other per-node settings
+                    var nodeKeys = Object.keys(self._editorState.nodes);
+                    for (var rki = 0; rki < nodeKeys.length; rki++) {
+                        var rn = self._editorState.nodes[nodeKeys[rki]];
+                        delete rn.x;
+                        delete rn.y;
+                        delete rn.w;
+                        delete rn.h;
+                    }
+                    self.invalidateUpdateView();
+                    self._refreshPanel();
+                }
+            });
+            resetBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+            resetBody.appendChild(resetBtn);
+
+            var resetAllBtn = document.createElement('button');
+            resetAllBtn.textContent = 'Reset Everything';
+            resetAllBtn.style.cssText = 'width:100%;padding:8px;margin-top:6px;border-radius:4px;border:1px solid #dc2626;background:rgba(220,38,38,0.1);color:#ef4444;font:bold 11px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;transition:background 0.15s;';
+            resetAllBtn.addEventListener('mouseenter', function() { resetAllBtn.style.background = 'rgba(220,38,38,0.25)'; });
+            resetAllBtn.addEventListener('mouseleave', function() { resetAllBtn.style.background = 'rgba(220,38,38,0.1)'; });
+            resetAllBtn.addEventListener('click', function() {
+                if (confirm('Reset ALL editor state? This will clear all positions, connections, groups, and per-node overrides.')) {
+                    self._pushUndo();
+                    self._editorState = { nodes: {}, connections: [], groups: [] };
+                    self.invalidateUpdateView();
+                    self._refreshPanel();
+                }
+            });
+            resetAllBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+            resetBody.appendChild(resetAllBtn);
+
+            body.appendChild(resetSec);
         },
 
         _buildMultiSelectPanel: function(body) {
@@ -7617,9 +7822,8 @@ define([
                 contentSection._body.appendChild(ta);
                 body.appendChild(contentSection);
             } else {
-                // ── Data Override Section ── (only for data-driven nodes)
-                var isDataNode = !ns.manual;
-                if (isDataNode && self._dataColumns && self._dataColumns.length > 0) {
+                // ── Data Section ── (available for all nodes)
+                if (self._dataColumns && self._dataColumns.length > 0) {
                     var dataSec = createPanelSection('Data', '', false);
                     var dataBody = dataSec._body;
 
@@ -7663,17 +7867,78 @@ define([
                     srcSelect.appendChild(srcDd);
                     dataBody.appendChild(srcSelect);
 
-                    // Label Override — free text to rename the node display label
-                    dataBody.appendChild(createTextRow('Label Override', ns.overrideLabelText || '', function(val) {
+                    // Label Override — dropdown with columns + free text input
+                    var lblRow = document.createElement('div');
+                    lblRow.style.cssText = 'margin-bottom:6px;';
+                    var lblLabel = document.createElement('div');
+                    lblLabel.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;';
+                    lblLabel.textContent = 'Label Override';
+                    lblRow.appendChild(lblLabel);
+                    var lblDd = document.createElement('select');
+                    lblDd.style.cssText = 'width:100%;background:' + panelTheme.inputBg + ';color:' + panelTheme.text + ';border:1px solid ' + panelTheme.border + ';border-radius:3px;padding:3px 4px;font-size:11px;margin-bottom:4px;';
+                    var lblNone = document.createElement('option');
+                    lblNone.value = '';
+                    lblNone.textContent = '(default)';
+                    lblDd.appendChild(lblNone);
+                    var lblCustomOpt = document.createElement('option');
+                    lblCustomOpt.value = '__custom__';
+                    lblCustomOpt.textContent = 'Custom text...';
+                    if (ns.overrideLabelText && !ns.overrideLabelField) lblCustomOpt.selected = true;
+                    lblDd.appendChild(lblCustomOpt);
+                    for (var loi = 0; loi < self._dataColumns.length; loi++) {
+                        var loName = self._dataColumns[loi];
+                        if (loName === '_time') continue;
+                        var loOpt = document.createElement('option');
+                        loOpt.value = loName;
+                        loOpt.textContent = loName;
+                        if (ns.overrideLabelField === loName) loOpt.selected = true;
+                        lblDd.appendChild(loOpt);
+                    }
+                    var lblTextInput = document.createElement('input');
+                    lblTextInput.type = 'text';
+                    lblTextInput.value = ns.overrideLabelText || '';
+                    lblTextInput.placeholder = 'Type custom label...';
+                    lblTextInput.style.cssText = 'width:100%;box-sizing:border-box;height:28px;background:' + panelTheme.inputBg + ';border:1px solid ' + panelTheme.border + ';border-radius:4px;color:' + panelTheme.text + ';font-size:11px;padding:0 7px;display:' + ((ns.overrideLabelText && !ns.overrideLabelField) ? 'block' : 'none') + ';';
+                    lblDd.addEventListener('change', function() {
                         if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
-                        if (val) {
-                            es.nodes[nodeId].overrideLabelText = val;
+                        if (lblDd.value === '__custom__') {
+                            lblTextInput.style.display = 'block';
+                            lblTextInput.focus();
+                            delete es.nodes[nodeId].overrideLabelField;
+                        } else if (lblDd.value) {
+                            es.nodes[nodeId].overrideLabelField = lblDd.value;
+                            delete es.nodes[nodeId].overrideLabelText;
+                            lblTextInput.style.display = 'none';
+                            self._pushUndo();
+                            self.invalidateUpdateView();
+                        } else {
+                            delete es.nodes[nodeId].overrideLabelField;
+                            delete es.nodes[nodeId].overrideLabelText;
+                            lblTextInput.style.display = 'none';
+                            self._pushUndo();
+                            self.invalidateUpdateView();
+                        }
+                    });
+                    lblDd.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                    lblTextInput.addEventListener('blur', function() {
+                        if (!es.nodes[nodeId]) es.nodes[nodeId] = {};
+                        if (lblTextInput.value) {
+                            es.nodes[nodeId].overrideLabelText = lblTextInput.value;
+                            delete es.nodes[nodeId].overrideLabelField;
                         } else {
                             delete es.nodes[nodeId].overrideLabelText;
                         }
                         self._pushUndo();
                         self.invalidateUpdateView();
-                    }));
+                    });
+                    lblTextInput.addEventListener('keydown', function(e) {
+                        e.stopPropagation();
+                        if (e.key === 'Enter' || e.keyCode === 13) lblTextInput.blur();
+                    });
+                    lblTextInput.addEventListener('keyup', function(e) { e.stopPropagation(); });
+                    lblRow.appendChild(lblDd);
+                    lblRow.appendChild(lblTextInput);
+                    dataBody.appendChild(lblRow);
 
                     // Hide node toggle
                     dataBody.appendChild(createToggleRow('Visibility', [
@@ -8875,6 +9140,23 @@ define([
             var connectionWeightField = config[ns + 'connectionWeightField'] || '';
             var connectionColorField = config[ns + 'connectionColorField'] || '';
 
+            // Apply session-level field overrides from Global Settings panel
+            var gfo = this._globalFieldOverrides || {};
+            if (gfo.labelField) labelField = gfo.labelField;
+            if (gfo.valueField) valueField = gfo.valueField;
+            if (gfo.subtitleField !== undefined) subtitleField = gfo.subtitleField;
+            if (gfo.sparklineField !== undefined) sparklineField = gfo.sparklineField;
+            if (gfo.connectionWeightField !== undefined) connectionWeightField = gfo.connectionWeightField;
+            if (gfo.connectionColorField !== undefined) connectionColorField = gfo.connectionColorField;
+
+            // Store current field values for panel dropdowns
+            this._currentLabelField = labelField;
+            this._currentValueField = valueField;
+            this._currentSubtitleField = subtitleField;
+            this._currentSparklineField = sparklineField;
+            this._currentConnWeightField = connectionWeightField;
+            this._currentConnColorField = connectionColorField;
+
             // Edit mode is session-only — controlled by DOM Edit button, not config
             this._lockMode = lock === 'true';
             this._drilldownField = drilldownField;
@@ -9022,11 +9304,13 @@ define([
                             tcSeries.push(isNaN(ovVal) ? null : ovVal);
                         }
                         // Label auto-follows data source unless manually overridden
-                        if (!tcEdState.overrideLabelText) {
+                        if (!tcEdState.overrideLabelText && !tcEdState.overrideLabelField) {
                             tcLabel = tcEdState.overrideValueField;
                         }
                     }
-                    if (tcEdState.overrideLabelText) {
+                    if (tcEdState.overrideLabelField) {
+                        tcLabel = tcEdState.overrideLabelField;
+                    } else if (tcEdState.overrideLabelText) {
                         tcLabel = tcEdState.overrideLabelText;
                     }
 
@@ -9089,11 +9373,13 @@ define([
                     if (nodeEdState.overrideValueField && colIdx[nodeEdState.overrideValueField] !== undefined) {
                         nodeValue = Number(row[colIdx[nodeEdState.overrideValueField]]) || 0;
                         // Label auto-follows data source unless manually overridden
-                        if (!nodeEdState.overrideLabelText) {
+                        if (!nodeEdState.overrideLabelText && !nodeEdState.overrideLabelField) {
                             nodeLabel = nodeEdState.overrideValueField;
                         }
                     }
-                    if (nodeEdState.overrideLabelText) {
+                    if (nodeEdState.overrideLabelField && colIdx[nodeEdState.overrideLabelField] !== undefined) {
+                        nodeLabel = String(row[colIdx[nodeEdState.overrideLabelField]] || '');
+                    } else if (nodeEdState.overrideLabelText) {
                         nodeLabel = nodeEdState.overrideLabelText;
                     }
 
