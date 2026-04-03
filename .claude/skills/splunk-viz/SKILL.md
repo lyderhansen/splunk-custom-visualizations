@@ -11,6 +11,7 @@ Use this skill when the user asks to:
 - Add features to an existing Splunk custom viz
 - Debug or fix a Splunk custom visualization
 - Generate build/deploy scripts for a Splunk viz app
+- Scaffold a Splunk Dashboard Studio app with custom visualization support
 
 ## Architecture Overview
 
@@ -26,15 +27,31 @@ A Splunk custom visualization is a standalone Splunk app that renders search res
 
 Before generating code, ask the user (or extract from context):
 
-1. **Viz name**: short lowercase identifier (e.g., `network_graph`, `heatmap_grid`). Used as both the app ID and the visualization stanza name.
-2. **Display label**: human-readable name for the Splunk UI (e.g., "Network Graph", "Heatmap Grid").
-3. **Description**: one-line description of what the visualization does.
-4. **Expected SPL columns**: which fields the search must produce (e.g., `_time, source, dest, value`). Distinguish required vs optional columns. Ask if the viz will share a base search with other panels — if so, use configurable field names (see rule 18) instead of hardcoding column names like `value`.
-5. **Configurable settings**: what the user should be able to tweak from the formatter panel (e.g., colors, sizes, toggles, units). For each setting, determine: name, type (text/radio/dropdown), default value.
-6. **Rendering approach**: what to draw on the canvas (shapes, lines, text, gradients, animations).
-7. **Custom no-data message**: ask the user if they want a custom "awaiting data" message rendered on the canvas when no data is flowing (e.g., "Awaiting telemetry data"). If yes, the viz will detect a `_status` field from an SPL `appendpipe` fallback and render the message centered on the canvas. Optionally, an emoji can be displayed above the text for visual flair. If no, the viz falls back to Dashboard Studio's default placeholder (grey bar chart icon or `VisualizationError` text).
+1. **Target platform**: Splunk Cloud, Splunk Enterprise, or both. This determines which vetting constraints apply (see **Platform Differences** below). When in doubt, default to **both** — this produces an app that passes Splunk Cloud vetting and also works on Enterprise.
+2. **Viz name**: short lowercase identifier (e.g., `network_graph`, `heatmap_grid`). Used as both the app ID and the visualization stanza name.
+3. **Display label**: human-readable name for the Splunk UI (e.g., "Network Graph", "Heatmap Grid").
+4. **Description**: one-line description of what the visualization does.
+5. **Expected SPL columns**: which fields the search must produce (e.g., `_time, source, dest, value`). Distinguish required vs optional columns. Ask if the viz will share a base search with other panels — if so, use configurable field names (see rule 18) instead of hardcoding column names like `value`.
+6. **Configurable settings**: what the user should be able to tweak from the formatter panel (e.g., colors, sizes, toggles, units). For each setting, determine: name, type (text/radio/dropdown), default value.
+7. **Rendering approach**: what to draw on the canvas (shapes, lines, text, gradients, animations).
+8. **Custom no-data message**: ask the user if they want a custom "awaiting data" message rendered on the canvas when no data is flowing (e.g., "Awaiting telemetry data"). If yes, the viz will detect a `_status` field from an SPL `appendpipe` fallback and render the message centered on the canvas. Optionally, an emoji can be displayed above the text for visual flair. If no, the viz falls back to Dashboard Studio's default placeholder (grey bar chart icon or `VisualizationError` text).
 
 If the user provides a vague request, ask clarifying questions before scaffolding.
+
+### Platform Differences
+
+The table below summarises the key differences that affect generated code. When the target is **both**, apply all Splunk Cloud constraints — they are a strict superset of Enterprise requirements.
+
+| Concern | Splunk Cloud | Splunk Enterprise | Both (default) |
+|---------|-------------|-------------------|----------------|
+| **`[id]` stanza in `app.conf`** | Required (`check_version_is_valid_semver`) | Optional but recommended | Required |
+| **`[triggers]` for `visualizations.conf`** | Rejected (`check_for_trigger_stanza`) | Accepted but unnecessary | Omit |
+| **`sc_admin` role in `default.meta`** | Required (`check_kos_are_accessible`) — `admin` role does not exist in Cloud | Not needed — only `admin` exists | Include both `admin` and `sc_admin` |
+| **Real-time saved searches** | Rejected (`check_for_real_time_saved_searches_for_cloud`) | Allowed | Use historical (`-1m` to `now`) |
+| **App icons in `static/`** | Required — vetting warns on missing icons | Optional but recommended | Include all four |
+| **`check_meta_default_write_access`** | Global `[]` stanza in `default.meta` is mandatory | Recommended | Include |
+
+When generating files, apply the constraints from the user's chosen platform column. The templates in this skill default to the **Both** column.
 
 ## Step 2: Generate the App
 
@@ -53,6 +70,11 @@ Every viz app follows this exact layout — do not deviate:
     default.meta
   README/
     savedsearches.conf.spec
+  static/
+    appIcon.png                   (36x36 app icon)
+    appIcon_2x.png                (72x72 HiDPI app icon)
+    appIconAlt.png                (36x36 alternate app icon)
+    appIconAlt_2x.png             (72x72 HiDPI alternate app icon)
   appserver/
     static/
       visualizations/
@@ -114,7 +136,7 @@ Every viz app includes a `README.md` at the app root. This is the single source 
 
 ## Time Range
 
-`rt-1m` to `rt` (or `-60m` to `now` for historical)
+`-1m` to `now` (historical). Do NOT use real-time (`rt-1m` to `rt`) — Splunk Cloud vetting rejects real-time saved searches (`check_for_real_time_saved_searches_for_cloud`).
 
 ## Build
 
@@ -129,6 +151,10 @@ The tarball is output to `dist/{app_name}-1.0.0.tar.gz`.
 
 #### default/app.conf
 ```
+[id]
+name = {app_name}
+version = 1.0.0
+
 [install]
 is_configured = true
 build = 1
@@ -146,6 +172,8 @@ description = {description}
 version = 1.0.0
 ```
 
+The `[id]` stanza is required by Splunk Cloud vetting (`check_version_is_valid_semver`). Do NOT add a `[triggers]` stanza with `reload.visualizations = simple` — `visualizations.conf` is a Splunk-defined conf file and Splunk Cloud vetting (`check_for_trigger_stanza`) will reject it. The `[triggers]` stanza is only for custom (non-Splunk) config files. Keep the version in `[id]` and `[launcher]` in sync.
+
 #### default/visualizations.conf
 ```
 [{app_name}]
@@ -161,13 +189,13 @@ The `search_fragment` is a partial SPL snippet that shows users how to structure
 
 #### default/savedsearches.conf
 
-Provide a complete, working saved search that demonstrates the visualization with real-time or historical data. Include all `display.visualizations.custom.*` settings with sensible defaults.
+Provide a complete, working saved search that demonstrates the visualization. Use historical time ranges — do NOT use real-time (`rt-*` to `rt`) as Splunk Cloud vetting rejects them (`check_for_real_time_saved_searches_for_cloud`). Include all `display.visualizations.custom.*` settings with sensible defaults.
 
 ```
 [{Display Label} - Live]
 search = {full_spl_query}
-dispatch.earliest_time = rt-{window}
-dispatch.latest_time = rt
+dispatch.earliest_time = -{window}
+dispatch.latest_time = now
 display.general.type = visualizations
 display.visualizations.type = custom
 display.visualizations.custom.type = {app_name}.{app_name}
@@ -190,11 +218,26 @@ Required for Splunk to export the visualization to other apps/users.
 The global `[]` stanza is **mandatory for Splunk Cloud vetting** — without it the upload is blocked with `check_meta_default_write_access`.
 ```
 []
-access = read : [ * ], write : [ admin ]
+access = read : [ * ], write : [ admin, sc_admin ]
 
 [visualizations/{app_name}]
 export = system
 ```
+
+Always include `sc_admin` alongside `admin` in write ACLs — the `admin` role is not available in Splunk Cloud. Without `sc_admin`, Cloud administrators cannot access the knowledge objects (`check_kos_are_accessible`).
+
+#### static/ (app icons)
+
+Splunk requires four PNG icon files in the `static/` directory at the app root. These are displayed in the Splunk app browser, Manage Apps page, and Splunkbase. All four must exist — missing icons cause Splunk Cloud vetting warnings.
+
+| File | Size | Description |
+|------|------|-------------|
+| `appIcon.png` | 36x36 px | Standard app icon |
+| `appIcon_2x.png` | 72x72 px | HiDPI (Retina) app icon |
+| `appIconAlt.png` | 36x36 px | Alternate icon (used on dark backgrounds) |
+| `appIconAlt_2x.png` | 72x72 px | HiDPI alternate icon |
+
+Use a simple, recognizable graphic on a transparent background. The `Alt` variants should be legible on both light and dark backgrounds — typically a lighter or inverted version of the primary icon.
 
 #### formatter.html
 
@@ -1201,7 +1244,10 @@ Before presenting the generated code, verify:
 
 - [ ] `README.md` exists with description, install, columns, search, configuration, drilldown (if applicable), time range, and build sections
 - [ ] All files in the directory structure are generated
+- [ ] `app.conf` has `[id]` stanza with `name` and `version` (required for Splunk Cloud vetting)
+- [ ] `app.conf` does NOT have a `[triggers]` stanza for `visualizations.conf` (it is a Splunk-defined conf, not a custom one)
 - [ ] `app.conf` package ID matches the directory name
+- [ ] `app.conf` version is consistent across `[id]` and `[launcher]` stanzas
 - [ ] `visualizations.conf` stanza name matches the directory name
 - [ ] `savedsearches.conf` custom type follows pattern `{app_name}.{app_name}`
 - [ ] `savedsearches.conf.spec` documents every setting in formatter.html
@@ -1211,7 +1257,9 @@ Before presenting the generated code, verify:
 - [ ] `visualization_source.js` formatData validates required columns and throws VisualizationError
 - [ ] If custom no-data message requested: `formatData` detects `_status` field, `updateView` intercepts it, `_ensureCanvas` and `_drawStatusMessage` methods exist
 - [ ] `visualization.css` exists (transparent background by default)
-- [ ] `metadata/default.meta` exists with global `[]` access stanza and `export = system`
+- [ ] `metadata/default.meta` exists with global `[]` access stanza, `export = system`, and `sc_admin` in all write ACLs (required for Splunk Cloud)
+- [ ] `savedsearches.conf` uses historical time ranges (no `rt-*` / `rt` — rejected by Splunk Cloud vetting)
+- [ ] `static/` contains all four app icons: `appIcon.png` (36x36), `appIcon_2x.png` (72x72), `appIconAlt.png` (36x36), `appIconAlt_2x.png` (72x72)
 - [ ] `.gitignore` excludes `node_modules`
 - [ ] Build script excludes src/, node_modules/, package.json, webpack.config.js from tarball
 - [ ] `harness.json` exists with correct fields, formatter (matching JS defaults), and data mode
@@ -1366,6 +1414,402 @@ Open `http://localhost:8080/test-harness.html`. Select a viz from the dropdown. 
 
 No changes to `test-harness.html` are needed — it discovers everything from JSON.
 
+## Step 6: Scaffold a Dashboard Studio App (Optional)
+
+When the user asks to scaffold a Splunk Dashboard Studio app with custom visualization support, generate the full app skeleton with the `vizs/` build pipeline. This creates a parent app that can bundle one or more custom vizs alongside Dashboard Studio dashboards.
+
+The master reference for this pattern is [`splunk-custom-visualizations`](https://github.com/rcastley/splunk-custom-visualizations). The `test-harness.html` file should be copied from that repo — it is generic (zero viz-specific code) and works with any viz that has a valid `harness.json`.
+
+### What to ask the user
+
+1. **App name**: short lowercase identifier (e.g., `my_dashboard_app`). Used as the `[package] id` in `app.conf`.
+2. **Display label**: human-readable name for the Splunk UI (e.g., "My Dashboard App").
+3. **Author**: who to credit in `app.conf`.
+4. **Description**: one-line description.
+
+### Directory structure to generate
+
+```
+{app_name}/
+  .gitignore
+  README.md
+  default/
+    app.conf
+    visualizations.conf           (empty — populated by build.sh merge)
+    savedsearches.conf            (empty — populated by build.sh merge)
+    data/ui/
+      nav/default.xml
+      views/                      (dashboards go here)
+  metadata/
+    default.meta
+  README/
+    savedsearches.conf.spec       (empty — populated by build.sh merge)
+  static/
+    appIcon.png                   (36x36 app icon)
+    appIcon_2x.png                (72x72 HiDPI app icon)
+    appIconAlt.png                (36x36 alternate app icon)
+    appIconAlt_2x.png             (72x72 HiDPI alternate app icon)
+  vizs/
+    build.sh                      (build + merge + package script)
+    harness-manifest.json
+    test-harness.html             (copy from splunk-custom-visualizations repo)
+```
+
+### File templates
+
+#### .gitignore
+```
+.DS_Store
+vizs/*.tar.gz
+node_modules/
+```
+
+#### default/app.conf
+```
+[id]
+name = {app_name}
+version = 1.0.0
+
+[install]
+is_configured = true
+build = 1
+
+[ui]
+is_visible = true
+label = {display_label}
+show_in_nav = true
+
+[launcher]
+author = {author}
+description = {description}
+version = 1.0.0
+
+[package]
+id = {app_name}
+check_for_updates = false
+```
+
+#### metadata/default.meta
+```
+[]
+access = read : [ * ], write : [ admin, sc_admin, power ]
+
+[app/local]
+access = read : [ * ], write : [ admin, sc_admin ]
+
+[views]
+access = read : [ * ], write : [ admin, sc_admin, power ]
+
+[nav]
+access = read : [ * ], write : [ admin, sc_admin ]
+```
+
+The `[visualizations/*]` export stanzas are appended automatically by `build.sh` during the merge phase.
+
+#### default/data/ui/nav/default.xml
+```xml
+<nav>
+  <view name="home" default="true" />
+</nav>
+```
+
+#### vizs/harness-manifest.json
+
+Start with an empty vizs array. Each viz is added here as it is scaffolded.
+
+```json
+{
+  "vizs": []
+}
+```
+
+If the app uses shared fonts, add `"fontCSS": "shared/fonts.css"` and create `vizs/shared/fonts.css`.
+
+#### vizs/build.sh
+
+```bash
+#!/usr/bin/env bash
+# Build, merge, and package custom visualizations into {app_name}.
+#
+# Usage: ./vizs/build.sh [viz_name]
+#
+# With no arguments, builds and merges all vizs. Pass a name for one:
+#   ./vizs/build.sh my_viz
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+TARGET_APP="$(cd "$SCRIPT_DIR/.." && pwd)"
+APP_NAME="$(basename "$TARGET_APP")"
+PARENT_DIR="$(dirname "$TARGET_APP")"
+
+APPS=(
+    # Add viz names here as they are created, e.g.:
+    # my_first_viz
+    # my_second_viz
+)
+
+if [ ! -d "$TARGET_APP/default" ]; then
+    echo "ERROR: Target app not found at $TARGET_APP"
+    exit 1
+fi
+
+shopt -s nullglob
+BUILT=()
+MERGED=0
+
+# ── Spinner ────────────────────────────────────────────────────────────
+
+spin() {
+    local pid=$1
+    local msg=$2
+    local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    local i=0
+    while kill -0 "$pid" 2>/dev/null; do
+        printf "\r  ${frames[$i]} %s" "$msg"
+        i=$(( (i + 1) % ${#frames[@]} ))
+        sleep 0.08
+    done
+    wait "$pid" 2>/dev/null
+    local exit_code=$?
+    if [ $exit_code -eq 0 ]; then
+        printf "\r  ✓ %s\n" "$msg"
+    else
+        printf "\r  ✗ %s\n" "$msg"
+    fi
+    return $exit_code
+}
+
+run_with_spinner() {
+    local msg=$1
+    shift
+    "$@" > /dev/null 2>&1 &
+    spin $! "$msg"
+}
+
+# ── Helper: remove a conf stanza by exact name ────────────────────────
+
+remove_stanza() {
+    local file="$1"
+    local stanza="$2"
+    [ -f "$file" ] || return 0
+    grep -qF "[$stanza]" "$file" || return 0
+    awk -v s="[$stanza]" 'BEGIN{skip=0} /^\[/{skip=($0==s)?1:0} !skip{print}' "$file" > "$file.tmp"
+    mv "$file.tmp" "$file"
+}
+
+# ── Build ──────────────────────────────────────────────────────────────
+
+build_viz() {
+    local VIZ_NAME="$1"
+    local SRC_APP="$SCRIPT_DIR/$VIZ_NAME"
+    local SRC_VIZ="$SRC_APP/appserver/static/visualizations/$VIZ_NAME"
+
+    if [ ! -d "$SRC_APP" ]; then
+        printf "  ✗ %s (not found)\n" "$VIZ_NAME"
+        return 1
+    fi
+
+    if [ ! -d "$SRC_VIZ/node_modules" ]; then
+        run_with_spinner "$VIZ_NAME → npm install" bash -c "cd '$SRC_VIZ' && npm install" || return 1
+    fi
+
+    run_with_spinner "$VIZ_NAME → webpack build" bash -c "cd '$SRC_VIZ' && npm run build" || return 1
+
+    # Prepend shared font CSS if it exists
+    local FONT_CSS="$SCRIPT_DIR/shared/fonts.css"
+    local VIZ_CSS="$SRC_VIZ/visualization.css"
+    if [ -f "$FONT_CSS" ] && [ -f "$VIZ_CSS" ]; then
+        if ! grep -q "@font-face" "$VIZ_CSS"; then
+            cat "$FONT_CSS" "$VIZ_CSS" > "$VIZ_CSS.tmp"
+            mv "$VIZ_CSS.tmp" "$VIZ_CSS"
+        fi
+    fi
+
+    if [ ! -f "$SRC_VIZ/visualization.js" ]; then
+        printf "  ✗ %s → build failed\n" "$VIZ_NAME"
+        return 1
+    fi
+
+    BUILT+=("$VIZ_NAME")
+    return 0
+}
+
+# ── Merge ──────────────────────────────────────────────────────────────
+
+merge_viz() {
+    local VIZ_NAME="$1"
+    local SRC_APP="$SCRIPT_DIR/$VIZ_NAME"
+    local SRC_VIZ="$SRC_APP/appserver/static/visualizations/$VIZ_NAME"
+
+    # Copy visualization files
+    local VIZ_DEST="$TARGET_APP/appserver/static/visualizations/$VIZ_NAME"
+    mkdir -p "$VIZ_DEST"
+    for f in "$SRC_VIZ"/*.{js,css,html,json,png,svg}; do
+        [ -f "$f" ] || continue
+        local fname
+        fname=$(basename "$f")
+        case "$fname" in
+            package.json|package-lock.json|webpack.config.js|harness.json|preview.png) continue ;;
+        esac
+        cp "$f" "$VIZ_DEST/"
+    done
+
+    # Update visualizations.conf
+    local VIZ_CONF="$TARGET_APP/default/visualizations.conf"
+    remove_stanza "$VIZ_CONF" "$VIZ_NAME"
+    { echo ""; cat "$SRC_APP/default/visualizations.conf"; } >> "$VIZ_CONF"
+
+    # Update saved searches
+    local SAVED_SEARCH_FILE="$TARGET_APP/default/savedsearches.conf"
+    local SRC_SAVED="$SRC_APP/default/savedsearches.conf"
+    if [ -f "$SRC_SAVED" ]; then
+        while IFS= read -r line; do
+            local sname="${line#[}"
+            sname="${sname%]}"
+            remove_stanza "$SAVED_SEARCH_FILE" "$sname"
+        done < <(grep '^\[' "$SRC_SAVED")
+        { echo ""; cat "$SRC_SAVED"; } >> "$SAVED_SEARCH_FILE"
+    fi
+
+    # Merge spec entries
+    local SPEC_SRC="$SRC_APP/README/savedsearches.conf.spec"
+    local SPEC_DEST="$TARGET_APP/README/savedsearches.conf.spec"
+    if [ -f "$SPEC_SRC" ]; then
+        mkdir -p "$TARGET_APP/README"
+        if [ -f "$SPEC_DEST" ]; then
+            grep -v "^display\\.visualizations\\.custom\\.$VIZ_NAME\\." "$SPEC_DEST" \
+                > "$SPEC_DEST.tmp" || true
+            mv "$SPEC_DEST.tmp" "$SPEC_DEST"
+        fi
+        { echo ""; cat "$SPEC_SRC"; } >> "$SPEC_DEST"
+    fi
+
+    # Update metadata
+    local META_FILE="$TARGET_APP/metadata/default.meta"
+    if ! grep -q "visualizations/$VIZ_NAME" "$META_FILE"; then
+        { echo ""; echo "[visualizations/$VIZ_NAME]"; echo "export = system"; } >> "$META_FILE"
+    fi
+
+    MERGED=$((MERGED + 1))
+    return 0
+}
+
+# ── Run ────────────────────────────────────────────────────────────────
+
+echo ""
+echo "  {app_name} build"
+
+# Phase 1: Build all visualizations
+echo ""
+echo "  Building..."
+if [ $# -ge 1 ]; then
+    build_viz "$1" || true
+else
+    for app in "${APPS[@]}"; do
+        build_viz "$app" || true
+    done
+fi
+
+# Phase 2: Merge all successfully built visualizations
+if [ ${#BUILT[@]} -gt 0 ]; then
+    echo ""
+    echo "  Merging..."
+    for app in "${BUILT[@]}"; do
+        merge_viz "$app" > /dev/null 2>&1 && printf "  ✓ %s\n" "$app" || printf "  ✗ %s\n" "$app"
+    done
+fi
+
+# Clean up conf files — collapse multiple blank lines
+for f in \
+    "$TARGET_APP/README/savedsearches.conf.spec" \
+    "$TARGET_APP/default/savedsearches.conf" \
+    "$TARGET_APP/default/visualizations.conf"; do
+    if [ -f "$f" ]; then
+        awk 'NF{blank=0; print; next} !blank++{print}' "$f" \
+            | sed '/./,$!d' > "$f.tmp"
+        mv "$f.tmp" "$f"
+    fi
+done
+
+# Bump patch version (updates both [id] and [launcher] stanzas)
+if [ "$MERGED" -gt 0 ]; then
+    CURRENT_VERSION=$(grep '^version' "$TARGET_APP/default/app.conf" | head -1 | cut -d= -f2 | tr -d ' ')
+    MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
+    MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
+    PATCH=$(echo "$CURRENT_VERSION" | cut -d. -f3)
+    NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+    sed -i '' "s/^version = .*/version = ${NEW_VERSION}/" "$TARGET_APP/default/app.conf"
+    echo ""
+    printf "  ✓ Version bump: %s → %s\n" "$CURRENT_VERSION" "$NEW_VERSION"
+fi
+
+# Phase 3: Package
+echo ""
+echo "  Packaging..."
+xattr -rc "$TARGET_APP" 2>/dev/null || true
+
+run_with_spinner "$APP_NAME.tar.gz" bash -c "
+    COPYFILE_DISABLE=1 tar --disable-copyfile \
+        --exclude='.git' \
+        --exclude='.github' \
+        --exclude='.DS_Store' \
+        --exclude='.gitignore' \
+        --exclude='._*' \
+        --exclude='vizs' \
+        --exclude='local' \
+        --exclude='README.md' \
+        --exclude='node_modules' \
+        -czf '$PARENT_DIR/$APP_NAME.tar.gz' \
+        -C '$PARENT_DIR' \
+        '$APP_NAME'
+"
+
+echo ""
+echo "  📦 $PARENT_DIR/$APP_NAME.tar.gz"
+echo ""
+```
+
+Mark `build.sh` as executable (`chmod +x vizs/build.sh`).
+
+#### vizs/test-harness.html
+
+**Do not generate this file.** Copy it from the master repository:
+
+```bash
+curl -sL https://raw.githubusercontent.com/rcastley/splunk-custom-visualizations/main/test-harness.html \
+  -o vizs/test-harness.html
+```
+
+Or if the repo is cloned locally:
+
+```bash
+cp /path/to/splunk-custom-visualizations/test-harness.html vizs/test-harness.html
+```
+
+The test harness is fully generic — it reads `harness-manifest.json` to discover vizs and `harness.json` in each viz directory for controls and sample data. No modifications are needed.
+
+### Workflow after scaffolding
+
+Once the app skeleton exists, individual vizs are created using the normal Steps 1–5 of this skill. Each viz is scaffolded as a standalone app under `vizs/{viz_name}/` with its own `default/`, `metadata/`, `README/`, and `appserver/`. After scaffolding a new viz:
+
+1. Add the viz name to the `APPS` array in `vizs/build.sh`
+2. Add the viz name to the `vizs` array in `vizs/harness-manifest.json`
+3. Run `./vizs/build.sh` to build, merge, and package
+
+The build script handles everything: npm install, webpack build, merging config stanzas into the parent app, version bump, and tarball packaging. The `appserver/static/visualizations/` directory in the parent app is a build artifact — source code lives only under `vizs/`.
+
+### Namespace reminder
+
+When a viz is embedded in a parent app, the Splunk config namespace changes. In `savedsearches.conf` and `savedsearches.conf.spec` inside each `vizs/{viz_name}/` directory, use the parent app's package ID:
+
+```
+display.visualizations.custom.type = {parent_app_id}.{viz_name}
+display.visualizations.custom.{parent_app_id}.{viz_name}.{setting} = {value}
+```
+
+The `formatter.html` and `visualization_source.js` auto-resolve the namespace via `{{VIZ_NAMESPACE}}` and `getPropertyNamespaceInfo()` — no code changes needed.
+
 ## Splunk Version Requirements
 
-Custom visualizations using this framework require **Splunk Enterprise 10.2+** or **Splunk Cloud**. The `visualizations.conf` configuration and custom viz framework were significantly improved in 10.2. Ensure the user's target environment meets this minimum version.
+Custom visualizations using this framework require **Splunk Enterprise 10.2+** or **Splunk Cloud**. The `visualizations.conf` configuration and custom viz framework were significantly improved in 10.2. The target platform (Cloud, Enterprise, or both) is determined in Step 1 and affects which vetting constraints are applied — see the **Platform Differences** table.
