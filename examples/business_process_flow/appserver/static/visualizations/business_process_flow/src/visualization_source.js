@@ -907,7 +907,8 @@ define([
 
     // ── Node Positioning ──────────────────────────────────────────
 
-    function computeNodePositions(nodes, editorState, w, h, toolbarH) {
+    function computeNodePositions(nodes, editorState, w, h, toolbarH, globalEffects) {
+        var ge = globalEffects || {};
         var defaultW = 180;
         var defaultH = 120;
         var padX = 60;
@@ -923,7 +924,9 @@ define([
             var edState = nodeEditorMap[nd.id];
             var nw = (edState && edState.w) ? edState.w : defaultW;
             var nh = (edState && edState.h) ? edState.h : defaultH;
-            var shape = (edState && edState.shape) ? edState.shape : 'rect';
+            var edShape = (edState && edState.shape) ? edState.shape : null;
+            // Never override textbox or custom shapes with global default
+            var shape = (edShape === 'textbox' || edShape === 'custom') ? edShape : (ge.defaultShape || edShape || 'rect');
             var colorOverride = (edState && edState.color) ? edState.color : null;
             var hideValue = (edState && edState.hideValue) ? true : false;
             var labelOverride = (edState && edState.label) ? edState.label : null;
@@ -958,22 +961,22 @@ define([
                 rowIndex: nd.rowIndex,
                 hideValue: hideValue,
                 sparklineType: perNode.sparklineType,
-                fontSize: perNode.fontSize,
+                fontSize: ge.defaultFontSize || perNode.fontSize || undefined,
                 chartHeight: perNode.chartHeight,
                 opacity: perNode.opacity,
                 borderWidth: perNode.borderWidth,
                 strokePattern: perNode.strokePattern,
-                borderRadius: perNode.borderRadius,
+                borderRadius: ge.defaultBorderRadius || perNode.borderRadius || undefined,
                 bgColor: perNode.bgColor,
                 borderColor: perNode.borderColor,
                 strokeDash: perNode.strokeDash,
                 strokeGap: perNode.strokeGap,
                 prefix: edState ? edState.prefix : undefined,
                 suffix: edState ? edState.suffix : undefined,
-                sparkPosition: edState ? edState.sparkPosition : undefined,
+                sparkPosition: ge.defaultSparkPosition || (edState ? edState.sparkPosition : undefined) || undefined,
                 conditions: edState ? edState.conditions : undefined,
                 rawValue: edState ? edState.rawValue : undefined,
-                textAlign: edState ? edState.textAlign : undefined,
+                textAlign: ge.defaultTextAlign || (edState ? edState.textAlign : undefined) || undefined,
                 verticalAlign: edState ? edState.verticalAlign : undefined,
                 labelColor: edState ? edState.labelColor : undefined,
                 valueColor: edState ? edState.valueColor : undefined,
@@ -1106,7 +1109,8 @@ define([
 
     // ── Connection Building ───────────────────────────────────────
 
-    function buildConnections(nodes, editorState, extraNodeMap) {
+    function buildConnections(nodes, editorState, extraNodeMap, globalEffects) {
+        var cge = globalEffects || {};
         var connections = [];
         var nodeMap = {};
         var manualSet = {};
@@ -1134,9 +1138,9 @@ define([
                 connections.push({
                     from: mc.from,
                     to: mc.to,
-                    style: mc.style || 'straight',
-                    color: mc.color || '',
-                    width: mc.width || 2,
+                    style: cge.defaultConnStyle || mc.style || 'straight',
+                    color: mc.color || cge.defaultConnColor || '',
+                    width: cge.defaultConnWidth ? parseFloat(cge.defaultConnWidth) : (mc.width || 2),
                     dash: mc.dash || false,
                     strokePattern: mc.strokePattern,
                     strokeDash: mc.strokeDash,
@@ -1145,7 +1149,7 @@ define([
                     label: mc.label || '',
                     manual: true,
                     startEndpoint: mc.startEndpoint,
-                    endEndpoint: mc.endEndpoint,
+                    endEndpoint: cge.defaultEndEndpoint || mc.endEndpoint || undefined,
                     sourceAnchor: mc.sourceAnchor || 'auto',
                     targetAnchor: mc.targetAnchor || 'auto',
                     sourceAnchorOffset: mc.sourceAnchorOffset || 0,
@@ -1189,11 +1193,12 @@ define([
                             var dataConn = {
                                 from: nd.id,
                                 to: targetId,
-                                style: 'straight',
-                                color: meta._dataColor || '',
-                                width: 2,
+                                style: cge.defaultConnStyle || 'straight',
+                                color: meta._dataColor || cge.defaultConnColor || '',
+                                width: cge.defaultConnWidth ? parseFloat(cge.defaultConnWidth) : 2,
                                 dash: false,
                                 arrow: 'forward',
+                                endEndpoint: cge.defaultEndEndpoint || undefined,
                                 label: '',
                                 manual: false
                             };
@@ -7166,28 +7171,30 @@ define([
             // ── Node Defaults Section ──
             var nodeDfSec = createPanelSection('Node Defaults', '', false);
             var nodeDfBody = nodeDfSec._body;
+            if (!self._editorState._defaults) self._editorState._defaults = {};
+            var sd = self._editorState._defaults;
             var ge = self._globalEffects || {};
 
             nodeDfBody.appendChild(createToggleRow('Shape', [
                 {value: 'rect', label: 'Rect'}, {value: 'circle', label: 'Circle'},
                 {value: 'diamond', label: 'Dia'}, {value: 'hexagon', label: 'Hex'}
-            ], ge.defaultShape || 'rect', function(val) {
-                ge.defaultShape = val;
+            ], sd.defaultShape || 'rect', function(val) {
+                self._pushUndo(); sd.defaultShape = val;
                 self.invalidateUpdateView();
             }));
 
-            nodeDfBody.appendChild(createTextRow('Border Radius', ge.defaultBorderRadius || '8', function(val) {
-                ge.defaultBorderRadius = val;
+            nodeDfBody.appendChild(createTextRow('Border Radius', sd.defaultBorderRadius || ge.defaultBorderRadius || '8', function(val) {
+                self._pushUndo(); sd.defaultBorderRadius = val;
                 self.invalidateUpdateView();
             }, { numeric: true, min: 0, max: 50, step: 2 }));
 
             nodeDfBody.appendChild(createTextRow('Opacity %', ge.defaultOpacity || '100', function(val) {
-                ge.defaultOpacity = val;
+                self._pushUndo(); sd.defaultOpacity = val; ge.defaultOpacity = val;
                 self.invalidateUpdateView();
             }, { numeric: true, min: 0, max: 100, step: 5 }));
 
             nodeDfBody.appendChild(createTextRow('Border Width', ge.defaultBorderWidth || '1', function(val) {
-                ge.defaultBorderWidth = val;
+                self._pushUndo(); sd.defaultBorderWidth = val; ge.defaultBorderWidth = val;
                 self.invalidateUpdateView();
             }, { numeric: true, min: 0, max: 10, step: 0.5 }));
 
@@ -7195,30 +7202,30 @@ define([
                 {value: 'solid', label: 'Solid'}, {value: 'dashed', label: 'Dash'},
                 {value: 'dotted', label: 'Dot'}, {value: 'dash-dot', label: 'D-D'}
             ], ge.defaultStrokePattern || 'solid', function(val) {
-                ge.defaultStrokePattern = val;
+                self._pushUndo(); sd.defaultStrokePattern = val; ge.defaultStrokePattern = val;
                 self.invalidateUpdateView();
             }));
 
             nodeDfBody.appendChild(createToggleRow('Font Size', [
                 {value: '', label: 'Auto'}, {value: '10', label: 'S'},
                 {value: '14', label: 'M'}, {value: '18', label: 'L'}, {value: '24', label: 'XL'}
-            ], ge.defaultFontSize || '', function(val) {
-                ge.defaultFontSize = val;
+            ], sd.defaultFontSize || '', function(val) {
+                self._pushUndo(); sd.defaultFontSize = val;
                 self.invalidateUpdateView();
             }));
 
             nodeDfBody.appendChild(createToggleRow('Text Align', [
                 {value: '', label: 'Center'}, {value: 'left', label: 'Left'}, {value: 'right', label: 'Right'}
-            ], ge.defaultTextAlign || '', function(val) {
-                ge.defaultTextAlign = val;
+            ], sd.defaultTextAlign || '', function(val) {
+                self._pushUndo(); sd.defaultTextAlign = val;
                 self.invalidateUpdateView();
             }));
 
             nodeDfBody.appendChild(createToggleRow('Sparkline Pos', [
                 {value: '', label: 'Default'}, {value: 'behind', label: 'Behind'},
                 {value: 'above', label: 'Above'}, {value: 'left', label: 'Left'}, {value: 'right', label: 'Right'}
-            ], ge.defaultSparkPosition || '', function(val) {
-                ge.defaultSparkPosition = val;
+            ], sd.defaultSparkPosition || '', function(val) {
+                self._pushUndo(); sd.defaultSparkPosition = val;
                 self.invalidateUpdateView();
             }));
 
@@ -7231,8 +7238,8 @@ define([
             connDfBody.appendChild(createToggleRow('Style', [
                 {value: 'straight', label: 'Straight'}, {value: 'curved', label: 'Curved'},
                 {value: 'orthogonal', label: 'Ortho'}
-            ], ge.defaultConnStyle || 'straight', function(val) {
-                ge.defaultConnStyle = val;
+            ], sd.defaultConnStyle || 'straight', function(val) {
+                self._pushUndo(); sd.defaultConnStyle = val;
                 self.invalidateUpdateView();
             }));
 
@@ -7240,19 +7247,19 @@ define([
                 {value: '', label: 'None'}, {value: 'filledArrow', label: 'Arrow'},
                 {value: 'openArrow', label: 'Open'}, {value: 'circle', label: 'Circle'},
                 {value: 'diamond', label: 'Dia'}
-            ], ge.defaultEndEndpoint || '', function(val) {
-                ge.defaultEndEndpoint = val;
+            ], sd.defaultEndEndpoint || '', function(val) {
+                self._pushUndo(); sd.defaultEndEndpoint = val;
                 self.invalidateUpdateView();
             }));
 
-            connDfBody.appendChild(createTextRow('Line Width', ge.defaultConnWidth || '2', function(val) {
-                ge.defaultConnWidth = val;
+            connDfBody.appendChild(createTextRow('Line Width', sd.defaultConnWidth || '2', function(val) {
+                self._pushUndo(); sd.defaultConnWidth = val;
                 self.invalidateUpdateView();
             }, { numeric: true, min: 1, max: 10, step: 0.5 }));
 
             var defaultColors = PALETTES[self._currentPalette] || PALETTES.corporate;
-            connDfBody.appendChild(createColorRow('Line Color', defaultColors, ge.defaultConnColor || '', function(val) {
-                ge.defaultConnColor = val;
+            connDfBody.appendChild(createColorRow('Line Color', defaultColors, sd.defaultConnColor || '', function(val) {
+                self._pushUndo(); sd.defaultConnColor = val;
                 self.invalidateUpdateView();
             }));
 
@@ -9161,6 +9168,9 @@ define([
             this._lockMode = lock === 'true';
             this._drilldownField = drilldownField;
             this._currentPalette = palette;
+            // Defaults stored in editorState for undo/redo support
+            if (!this._editorState._defaults) this._editorState._defaults = {};
+            var sd = this._editorState._defaults;
             this._globalEffects = {
                 rawValue: globalRawValue,
                 shadowEnabled: globalShadowEnabled, shadowBlur: globalShadowBlur,
@@ -9171,7 +9181,18 @@ define([
                 defaultStrokePattern: globalDefaultStrokePattern,
                 defaultBorderWidth: globalDefaultBorderWidth,
                 defaultBorderColor: globalDefaultBorderColor,
-                defaultBgColor: globalDefaultBgColor
+                defaultBgColor: globalDefaultBgColor,
+                // Session-level node defaults (from Global Settings panel)
+                defaultShape: sd.defaultShape || undefined,
+                defaultBorderRadius: sd.defaultBorderRadius || undefined,
+                defaultFontSize: sd.defaultFontSize || undefined,
+                defaultTextAlign: sd.defaultTextAlign || undefined,
+                defaultSparkPosition: sd.defaultSparkPosition || undefined,
+                // Session-level connection defaults
+                defaultConnStyle: sd.defaultConnStyle || undefined,
+                defaultEndEndpoint: sd.defaultEndEndpoint || undefined,
+                defaultConnWidth: sd.defaultConnWidth || undefined,
+                defaultConnColor: sd.defaultConnColor || undefined
             };
 
             // Start periodic auto-sync: localStorage → formatter textarea.
@@ -9453,7 +9474,7 @@ define([
             var toolbarH = this._editMode ? 36 : 0;
 
             // 9. Compute node positions
-            var positioned = computeNodePositions(resolvedNodes, this._editorState, w, h, toolbarH);
+            var positioned = computeNodePositions(resolvedNodes, this._editorState, w, h, toolbarH, this._globalEffects);
             this._computedNodes = positioned;
             this._computedNodeMap = {};
             for (var ci2 = 0; ci2 < positioned.length; ci2++) {
@@ -9486,7 +9507,7 @@ define([
                     groupNodeMap[groups[gnb].id] = this._computedNodeMap[groups[gnb].id];
                 }
             }
-            var connections = buildConnections(positioned, this._editorState, groupNodeMap);
+            var connections = buildConnections(positioned, this._editorState, groupNodeMap, this._globalEffects);
             this._computedConnections = connections;
 
             // 12. Build node map for connection drawing
