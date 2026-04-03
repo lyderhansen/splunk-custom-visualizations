@@ -16,9 +16,9 @@ define([
 
     // ── Panel Theme (module-level, updated by updateView) ────────
     var panelTheme = {
-        bg: '#0f172a', inputBg: '#0f172a', border: '#334155', text: '#cbd5e1',
-        textMuted: '#64748b', active: '#6366f1', activeBg: '#475569',
-        sectionBg: '#1e293b', sectionText: '#94a3b8'
+        bg: '#0f172a', inputBg: '#0f172a', border: '#475569', text: '#e2e8f0',
+        textMuted: '#94a3b8', active: '#6366f1', activeBg: '#475569',
+        sectionBg: '#1e293b', sectionText: '#cbd5e1'
     };
 
     // ── Color Palettes ────────────────────────────────────────────
@@ -800,7 +800,7 @@ define([
     // ── Grid Drawing ──────────────────────────────────────────────
 
     function drawGrid(ctx, w, h, gridSize, panX, panY, isDark) {
-        var dotColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+        var dotColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)';
         var gs = gridSize;
         ctx.fillStyle = dotColor;
         var gStartX = Math.floor(-panX / gs) * gs;
@@ -925,8 +925,8 @@ define([
             var nw = (edState && edState.w) ? edState.w : defaultW;
             var nh = (edState && edState.h) ? edState.h : defaultH;
             var edShape = (edState && edState.shape) ? edState.shape : null;
-            // Never override textbox or custom shapes with global default
-            var shape = (edShape === 'textbox' || edShape === 'custom') ? edShape : (ge.defaultShape || edShape || 'rect');
+            // Per-node shape wins; then global default; then 'rect'. Never override textbox/custom.
+            var shape = edShape ? edShape : (ge.defaultShape || 'rect');
             var colorOverride = (edState && edState.color) ? edState.color : null;
             var hideValue = (edState && edState.hideValue) ? true : false;
             var labelOverride = (edState && edState.label) ? edState.label : null;
@@ -961,22 +961,22 @@ define([
                 rowIndex: nd.rowIndex,
                 hideValue: hideValue,
                 sparklineType: perNode.sparklineType,
-                fontSize: ge.defaultFontSize || perNode.fontSize || undefined,
+                fontSize: perNode.fontSize || ge.defaultFontSize || undefined,
                 chartHeight: perNode.chartHeight,
                 opacity: perNode.opacity,
                 borderWidth: perNode.borderWidth,
                 strokePattern: perNode.strokePattern,
-                borderRadius: ge.defaultBorderRadius || perNode.borderRadius || undefined,
+                borderRadius: perNode.borderRadius || ge.defaultBorderRadius || undefined,
                 bgColor: perNode.bgColor,
                 borderColor: perNode.borderColor,
                 strokeDash: perNode.strokeDash,
                 strokeGap: perNode.strokeGap,
                 prefix: edState ? edState.prefix : undefined,
                 suffix: edState ? edState.suffix : undefined,
-                sparkPosition: ge.defaultSparkPosition || (edState ? edState.sparkPosition : undefined) || undefined,
+                sparkPosition: (edState ? edState.sparkPosition : undefined) || ge.defaultSparkPosition || undefined,
                 conditions: edState ? edState.conditions : undefined,
                 rawValue: edState ? edState.rawValue : undefined,
-                textAlign: ge.defaultTextAlign || (edState ? edState.textAlign : undefined) || undefined,
+                textAlign: (edState ? edState.textAlign : undefined) || ge.defaultTextAlign || undefined,
                 verticalAlign: edState ? edState.verticalAlign : undefined,
                 labelColor: edState ? edState.labelColor : undefined,
                 valueColor: edState ? edState.valueColor : undefined,
@@ -1138,9 +1138,9 @@ define([
                 connections.push({
                     from: mc.from,
                     to: mc.to,
-                    style: cge.defaultConnStyle || mc.style || 'straight',
+                    style: mc.style || cge.defaultConnStyle || 'straight',
                     color: mc.color || cge.defaultConnColor || '',
-                    width: cge.defaultConnWidth ? parseFloat(cge.defaultConnWidth) : (mc.width || 2),
+                    width: mc.width || (cge.defaultConnWidth ? parseFloat(cge.defaultConnWidth) : 2),
                     dash: mc.dash || false,
                     strokePattern: mc.strokePattern,
                     strokeDash: mc.strokeDash,
@@ -1149,7 +1149,7 @@ define([
                     label: mc.label || '',
                     manual: true,
                     startEndpoint: mc.startEndpoint,
-                    endEndpoint: cge.defaultEndEndpoint || mc.endEndpoint || undefined,
+                    endEndpoint: mc.endEndpoint || cge.defaultEndEndpoint || undefined,
                     sourceAnchor: mc.sourceAnchor || 'auto',
                     targetAnchor: mc.targetAnchor || 'auto',
                     sourceAnchorOffset: mc.sourceAnchorOffset || 0,
@@ -3483,7 +3483,7 @@ define([
         row.style.cssText = 'margin-bottom:8px;';
 
         var labelEl = document.createElement('div');
-        labelEl.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;';
+        labelEl.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;font-weight:500;';
         labelEl.textContent = label;
         row.appendChild(labelEl);
 
@@ -3497,7 +3497,7 @@ define([
                 var btn = document.createElement('button');
                 var isActive = (opt.value === activeValue);
                 btn.textContent = opt.label !== undefined ? opt.label : opt.value;
-                btn.style.cssText = 'padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;border:1px solid ' +
+                btn.style.cssText = 'padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid ' +
                     (isActive ? '#3b82f6' : panelTheme.border) + ';background:' +
                     (isActive ? 'rgba(59,130,246,0.2)' : 'transparent') +
                     ';color:' + (isActive ? '#93c5fd' : panelTheme.sectionText) + ';transition:all 0.1s;';
@@ -3536,21 +3536,21 @@ define([
         row.style.cssText = 'margin-bottom:8px;';
 
         var labelEl = document.createElement('div');
-        labelEl.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;';
+        labelEl.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;font-weight:500;';
         labelEl.textContent = label;
         row.appendChild(labelEl);
 
         var opts = options || {};
 
         var wrapper = document.createElement('div');
-        wrapper.style.cssText = 'display:flex;align-items:stretch;height:28px;';
+        wrapper.style.cssText = 'display:flex;align-items:stretch;height:30px;';
 
         var input = document.createElement('input');
         input.type = 'text';
         input.value = (value !== null && value !== undefined) ? String(value) : '';
-        input.style.cssText = 'flex:1;min-width:0;box-sizing:border-box;height:28px;background:' + panelTheme.inputBg + ';border:1px solid ' + panelTheme.border + ';border-radius:' +
+        input.style.cssText = 'flex:1;min-width:0;box-sizing:border-box;height:30px;background:' + panelTheme.inputBg + ';border:1px solid ' + panelTheme.border + ';border-radius:' +
             (opts.numeric ? '4px 0 0 4px' : '4px') +
-            ';color:' + panelTheme.text + ';font-size:11px;padding:0 7px;outline:none;';
+            ';color:' + panelTheme.text + ';font-size:12px;padding:0 8px;outline:none;';
 
         input.addEventListener('focus', function() {
             input.style.borderColor = '#3b82f6';
@@ -3574,11 +3574,11 @@ define([
 
         if (opts.numeric) {
             var btnCol = document.createElement('div');
-            btnCol.style.cssText = 'display:flex;flex-direction:column;height:28px;';
+            btnCol.style.cssText = 'display:flex;flex-direction:column;height:30px;';
 
             var upBtn = document.createElement('button');
             upBtn.textContent = '\u25B2';
-            upBtn.style.cssText = 'height:14px;width:22px;border:1px solid ' + panelTheme.border + ';border-left:none;' +
+            upBtn.style.cssText = 'height:15px;width:24px;border:1px solid ' + panelTheme.border + ';border-left:none;' +
                 'background:' + panelTheme.sectionBg + ';color:' + panelTheme.textMuted + ';font-size:5px;cursor:pointer;' +
                 'border-radius:0 4px 0 0;padding:0;line-height:1;transition:background 0.15s,color 0.15s;';
             upBtn.addEventListener('mouseenter', function() { upBtn.style.background = panelTheme.border; upBtn.style.color = panelTheme.text; });
@@ -3595,7 +3595,7 @@ define([
 
             var downBtn = document.createElement('button');
             downBtn.textContent = '\u25BC';
-            downBtn.style.cssText = 'height:14px;width:22px;border:1px solid ' + panelTheme.border + ';border-left:none;border-top:none;' +
+            downBtn.style.cssText = 'height:15px;width:24px;border:1px solid ' + panelTheme.border + ';border-left:none;border-top:none;' +
                 'background:' + panelTheme.sectionBg + ';color:' + panelTheme.textMuted + ';font-size:5px;cursor:pointer;' +
                 'border-radius:0 0 4px 0;padding:0;line-height:1;transition:background 0.15s,color 0.15s;';
             downBtn.addEventListener('mouseenter', function() { downBtn.style.background = panelTheme.border; downBtn.style.color = panelTheme.text; });
@@ -3629,7 +3629,7 @@ define([
         row.style.cssText = 'margin-bottom:8px;';
 
         var labelEl = document.createElement('div');
-        labelEl.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;';
+        labelEl.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;font-weight:500;';
         labelEl.textContent = label;
         row.appendChild(labelEl);
 
@@ -4064,19 +4064,23 @@ define([
                 }
                 // 3. Copy to clipboard (fallback method for broader compatibility)
                 try {
-                    var copyArea = document.createElement('textarea');
-                    copyArea.value = stateJson;
-                    copyArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
-                    document.body.appendChild(copyArea);
-                    copyArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(copyArea);
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(stateJson).catch(function() {});
+                    } else {
+                        var copyArea = document.createElement('textarea');
+                        copyArea.value = stateJson;
+                        copyArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+                        document.body.appendChild(copyArea);
+                        copyArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(copyArea);
+                    }
                 } catch(e) { /* ignore */ }
                 // 4. Visual feedback — show "SAVED! Paste into Layout Data"
                 self._saveFlash = true;
                 self._saveMessage = 'Copied to clipboard!';
                 self.invalidateUpdateView();
-                setTimeout(function() {
+                self._saveFlashTimeout = setTimeout(function() {
                     self._saveFlash = false;
                     self._saveMessage = '';
                     self.invalidateUpdateView();
@@ -5253,17 +5257,30 @@ define([
                                 self.invalidateUpdateView();
                             } else if (connectTargetId !== self._connectFromId) {
                                 if (!self._editorState.connections) self._editorState.connections = [];
-                                self._editorState.connections.push({
-                                    from: self._connectFromId,
-                                    to: connectTargetId,
-                                    style: 'straight',
-                                    color: '',
-                                    width: 2,
-                                    dash: false,
-                                    arrow: 'forward',
-                                    label: '',
-                                    manual: true
-                                });
+                                // Dedup check
+                                var connExists = false;
+                                for (var dci = 0; dci < self._editorState.connections.length; dci++) {
+                                    var dc = self._editorState.connections[dci];
+                                    if (dc.from === self._connectFromId && dc.to === connectTargetId) { connExists = true; break; }
+                                }
+                                if (!connExists) {
+                                    var sd2 = self._editorState._defaults || {};
+                                    self._pushUndo();
+                                    self._editorState.connections.push({
+                                        from: self._connectFromId,
+                                        to: connectTargetId,
+                                        style: sd2.defaultConnStyle || 'straight',
+                                        color: sd2.defaultConnColor || '',
+                                        width: sd2.defaultConnWidth ? parseFloat(sd2.defaultConnWidth) : 2,
+                                        endEndpoint: sd2.defaultEndEndpoint || undefined,
+                                        dash: false,
+                                        arrow: 'forward',
+                                        label: '',
+                                        manual: true
+                                    });
+                                } else {
+                                    self._showStatus('Connection already exists');
+                                }
                                 self._isConnecting = false;
                                 self._connectFromId = null;
                                 self._connectFromPort = null;
@@ -6456,21 +6473,32 @@ define([
                         }
                     }
                     if (dragTargetId) {
+                        if (!self._editorState.connections) self._editorState.connections = [];
+                        // Dedup check
+                        var portConnExists = false;
+                        for (var pdi = 0; pdi < self._editorState.connections.length; pdi++) {
+                            var pdc = self._editorState.connections[pdi];
+                            if (pdc.from === self._connectFromId && pdc.to === dragTargetId) { portConnExists = true; break; }
+                        }
+                        if (!portConnExists) {
+                        var sd3 = self._editorState._defaults || {};
                         var newConn = {
                             from: self._connectFromId,
                             to: dragTargetId,
-                            endEndpoint: 'filledArrow',
+                            endEndpoint: sd3.defaultEndEndpoint || 'filledArrow',
                             sourceAnchor: self._connectFromPort || 'auto',
                             targetAnchor: 'auto',
-                            style: 'straight',
-                            color: '',
-                            width: 2,
+                            style: sd3.defaultConnStyle || 'straight',
+                            color: sd3.defaultConnColor || '',
+                            width: sd3.defaultConnWidth ? parseFloat(sd3.defaultConnWidth) : 2,
                             manual: true
                         };
-                        if (!self._editorState.connections) self._editorState.connections = [];
                         self._pushUndo();
                         self._editorState.connections.push(newConn);
                         self.invalidateUpdateView();
+                        } else {
+                            self._showStatus('Connection already exists');
+                        }
                     }
                     self._connectFromId = null;
                     self._connectFromPort = null;
@@ -6751,9 +6779,13 @@ define([
                         self._updatePanel();
                         self.invalidateUpdateView();
 
-                        // Open inline text input for label editing
+                        // Open inline text input for label editing — cleanup any existing
+                        if (self._activeInlineInput && self._activeInlineInput.parentNode) {
+                            self._activeInlineInput.parentNode.removeChild(self._activeInlineInput);
+                        }
                         var es = self._editorState;
                         var inlineInput = document.createElement('input');
+                        self._activeInlineInput = inlineInput;
                         inlineInput.type = 'text';
                         inlineInput.value = es.nodes[dnd.id] ? (es.nodes[dnd.id].label || dnd.label || '') : (dnd.label || '');
                         var nodeScreenX = dnd.x * self._zoom + self._panX;
@@ -7042,6 +7074,8 @@ define([
 
         _buildCanvasToolsPanel: function(body) {
             var self = this;
+            if (!self._editorState._defaults) self._editorState._defaults = {};
+            var sd = self._editorState._defaults;
 
             // ── Canvas Tools Section ──
             var toolsSec = createPanelSection('Canvas Tools', '', true);
@@ -7069,6 +7103,12 @@ define([
                 {value: 'on', label: 'On'}
             ], self._snapEnabled ? 'on' : 'off', function(val) {
                 self._snapEnabled = (val === 'on');
+                self.invalidateUpdateView();
+            }));
+
+            var canvasColors = PALETTES[self._currentPalette] || PALETTES.corporate;
+            toolsBody.appendChild(createColorRow('Canvas Bg', canvasColors, sd.canvasBgColor || '', function(val) {
+                self._pushUndo(); sd.canvasBgColor = val;
                 self.invalidateUpdateView();
             }));
 
@@ -7137,9 +7177,9 @@ define([
                 return fRow;
             }
 
-            // Field mapping — reads/writes live config via _globalFieldOverrides
-            if (!self._globalFieldOverrides) self._globalFieldOverrides = {};
-            var gfo = self._globalFieldOverrides;
+            // Field mapping — stored in editorState for persistence via Copy Layout
+            if (!self._editorState._fieldOverrides) self._editorState._fieldOverrides = {};
+            var gfo = self._editorState._fieldOverrides;
 
             globalBody.appendChild(createFieldDropdown('Label Field', gfo.labelField || self._currentLabelField || '', function(val) {
                 gfo.labelField = val;
@@ -7188,21 +7228,21 @@ define([
                 self.invalidateUpdateView();
             }, { numeric: true, min: 0, max: 50, step: 2 }));
 
-            nodeDfBody.appendChild(createTextRow('Opacity %', ge.defaultOpacity || '100', function(val) {
-                self._pushUndo(); sd.defaultOpacity = val; ge.defaultOpacity = val;
+            nodeDfBody.appendChild(createTextRow('Opacity %', sd.defaultOpacity || '100', function(val) {
+                self._pushUndo(); sd.defaultOpacity = val;
                 self.invalidateUpdateView();
             }, { numeric: true, min: 0, max: 100, step: 5 }));
 
-            nodeDfBody.appendChild(createTextRow('Border Width', ge.defaultBorderWidth || '1', function(val) {
-                self._pushUndo(); sd.defaultBorderWidth = val; ge.defaultBorderWidth = val;
+            nodeDfBody.appendChild(createTextRow('Border Width', sd.defaultBorderWidth || '1', function(val) {
+                self._pushUndo(); sd.defaultBorderWidth = val;
                 self.invalidateUpdateView();
             }, { numeric: true, min: 0, max: 10, step: 0.5 }));
 
             nodeDfBody.appendChild(createToggleRow('Stroke', [
                 {value: 'solid', label: 'Solid'}, {value: 'dashed', label: 'Dash'},
                 {value: 'dotted', label: 'Dot'}, {value: 'dash-dot', label: 'D-D'}
-            ], ge.defaultStrokePattern || 'solid', function(val) {
-                self._pushUndo(); sd.defaultStrokePattern = val; ge.defaultStrokePattern = val;
+            ], sd.defaultStrokePattern || 'solid', function(val) {
+                self._pushUndo(); sd.defaultStrokePattern = val;
                 self.invalidateUpdateView();
             }));
 
@@ -7565,7 +7605,7 @@ define([
             // Arrange (z-order) — absolute + step controls
             var zLabel = document.createElement('div');
             zLabel.textContent = 'ARRANGE';
-            zLabel.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;';
+            zLabel.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;font-weight:500;';
             appearBody.appendChild(zLabel);
 
             var zAbsRow = document.createElement('div');
@@ -7878,7 +7918,7 @@ define([
                     var lblRow = document.createElement('div');
                     lblRow.style.cssText = 'margin-bottom:6px;';
                     var lblLabel = document.createElement('div');
-                    lblLabel.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;';
+                    lblLabel.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;font-weight:500;';
                     lblLabel.textContent = 'Label Override';
                     lblRow.appendChild(lblLabel);
                     var lblDd = document.createElement('select');
@@ -7995,7 +8035,7 @@ define([
                 ];
                 var iconLabel = document.createElement('div');
                 iconLabel.textContent = 'ICON';
-                iconLabel.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;';
+                iconLabel.style.cssText = 'color:' + panelTheme.textMuted + ';font-size:10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;font-weight:500;';
                 textBody.appendChild(iconLabel);
                 var iconSelect = document.createElement('select');
                 iconSelect.style.cssText = 'width:100%;padding:6px 8px;border-radius:4px;border:1px solid ' + panelTheme.border + ';background:' + panelTheme.inputBg + ';color:' + panelTheme.text + ';font-size:11px;margin-bottom:8px;';
@@ -9148,7 +9188,7 @@ define([
             var connectionColorField = config[ns + 'connectionColorField'] || '';
 
             // Apply session-level field overrides from Global Settings panel
-            var gfo = this._globalFieldOverrides || {};
+            var gfo = (this._editorState && this._editorState._fieldOverrides) ? this._editorState._fieldOverrides : {};
             if (gfo.labelField) labelField = gfo.labelField;
             if (gfo.valueField) valueField = gfo.valueField;
             if (gfo.subtitleField !== undefined) subtitleField = gfo.subtitleField;
@@ -9177,9 +9217,10 @@ define([
                 shadowOffsetX: globalShadowOffsetX, shadowOffsetY: globalShadowOffsetY,
                 shadowColor: globalShadowColor,
                 glowEnabled: globalGlowEnabled, glowBlur: globalGlowBlur, glowColor: globalGlowColor,
-                defaultOpacity: globalDefaultOpacity,
-                defaultStrokePattern: globalDefaultStrokePattern,
-                defaultBorderWidth: globalDefaultBorderWidth,
+                // Session defaults override config defaults
+                defaultOpacity: sd.defaultOpacity || globalDefaultOpacity,
+                defaultStrokePattern: sd.defaultStrokePattern || globalDefaultStrokePattern,
+                defaultBorderWidth: sd.defaultBorderWidth || globalDefaultBorderWidth,
                 defaultBorderColor: globalDefaultBorderColor,
                 defaultBgColor: globalDefaultBgColor,
                 // Session-level node defaults (from Global Settings panel)
@@ -9289,6 +9330,15 @@ define([
             }
             var theme = getThemeColors(isDark);
 
+            // Update module-level panelTheme for DOM panel rendering
+            panelTheme.bg = isDark ? '#0f172a' : '#ffffff';
+            panelTheme.text = isDark ? '#e2e8f0' : '#1e293b';
+            panelTheme.textMuted = isDark ? '#94a3b8' : '#64748b';
+            panelTheme.border = isDark ? '#475569' : '#cbd5e1';
+            panelTheme.inputBg = isDark ? '#0f172a' : '#f1f5f9';
+            panelTheme.sectionBg = isDark ? '#1e293b' : '#f8fafc';
+            panelTheme.sectionText = isDark ? '#cbd5e1' : '#475569';
+
             // 6. Get palette colors
             var colors = PALETTES[palette] || PALETTES.corporate;
             // Monochrome palette: reverse for light mode so dark chips show on light bg
@@ -9330,7 +9380,7 @@ define([
                         }
                     }
                     if (tcEdState.overrideLabelField) {
-                        tcLabel = tcEdState.overrideLabelField;
+                        tcLabel = (colIdx[tcEdState.overrideLabelField] !== undefined && tcLastRow) ? String(tcLastRow[colIdx[tcEdState.overrideLabelField]] || '') : tcEdState.overrideLabelField;
                     } else if (tcEdState.overrideLabelText) {
                         tcLabel = tcEdState.overrideLabelText;
                     }
@@ -9381,10 +9431,16 @@ define([
                     }
                 }
 
+                var usedNodeIds = {};
                 for (var ri = 0; ri < rows.length; ri++) {
                     var row = rows[ri];
                     var origLabel = labelIdx >= 0 ? String(row[labelIdx] || '') : ('Node ' + (ri + 1));
                     var nodeId = origLabel || ('node_' + ri);
+                    // Dedup: append row index if ID already used
+                    if (usedNodeIds[nodeId]) {
+                        nodeId = nodeId + '_' + ri;
+                    }
+                    usedNodeIds[nodeId] = true;
                     var nodeValue = valueIdx >= 0 ? Number(row[valueIdx]) || 0 : 0;
                     var nodeLabel = origLabel;
 
@@ -9525,6 +9581,11 @@ define([
 
             // ── Render canvas ──
             ctx.clearRect(0, 0, w, h);
+            // Canvas background color from session defaults
+            if (sd.canvasBgColor) {
+                ctx.fillStyle = sd.canvasBgColor;
+                ctx.fillRect(0, 0, w, h);
+            }
 
             // Apply pan offset and zoom for world-space drawing
             ctx.save();
@@ -10356,6 +10417,13 @@ define([
         destroy: function() {
             // Clear editor-state sync interval
             clearInterval(this._syncInterval);
+            // Clear pending timeouts
+            clearTimeout(this._saveFlashTimeout);
+            clearTimeout(this._statusTimeout);
+            // Remove inline input if active
+            if (this._activeInlineInput && this._activeInlineInput.parentNode) {
+                this._activeInlineInput.parentNode.removeChild(this._activeInlineInput);
+            }
 
             // Remove canvas event listeners
             if (this.canvas) {
