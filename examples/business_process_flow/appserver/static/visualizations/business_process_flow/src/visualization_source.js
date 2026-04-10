@@ -4062,20 +4062,21 @@ define([
                         break;
                     }
                 }
-                // 3. Copy to clipboard (fallback method for broader compatibility)
+                // 3. Copy to clipboard — use textarea+execCommand first (works in
+                // iframes/Dashboard Studio), then try modern API as backup
+                var clipboardOk = false;
                 try {
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(stateJson).catch(function() {});
-                    } else {
-                        var copyArea = document.createElement('textarea');
-                        copyArea.value = stateJson;
-                        copyArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
-                        document.body.appendChild(copyArea);
-                        copyArea.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(copyArea);
-                    }
+                    var copyArea = document.createElement('textarea');
+                    copyArea.value = stateJson;
+                    copyArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+                    document.body.appendChild(copyArea);
+                    copyArea.select();
+                    clipboardOk = document.execCommand('copy');
+                    document.body.removeChild(copyArea);
                 } catch(e) { /* ignore */ }
+                if (!clipboardOk && navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(stateJson).catch(function() {});
+                }
                 // 4. Visual feedback — show "SAVED! Paste into Layout Data"
                 self._saveFlash = true;
                 self._saveMessage = 'Copied to clipboard!';
