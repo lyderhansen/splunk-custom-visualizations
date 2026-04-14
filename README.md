@@ -9,10 +9,38 @@ Splunk's built-in charts cover the basics, but sometimes your data deserves some
 ```text
 .claude/skills/splunk-viz/     Claude Code skill for generating custom vizs
 examples/
-  custom_single_value/         Working example: configurable single value display
-  component_status_board/      Working example: NOC-style component health grid
-  gauge/                       Working example: multi-mode gauge (arc, donut, bar, status)
-build.sh                       Build and package any viz into an installable .tar.gz
+  arcade_leaderboard/          Retro arcade-style scrolling leaderboard
+  bet_flow_map/                Betting flow Sankey-style map
+  bet_radar/                   Radar chart for betting metrics
+  component_status_board/      NOC-style component health grid
+  custom_single_value/         Configurable single value display
+  data_pipeline/               Data pipeline flow visualization
+  f1_ers/                      F1 energy recovery system gauge
+  f1_track_info/               F1 track information display
+  forwarder_heatmap/           Health: forwarder staleness heatmap grid
+  gauge/                       Multi-mode gauge (arc, donut, bar, status)
+  goal_timeline/               Goal timeline for match events
+  index_storage/               Health: layered glass tanks showing index capacity
+  index_universe/              Index universe explorer
+  indexing_pipeline_flow/      Health: animated glass-tube pipeline queue monitor
+  liability_gauge/             Liability exposure gauge
+  license_gauge/               Health: arc gauge for daily license usage vs quota
+  line_trend_chart/            Sparkline trend chart
+  live_ticker/                 Scrolling live ticker tape
+  market_donut/                Market share donut chart
+  match_heatmap/               Match event heatmap
+  network_topology/            Network topology graph
+  odds_ticker/                 Live odds ticker display
+  radar_chart/                 Multi-axis radar/spider chart
+  resource_gauge/              Health: triple-arc CPU/Memory/Swap gauge
+  scheduler_health/            Health: horizontal tube vital signs for scheduler
+  search_activity/             Health: stacked glass tank for search slot utilization
+  splunk_status_board/         Health: glass-themed component health tiles
+  wc_bracket/                  World Cup tournament bracket
+  worldcup_bets/               World Cup betting dashboard
+splunk_health/                 Bundled app: all 8 health vizzes + Dashboard Studio dashboard
+  build.sh                     Build, merge, and package into a single .tar.gz
+build.sh                       Build and package any standalone viz
 test-harness.html              Browser-based testing without Splunk deployment
 harness-manifest.json          Registry of vizs for the test harness
 INSTRUCTIONS.md                Step-by-step setup and usage guide
@@ -49,9 +77,53 @@ The `.claude/skills/splunk-viz/` directory contains a Claude Code skill that kno
 - Scaffold a Dashboard Studio app with a `vizs/` build pipeline for bundling multiple custom vizs
 - Generate Canvas 2D rendering code following Splunk's AMD module pattern
 - Handle HiDPI displays, real-time data, responsive sizing, and font embedding
-- Apply 24 battle-tested rules learned from building production visualizations
+- Apply 29 battle-tested rules learned from building production visualizations
 
 The skill is automatically available when you use Claude Code in this repo. Just describe what you want to visualize and it will generate the full app. You can also ask it to scaffold a full Dashboard Studio app — it generates the app skeleton, build script, test harness, and the `vizs/` directory structure for managing multiple visualizations.
+
+## Example: Splunk Health Dashboard
+
+The `splunk_health/` directory is a ready-to-deploy Splunk app that bundles eight glass-themed health monitoring visualizations into a single Dashboard Studio dashboard. All vizzes share the same design language — glass tubes, liquid fills, animated particles, and progressive glow effects.
+
+![Splunk Health Dashboard](screenshots/splunk_health_dashboard.png)
+
+| Visualization | Panel | What it shows |
+|---------------|-------|---------------|
+| **Splunk Status Board** | Component tiles | Health of Splunk components (Indexer, Search Head, KV Store, etc.) via `| rest /services/server/health` |
+| **License Gauge** | Arc gauge | Daily license consumption vs quota via `| rest /services/licenser/pools` |
+| **Resource Gauge** | Triple arc | CPU, Memory, and Swap utilization via `index=_introspection` |
+| **Indexing Pipeline Flow** | Glass tubes | Queue fill levels for parsing → merging → typing → indexing via `index=_internal group=queue` |
+| **Forwarder Heatmap** | Cell grid | Forwarder staleness — green (recent) → yellow (stale) → red (missing) via `index=_internal group=tcpin_connections` |
+| **Search Activity** | Stacked glass tank | Search slot utilization by type (scheduled/ad-hoc/other) vs max concurrent via `| rest /services/server/status` |
+| **Scheduler Health** | Horizontal tubes | Success rate, skip rate, and avg runtime — vital signs for the search scheduler via `index=_internal sourcetype=scheduler` |
+| **Index Storage** | Layered glass tanks | Per-index capacity usage with hot/warm/cold data temperature layers via `| rest /services/data/indexes` |
+
+Each visualization includes three colour themes (default, dark, neon), configurable warning/critical thresholds, and animated effects that intensify as conditions worsen.
+
+### Build and install
+
+```bash
+./splunk_health/build.sh
+```
+
+This builds all eight vizzes from `examples/`, rewrites namespaces, merges configs, and packages `dist/splunk_health.tar.gz`. Upload via **Apps → Manage Apps → Install app from file**.
+
+The dashboard auto-refreshes every 60 seconds. All searches include `appendpipe` fallbacks so panels show "Awaiting data" messages instead of blank placeholders.
+
+### Standalone vizzes
+
+Each visualization also exists as a standalone app in `examples/`:
+
+- `examples/indexing_pipeline_flow/`
+- `examples/splunk_status_board/`
+- `examples/license_gauge/`
+- `examples/forwarder_heatmap/`
+- `examples/resource_gauge/`
+- `examples/search_activity/`
+- `examples/scheduler_health/`
+- `examples/index_storage/`
+
+Build any one individually with `./build.sh <name>`.
 
 ## Example: Custom Single Value
 

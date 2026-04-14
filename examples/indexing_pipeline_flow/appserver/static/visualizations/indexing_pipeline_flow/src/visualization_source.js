@@ -14,12 +14,12 @@ define([
 
     // ── Constants ───────────────────────────────────────────────
 
-    var PIPELINE_ORDER = ['parsingQueue', 'mergingQueue', 'typingQueue', 'indexQueue'];
+    var PIPELINE_ORDER = ['parsingqueue', 'mergingqueue', 'typingqueue', 'indexqueue'];
     var PIPELINE_LABELS = {
-        parsingQueue: 'PARSING',
-        mergingQueue: 'MERGING',
-        typingQueue: 'TYPING',
-        indexQueue: 'INDEXING'
+        parsingqueue: 'PARSING',
+        mergingqueue: 'MERGING',
+        typingqueue: 'TYPING',
+        indexqueue: 'INDEXING'
     };
 
     var SPEED_MAP = { slow: 0.3, medium: 0.7, fast: 1.4 };
@@ -471,11 +471,14 @@ define([
                 // Fill color based on thresholds
                 var fillColor = getFillColor(fillPct, warningThreshold, criticalThreshold, theme);
 
+                // Visual fill: always show at least 5% liquid so tubes look alive
+                var visualFill = Math.max(5, fillPct);
+
                 // Draw glass tube
                 drawGlassTube(ctx, tx, ty, tubeW, tubeH, tubeR, theme);
 
-                // Draw liquid
-                drawLiquid(ctx, tx, ty, tubeW, tubeH, tubeR, fillPct, fillColor, showGlow, this._animTime);
+                // Draw liquid (visual fill for rendering, real % for label)
+                drawLiquid(ctx, tx, ty, tubeW, tubeH, tubeR, visualFill, fillColor, showGlow, this._animTime);
 
                 // Draw fill percentage on tube
                 if (showValues) {
