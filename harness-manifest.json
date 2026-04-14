@@ -24,6 +24,7 @@
     "goal_timeline",
     "market_donut",
     "f1_track_info",
-    "f1_ers"
+    "f1_ers",
+    "data_pipeline"
   ]
 }
