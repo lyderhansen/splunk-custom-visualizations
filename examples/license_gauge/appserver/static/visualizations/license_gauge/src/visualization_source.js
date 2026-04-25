@@ -554,6 +554,8 @@ define([
             var rect = this.el.getBoundingClientRect();
             var dpr = window.devicePixelRatio || 1;
             var ctx = this.canvas.getContext('2d');
+            if (!ctx) return;
+            if (rect.width <= 0 || rect.height <= 0) return;
             ctx.scale(dpr, dpr);
             var w = rect.width;
             var h = rect.height;
@@ -578,7 +580,7 @@ define([
             ctx.fillText('\u23F3', w / 2, h / 2 - fontSize * 0.5 - gap);
 
             ctx.font = '500 ' + fontSize + 'px sans-serif';
-            ctx.fillStyle = 'rgba(255,255,255,0.30)';
+            ctx.fillStyle = 'rgba(255,255,255,0.50)';
             ctx.fillText(message, w / 2, h / 2 + emojiSize * 0.3);
 
             ctx.textAlign = 'start';
