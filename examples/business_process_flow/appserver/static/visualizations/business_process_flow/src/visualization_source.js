@@ -3915,10 +3915,7 @@ define([
             this._redoStack = [];
             this._statusMessage = '';
             this._statusTimeout = null;
-            this._isDrawingRect = false;
-            this._drawRectStart = null;
-            this._drawRectEnd = null;
-            this._drawMode = null; // 'rect', 'pen', null
+            this._drawMode = null; // 'pen', 'editPoints', null
             this._penPoints = [];
             this._penMousePos = null;
             this._penDraggingHandle = false;
@@ -3945,8 +3942,6 @@ define([
             this._dragGroupStartY = 0;
             this._selectedGroupIdx = -1;
             this._resetZoomRect = null;
-            this._hitNodes = [];
-            this._hitConnections = [];
             this._hoverItem = null;
             this._sparkHoverNode = null;
             this._sparkHoverIdx = -1;
@@ -3956,15 +3951,8 @@ define([
             this._computedNodes = [];
             this._computedNodeMap = {};
             this._computedConnections = [];
-            this._showNodePopup = false;
-            this._nodePopupId = null;
-            this._nodePopupHits = [];
-            this._nodePopupRect = null;
-            this._showConnPopup = false;
             this._connPopupIdx = null;
-            this._connPopupHits = [];
             this._connPopupPos = { x: 0, y: 0 };
-            this._connPopupRect = null;
             this._resizeStartX = 0;
             this._resizeStartY = 0;
             this._resizeStartNodeX = 0;
@@ -4353,7 +4341,6 @@ define([
                     self._editingCustomNode = null;
                     self._penPoints = [];
                     self._penMousePos = null;
-                    self._isDrawingRect = false;
                     self.canvas.style.cursor = 'default';
                     self._statusMessage = '';
                     self.invalidateUpdateView();
@@ -4404,24 +4391,6 @@ define([
                     self._editorState.nodes[textNodeId].h = 120;
                     self._pushUndo();
                     self.invalidateUpdateView();
-                } else if (action === 'drawRect') {
-                    if (self._drawMode === 'rect') {
-                        self._drawMode = null;
-                        self.canvas.style.cursor = 'default';
-                        self._statusMessage = '';
-                    } else {
-                        self._drawMode = 'rect';
-                        self.canvas.style.cursor = 'crosshair';
-                        self._statusMessage = 'Draw: click and drag to create a rectangle';
-                        // Deselect everything
-                        self._selectedNodeIds = [];
-                        self._selectedConnection = null;
-                        self._connPopupIdx = null;
-                        self._selectedGroupIdx = -1;
-                    }
-                    self.invalidateUpdateView();
-                    self._updatePanel();
-                    return;
                 } else if (action === 'drawPen') {
                     if (self._drawMode === 'pen') {
                         self._drawMode = null;
@@ -4914,26 +4883,6 @@ define([
                     }
 
                     // Draw-rect mode: only start drawing on EMPTY space
-                    // If clicking on a node, allow normal drag/select instead
-                    if (self._drawMode === 'rect') {
-                        var drawHitNode = false;
-                        for (var dhni = 0; dhni < self._computedNodes.length; dhni++) {
-                            if (hitTestNode(mx, my, self._computedNodes[dhni])) {
-                                drawHitNode = true;
-                                break;
-                            }
-                        }
-                        if (!drawHitNode) {
-                            self._isDrawingRect = true;
-                            self._drawRectStart = { x: mx, y: my };
-                            self._drawRectEnd = { x: mx, y: my };
-                            e.preventDefault();
-                            e.stopPropagation();
-                            return;
-                        }
-                        // Fall through to normal node handling below
-                    }
-
                     // Edit Points mode: click any node to enter point editing
                     if (self._drawMode === 'editPoints') {
                         for (var epni = 0; epni < self._computedNodes.length; epni++) {
@@ -4989,241 +4938,6 @@ define([
                         // Fall through
                     }
 
-                    // Check node popup hits
-                    if (self._showNodePopup && self._nodePopupRect) {
-                        if (pointInRect(mx, my, self._nodePopupRect.x, self._nodePopupRect.y, self._nodePopupRect.w, self._nodePopupRect.h)) {
-                            // Check individual popup hit areas
-                            for (var nph = 0; nph < self._nodePopupHits.length; nph++) {
-                                var nHit = self._nodePopupHits[nph];
-                                if (pointInRect(mx, my, nHit.x, nHit.y, nHit.w, nHit.h)) {
-                                    var popNodeId = self._nodePopupId;
-                                    if (!self._editorState.nodes[popNodeId]) {
-                                        self._editorState.nodes[popNodeId] = {};
-                                    }
-                                    self._pushUndo();
-                                    if (nHit.type === 'shape') {
-                                        self._editorState.nodes[popNodeId].shape = nHit.value;
-                                        self.invalidateUpdateView();
-                                    } else if (nHit.type === 'color') {
-                                        self._editorState.nodes[popNodeId].color = nHit.value;
-                                        self.invalidateUpdateView();
-                                    } else if (nHit.type === 'hideValue') {
-                                        if (nHit.value) {
-                                            self._editorState.nodes[popNodeId].hideValue = true;
-                                        } else {
-                                            delete self._editorState.nodes[popNodeId].hideValue;
-                                        }
-                                        self.invalidateUpdateView();
-                                    } else if (nHit.type === 'sparklineType' || nHit.type === 'fontSize' ||
-                                               nHit.type === 'chartHeight' || nHit.type === 'opacity' ||
-                                               nHit.type === 'borderWidth' || nHit.type === 'sparkPosition') {
-                                        if (nHit.value === 'default') {
-                                            delete self._editorState.nodes[popNodeId][nHit.type];
-                                        } else {
-                                            self._editorState.nodes[popNodeId][nHit.type] = nHit.value;
-                                        }
-                                        self.invalidateUpdateView();
-                                    } else if (nHit.type === 'addCondition') {
-                                        if (!self._editorState.nodes[popNodeId].conditions) {
-                                            self._editorState.nodes[popNodeId].conditions = [];
-                                        }
-                                        self._editorState.nodes[popNodeId].conditions.push({
-                                            op: '>=', val: '0', color: '#22c55e'
-                                        });
-                                        self.invalidateUpdateView();
-                                    } else if (nHit.type === 'deleteCondition') {
-                                        var condArr = self._editorState.nodes[popNodeId].conditions;
-                                        if (condArr && nHit.value >= 0 && nHit.value < condArr.length) {
-                                            condArr.splice(nHit.value, 1);
-                                            if (condArr.length === 0) delete self._editorState.nodes[popNodeId].conditions;
-                                        }
-                                        self.invalidateUpdateView();
-                                    } else if (nHit.type === 'editCondition') {
-                                        // Open a prompt-style input for editing the condition
-                                        var condArr2 = self._editorState.nodes[popNodeId].conditions;
-                                        if (condArr2 && condArr2[nHit.value]) {
-                                            var cond = condArr2[nHit.value];
-                                            // Create inline editor: op | val | color
-                                            var condWrap = document.createElement('div');
-                                            condWrap.style.cssText = 'position:absolute;z-index:9999;display:flex;gap:4px;align-items:center;';
-                                            var condRect = self.canvas.getBoundingClientRect();
-                                            condWrap.style.left = (condRect.left + nHit.x) + 'px';
-                                            condWrap.style.top = (condRect.top + nHit.y) + 'px';
-
-                                            var opSel = document.createElement('select');
-                                            opSel.style.cssText = 'font-size:11px;background:#1e293b;color:#f1f5f9;border:1px solid #3b82f6;border-radius:3px;padding:1px;height:20px;';
-                                            var ops = ['<', '<=', '>', '>=', '=', '!=', 'contains'];
-                                            for (var opi = 0; opi < ops.length; opi++) {
-                                                var opt = document.createElement('option');
-                                                opt.value = ops[opi];
-                                                opt.textContent = ops[opi];
-                                                if (ops[opi] === cond.op) opt.selected = true;
-                                                opSel.appendChild(opt);
-                                            }
-
-                                            var valInp = document.createElement('input');
-                                            valInp.type = 'text';
-                                            valInp.value = cond.val || '';
-                                            valInp.placeholder = 'value';
-                                            valInp.style.cssText = 'width:60px;font-size:11px;background:#1e293b;color:#f1f5f9;border:1px solid #3b82f6;border-radius:3px;padding:0 4px;height:20px;';
-
-                                            var colInp = document.createElement('input');
-                                            colInp.type = 'color';
-                                            colInp.value = cond.color || '#22c55e';
-                                            colInp.style.cssText = 'width:24px;height:20px;border:none;padding:0;cursor:pointer;';
-
-                                            var okBtn = document.createElement('button');
-                                            okBtn.textContent = '\u2713';
-                                            okBtn.style.cssText = 'font-size:12px;background:#10b981;color:#fff;border:none;border-radius:3px;width:22px;height:20px;cursor:pointer;';
-
-                                            condWrap.appendChild(opSel);
-                                            condWrap.appendChild(valInp);
-                                            condWrap.appendChild(colInp);
-                                            condWrap.appendChild(okBtn);
-                                            document.body.appendChild(condWrap);
-                                            valInp.focus();
-
-                                            var condNodeId = popNodeId;
-                                            var condIdx = nHit.value;
-                                            var condDone = false;
-                                            function finishCondEdit() {
-                                                if (condDone) return;
-                                                condDone = true;
-                                                var ca = self._editorState.nodes[condNodeId].conditions;
-                                                if (ca && ca[condIdx]) {
-                                                    ca[condIdx].op = opSel.value;
-                                                    ca[condIdx].val = valInp.value;
-                                                    ca[condIdx].color = colInp.value;
-                                                }
-                                                if (condWrap.parentNode) condWrap.parentNode.removeChild(condWrap);
-                                                self.invalidateUpdateView();
-                                            }
-                                            okBtn.addEventListener('click', function(ce) {
-                                                ce.stopPropagation();
-                                                finishCondEdit();
-                                            });
-                                            valInp.addEventListener('keydown', function(cke) {
-                                                if (cke.key === 'Enter') finishCondEdit();
-                                            });
-                                            // Stop events from reaching canvas
-                                            condWrap.addEventListener('mousedown', function(ce) { ce.stopPropagation(); });
-                                        }
-                                    } else if (nHit.type === 'colorHex') {
-                                        // Open native OS color picker
-                                        var hexVal = (self._editorState.nodes[popNodeId] && self._editorState.nodes[popNodeId].color) || '#3b82f6';
-                                        // Ensure valid hex for input[type=color] (must be #rrggbb)
-                                        if (hexVal.length === 4) hexVal = '#' + hexVal[1] + hexVal[1] + hexVal[2] + hexVal[2] + hexVal[3] + hexVal[3];
-                                        if (!/^#[0-9a-fA-F]{6}$/.test(hexVal)) hexVal = '#3b82f6';
-                                        var cpInp = document.createElement('input');
-                                        cpInp.type = 'color';
-                                        cpInp.value = hexVal;
-                                        cpInp.style.cssText = 'position:absolute;z-index:9999;opacity:0;width:1px;height:1px;';
-                                        var cpRect = self.canvas.getBoundingClientRect();
-                                        cpInp.style.left = (cpRect.left + nHit.x) + 'px';
-                                        cpInp.style.top = (cpRect.top + nHit.y) + 'px';
-                                        document.body.appendChild(cpInp);
-                                        var cpNodeId = popNodeId;
-                                        cpInp.addEventListener('input', function() {
-                                            if (!self._editorState.nodes[cpNodeId]) self._editorState.nodes[cpNodeId] = {};
-                                            self._editorState.nodes[cpNodeId].color = cpInp.value;
-                                            self.invalidateUpdateView();
-                                        });
-                                        cpInp.addEventListener('change', function() {
-                                            if (!self._editorState.nodes[cpNodeId]) self._editorState.nodes[cpNodeId] = {};
-                                            self._editorState.nodes[cpNodeId].color = cpInp.value;
-                                            if (cpInp.parentNode) cpInp.parentNode.removeChild(cpInp);
-                                            self.invalidateUpdateView();
-                                        });
-                                        cpInp.addEventListener('blur', function() {
-                                            setTimeout(function() {
-                                                if (cpInp.parentNode) cpInp.parentNode.removeChild(cpInp);
-                                            }, 200);
-                                        });
-                                        cpInp.click();
-                                    } else if (nHit.type === 'prefix' || nHit.type === 'suffix') {
-                                        // Create temporary input for prefix/suffix editing
-                                        var psField = nHit.type;
-                                        var psValue = (self._editorState.nodes[popNodeId] && self._editorState.nodes[popNodeId][psField]) || '';
-                                        var psInp = document.createElement('input');
-                                        psInp.type = 'text';
-                                        psInp.value = psValue;
-                                        psInp.placeholder = psField === 'prefix' ? 'e.g. $, errors:' : 'e.g. %, events, /s';
-                                        psInp.style.cssText = 'position:absolute;z-index:9999;font-size:11px;border:1px solid #3b82f6;padding:0 4px;height:18px;background:#1e293b;color:#f1f5f9;border-radius:3px;';
-                                        var psRect = self.canvas.getBoundingClientRect();
-                                        psInp.style.left = (psRect.left + nHit.x) + 'px';
-                                        psInp.style.top = (psRect.top + nHit.y) + 'px';
-                                        psInp.style.width = nHit.w + 'px';
-                                        document.body.appendChild(psInp);
-                                        psInp.focus();
-                                        psInp.select();
-                                        var psDone = false;
-                                        var psNodeId = popNodeId;
-                                        function finishPsEdit() {
-                                            if (psDone) return;
-                                            psDone = true;
-                                            if (psInp.value) {
-                                                self._editorState.nodes[psNodeId][psField] = psInp.value;
-                                            } else {
-                                                delete self._editorState.nodes[psNodeId][psField];
-                                            }
-                                            if (psInp.parentNode) psInp.parentNode.removeChild(psInp);
-                                            self.invalidateUpdateView();
-                                        }
-                                        psInp.addEventListener('blur', finishPsEdit);
-                                        psInp.addEventListener('keydown', function(pke) {
-                                            if (pke.key === 'Enter') finishPsEdit();
-                                        });
-                                    } else if (nHit.type === 'label') {
-                                        // Create temporary input for label editing
-                                        var popNode = null;
-                                        for (var pni = 0; pni < self._computedNodes.length; pni++) {
-                                            if (self._computedNodes[pni].id === popNodeId) {
-                                                popNode = self._computedNodes[pni];
-                                                break;
-                                            }
-                                        }
-                                        var currentLabel = (self._editorState.nodes[popNodeId] && self._editorState.nodes[popNodeId].label) || (popNode ? popNode.label : '');
-                                        var inp = document.createElement('input');
-                                        inp.type = 'text';
-                                        inp.value = currentLabel;
-                                        inp.style.position = 'absolute';
-                                        var canvasRect = self.canvas.getBoundingClientRect();
-                                        inp.style.left = (canvasRect.left + nHit.x) + 'px';
-                                        inp.style.top = (canvasRect.top + nHit.y) + 'px';
-                                        inp.style.width = nHit.w + 'px';
-                                        inp.style.height = '18px';
-                                        inp.style.fontSize = '11px';
-                                        inp.style.border = '1px solid #3b82f6';
-                                        inp.style.padding = '0 4px';
-                                        inp.style.zIndex = '9999';
-                                        document.body.appendChild(inp);
-                                        inp.focus();
-                                        inp.select();
-                                        var inputDone = false;
-                                        function finishLabelEdit() {
-                                            if (inputDone) return;
-                                            inputDone = true;
-                                            self._editorState.nodes[popNodeId].label = inp.value;
-                                            if (inp.parentNode) inp.parentNode.removeChild(inp);
-                                            self.invalidateUpdateView();
-                                        }
-                                        inp.addEventListener('blur', finishLabelEdit);
-                                        inp.addEventListener('keydown', function(ke) {
-                                            if (ke.key === 'Enter') finishLabelEdit();
-                                        });
-                                    }
-                                    return;
-                                }
-                            }
-                            // Click inside popup but not on a hit area — do nothing
-                            return;
-                        } else {
-                            // Click outside popup — close it
-                            self._showNodePopup = false;
-                            self._nodePopupId = null;
-                            self.invalidateUpdateView();
-                        }
-                    }
 
                     // Connection popup hit-testing removed — DOM panel handles connection edits
 
@@ -5724,7 +5438,7 @@ define([
             // ── Mouse Move ──
             this._onMouseMove = function(e) {
                 // Stop event propagation during modal interactions
-                if (self._isDragging || self._isResizing || self._isConnecting || self._editMode || self._isPanning || self._isDrawingRect || self._isDraggingGroup) {
+                if (self._isDragging || self._isResizing || self._isConnecting || self._editMode || self._isPanning || self._isDraggingGroup) {
                     e.preventDefault();
                     e.stopPropagation();
                 }
@@ -5899,21 +5613,6 @@ define([
                         }
                         self.invalidateUpdateView();
                     }
-                    return;
-                }
-
-                // Handle rect drawing drag
-                if (self._isDrawingRect) {
-                    self._drawRectEnd = { x: mx, y: my };
-                    // Shift = constrain to square
-                    if (e.shiftKey) {
-                        var dw = Math.abs(mx - self._drawRectStart.x);
-                        var dh = Math.abs(my - self._drawRectStart.y);
-                        var maxDim = Math.max(dw, dh);
-                        self._drawRectEnd.x = self._drawRectStart.x + (mx > self._drawRectStart.x ? maxDim : -maxDim);
-                        self._drawRectEnd.y = self._drawRectStart.y + (my > self._drawRectStart.y ? maxDim : -maxDim);
-                    }
-                    self.invalidateUpdateView();
                     return;
                 }
 
@@ -6368,43 +6067,6 @@ define([
                     self._pushUndo();
                     self._editingPointIdx = -1;
                     self._editingHandleType = null;
-                }
-
-                // Handle draw-rect end
-                if (self._isDrawingRect) {
-                    self._isDrawingRect = false;
-                    var rx = Math.min(self._drawRectStart.x, self._drawRectEnd.x);
-                    var ry = Math.min(self._drawRectStart.y, self._drawRectEnd.y);
-                    var rw = Math.abs(self._drawRectEnd.x - self._drawRectStart.x);
-                    var rh = Math.abs(self._drawRectEnd.y - self._drawRectStart.y);
-
-                    // Minimum size check — don't create tiny accidental rects
-                    if (rw > 20 && rh > 20) {
-                        var rectNodeId = '_rect_' + Date.now();
-                        if (!self._editorState.nodes) self._editorState.nodes = {};
-                        self._editorState.nodes[rectNodeId] = {
-                            manual: true,
-                            shape: 'rect',
-                            label: '',
-                            hideValue: true,
-                            x: rx,
-                            y: ry,
-                            w: rw,
-                            h: rh,
-                            bgColor: 'transparent',
-                            borderWidth: '1',
-                            borderColor: '#334155'
-                        };
-                        self._pushUndo();
-                        self._selectedNodeIds = [rectNodeId];
-                        self._updatePanel();
-                    }
-
-                    // Stay in draw mode so user can draw more
-                    self._drawRectStart = null;
-                    self._drawRectEnd = null;
-                    self.invalidateUpdateView();
-                    return;
                 }
 
                 if (self._editMode || self._isDragging || self._isResizing || self._isRubberBanding) {
@@ -6919,9 +6581,6 @@ define([
                     }
                     if (self._drawMode) {
                         self._drawMode = null;
-                        self._isDrawingRect = false;
-                        self._drawRectStart = null;
-                        self._drawRectEnd = null;
                         self._penPoints = [];
                         self._penMousePos = null;
                         self.canvas.style.cursor = 'default';
@@ -9982,24 +9641,6 @@ define([
                     ctx.setLineDash([]);
                     ctx.restore();
                 }
-                // Draw-rect preview
-                if (this._isDrawingRect && this._drawRectStart && this._drawRectEnd) {
-                    var drx = Math.min(this._drawRectStart.x, this._drawRectEnd.x);
-                    var dry = Math.min(this._drawRectStart.y, this._drawRectEnd.y);
-                    var drw = Math.abs(this._drawRectEnd.x - this._drawRectStart.x);
-                    var drh = Math.abs(this._drawRectEnd.y - this._drawRectStart.y);
-                    ctx.strokeStyle = '#3b82f6';
-                    ctx.lineWidth = 1.5;
-                    ctx.setLineDash([6, 4]);
-                    ctx.strokeRect(drx, dry, drw, drh);
-                    ctx.setLineDash([]);
-                    // Show dimensions
-                    ctx.fillStyle = '#3b82f6';
-                    ctx.font = '10px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'top';
-                    ctx.fillText(Math.round(drw) + ' x ' + Math.round(drh), drx + drw / 2, dry + drh + 4);
-                }
                 // Pen tool preview
                 if (this._drawMode === 'pen' && this._penPoints.length > 0) {
                     var pp = this._penPoints;
@@ -10397,9 +10038,6 @@ define([
                 }
             }
 
-            this._hitNodes = positioned;
-            this._hitConnections = connections;
-
             // Live-update code editor if open
             if (this._showCodeEditor && this._codeTa && this._codePre) {
                 var liveJson = JSON.stringify(this._editorState, null, 2);
@@ -10421,16 +10059,27 @@ define([
             // Clear pending timeouts
             clearTimeout(this._saveFlashTimeout);
             clearTimeout(this._statusTimeout);
+            clearTimeout(this._zoomTimeout);
             // Remove inline input if active
             if (this._activeInlineInput && this._activeInlineInput.parentNode) {
                 this._activeInlineInput.parentNode.removeChild(this._activeInlineInput);
             }
+            // Remove any temporary inputs/pickers attached to document.body
+            if (this._tempInputs) {
+                for (var ti = 0; ti < this._tempInputs.length; ti++) {
+                    var tempEl = this._tempInputs[ti];
+                    if (tempEl && tempEl.parentNode) {
+                        tempEl.parentNode.removeChild(tempEl);
+                    }
+                }
+                this._tempInputs = [];
+            }
 
-            // Remove canvas event listeners
+            // Remove canvas event listeners (capture flag must match addEventListener)
             if (this.canvas) {
-                this.canvas.removeEventListener('mousedown', this._onMouseDown);
-                this.canvas.removeEventListener('mousemove', this._onMouseMove);
-                this.canvas.removeEventListener('mouseup', this._onMouseUp);
+                this.canvas.removeEventListener('mousedown', this._onMouseDown, true);
+                this.canvas.removeEventListener('mousemove', this._onMouseMove, true);
+                this.canvas.removeEventListener('mouseup', this._onMouseUp, true);
                 this.canvas.removeEventListener('dblclick', this._onDblClick);
                 this.canvas.removeEventListener('contextmenu', this._onContextMenu);
                 this.canvas.removeEventListener('mouseleave', this._onMouseLeave);
@@ -10462,6 +10111,12 @@ define([
             if (this._editBtn && this._editBtn.parentNode) {
                 this._editBtn.parentNode.removeChild(this._editBtn);
             }
+            if (this._addNodeDropdown && this._addNodeDropdown.parentNode) {
+                this._addNodeDropdown.parentNode.removeChild(this._addNodeDropdown);
+            }
+            if (this._codeEditorEl && this._codeEditorEl.parentNode) {
+                this._codeEditorEl.parentNode.removeChild(this._codeEditorEl);
+            }
 
             // Null DOM references
             this._panelEl = null;
@@ -10469,6 +10124,8 @@ define([
             this._panelBody = null;
             this._panelTitle = null;
             this._editBtn = null;
+            this._addNodeDropdown = null;
+            this._codeEditorEl = null;
 
             SplunkVisualizationBase.prototype.destroy.apply(this, arguments);
         }
