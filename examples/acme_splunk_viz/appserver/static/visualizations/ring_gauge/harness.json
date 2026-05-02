@@ -1,0 +1,196 @@
+{
+  "label": "Ring Gauge",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 280,
+    "height": 280
+  },
+  "noDataMessage": "Awaiting value",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "value",
+      "label": "Value",
+      "type": "slider",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 62
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "field",
+      "label": "Value field",
+      "type": "text",
+      "default": "value"
+    },
+    {
+      "name": "min",
+      "label": "Min value",
+      "type": "text",
+      "default": "0"
+    },
+    {
+      "name": "max",
+      "label": "Max value",
+      "type": "text",
+      "default": "100"
+    },
+    {
+      "name": "thick",
+      "label": "Stroke thickness",
+      "type": "text",
+      "default": "11"
+    },
+    {
+      "name": "lineCap",
+      "label": "Line cap",
+      "type": "radio",
+      "options": [
+        "round",
+        "butt",
+        "square"
+      ],
+      "default": "round"
+    },
+    {
+      "name": "label",
+      "label": "Title",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "sub",
+      "label": "Sub-label",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "unit",
+      "label": "Unit suffix",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "displayMode",
+      "label": "Display mode",
+      "type": "radio",
+      "options": [
+        "auto",
+        "percent",
+        "raw",
+        "fixed"
+      ],
+      "default": "auto"
+    },
+    {
+      "name": "precision",
+      "label": "Decimal precision",
+      "type": "text",
+      "default": "0"
+    },
+    {
+      "name": "valueFontSize",
+      "label": "Value font size",
+      "type": "text",
+      "default": "0"
+    },
+    {
+      "name": "labelFontSize",
+      "label": "Title font size",
+      "type": "text",
+      "default": "13"
+    },
+    {
+      "name": "subFontSize",
+      "label": "Sub-label font size",
+      "type": "text",
+      "default": "11"
+    },
+    {
+      "name": "color",
+      "label": "Ring colour",
+      "type": "color",
+      "default": "#ff6600"
+    },
+    {
+      "name": "trackColor",
+      "label": "Track colour",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "valueColor",
+      "label": "Value colour",
+      "type": "color",
+      "default": "#e5eaf2"
+    },
+    {
+      "name": "labelColor",
+      "label": "Label colour",
+      "type": "color",
+      "default": "rgba(229,234,242,0.66)"
+    },
+    {
+      "name": "half",
+      "label": "Half-arc",
+      "type": "radio",
+      "options": [
+        "false",
+        "true"
+      ],
+      "default": "false"
+    },
+    {
+      "name": "showLegend",
+      "label": "Threshold legend",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "legendLow",
+      "label": "Legend low label",
+      "type": "text",
+      "default": "Low 0\u201339"
+    },
+    {
+      "name": "legendMed",
+      "label": "Legend mid label",
+      "type": "text",
+      "default": "Med 40\u201369"
+    },
+    {
+      "name": "legendHigh",
+      "label": "Legend high label",
+      "type": "text",
+      "default": "High 70+"
+    },
+    {
+      "name": "bgColor",
+      "label": "Background colour",
+      "type": "color",
+      "default": "transparent"
+    }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": [
+      "value"
+    ]
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "label": "Sparkline",
+  "defaultSize": {
+    "width": 200,
+    "height": 40
+  },
+  "fields": [
+    {
+      "name": "count",
+      "label": "Value",
+      "type": "slider",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 50
+    }
+  ],
+  "formatter": [
+    {
+      "name": "color",
+      "label": "Color",
+      "type": "text",
+      "default": "#2bbfb8"
+    },
+    {
+      "name": "strokeWidth",
+      "label": "Stroke Width",
+      "type": "text",
+      "default": "1.5"
+    },
+    {
+      "name": "showFill",
+      "label": "Show Fill",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "field",
+      "label": "Field",
+      "type": "text",
+      "default": "count"
+    }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "columns": [
+      "count"
+    ],
+    "sampleRows": [
+      [
+        "19"
+      ],
+      [
+        "8"
+      ],
+      [
+        "40"
+      ],
+      [
+        "36"
+      ],
+      [
+        "33"
+      ],
+      [
+        "22"
+      ],
+      [
+        "18"
+      ],
+      [
+        "74"
+      ],
+      [
+        "16"
+      ],
+      [
+        "80"
+      ],
+      [
+        "59"
+      ],
+      [
+        "9"
+      ],
+      [
+        "8"
+      ],
+      [
+        "16"
+      ],
+      [
+        "32"
+      ],
+      [
+        "34"
+      ],
+      [
+        "69"
+      ],
+      [
+        "8"
+      ],
+      [
+        "76"
+      ],
+      [
+        "30"
+      ]
+    ]
+  },
+  "entry": "visualization.js"
+}

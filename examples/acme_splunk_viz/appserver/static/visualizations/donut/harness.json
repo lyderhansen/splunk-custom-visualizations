@@ -1,0 +1,170 @@
+{
+  "label": "Donut",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 480,
+    "height": 240
+  },
+  "noDataMessage": "Donut \u2014 awaiting segments",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "_numRows",
+      "label": "Number of segments",
+      "type": "slider",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "default": 4
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "colors",
+      "label": "Segment colours",
+      "type": "text",
+      "default": "#2bbfb8,#5ce1e6,#7eb1ff,#a78bfa"
+    },
+    {
+      "name": "innerRatio",
+      "label": "Inner ratio",
+      "type": "text",
+      "default": "0.62"
+    },
+    {
+      "name": "segmentGap",
+      "label": "Segment gap",
+      "type": "text",
+      "default": "0"
+    },
+    {
+      "name": "sortOrder",
+      "label": "Sort order",
+      "type": "radio",
+      "options": [
+        "none",
+        "desc",
+        "asc"
+      ],
+      "default": "none"
+    },
+    {
+      "name": "centerLabel",
+      "label": "Centre label",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "centerSubLabel",
+      "label": "Centre sub-label",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "centerFontSize",
+      "label": "Centre font size",
+      "type": "text",
+      "default": "22"
+    },
+    {
+      "name": "centerSubFontSize",
+      "label": "Centre sub font size",
+      "type": "text",
+      "default": "11"
+    },
+    {
+      "name": "legendPosition",
+      "label": "Legend position",
+      "type": "radio",
+      "options": [
+        "right",
+        "bottom",
+        "off"
+      ],
+      "default": "right"
+    },
+    {
+      "name": "legendFontSize",
+      "label": "Legend font size",
+      "type": "text",
+      "default": "12"
+    },
+    {
+      "name": "showPercent",
+      "label": "Show percent in legend",
+      "type": "radio",
+      "options": [
+        "false",
+        "true"
+      ],
+      "default": "false"
+    },
+    {
+      "name": "unit",
+      "label": "Legend value unit",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "lineCap",
+      "label": "Stroke cap",
+      "type": "radio",
+      "options": [
+        "butt",
+        "round",
+        "square"
+      ],
+      "default": "butt"
+    },
+    {
+      "name": "bgColor",
+      "label": "Background colour",
+      "type": "color",
+      "default": "transparent"
+    }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "rowCountField": "_numRows",
+    "columns": [
+      "label",
+      "value"
+    ],
+    "sampleRows": [
+      [
+        "Americas",
+        "4250"
+      ],
+      [
+        "EMEA",
+        "3120"
+      ],
+      [
+        "APAC",
+        "2280"
+      ],
+      [
+        "Other",
+        "1300"
+      ],
+      [
+        "Internal",
+        "850"
+      ],
+      [
+        "Partner",
+        "420"
+      ]
+    ]
+  }
+}

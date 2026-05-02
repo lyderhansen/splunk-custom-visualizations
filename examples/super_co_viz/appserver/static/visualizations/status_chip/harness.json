@@ -1,0 +1,70 @@
+{
+  "label": "Status Chip",
+  "defaultSize": {
+    "width": 200,
+    "height": 40
+  },
+  "fields": [
+    {
+      "name": "label",
+      "label": "Label",
+      "type": "text",
+      "default": "Notables"
+    },
+    {
+      "name": "value",
+      "label": "Value",
+      "type": "text",
+      "default": "1247"
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "variant",
+      "label": "Variant",
+      "type": "radio",
+      "options": [
+        "header",
+        "badge",
+        "service"
+      ],
+      "default": "header"
+    },
+    {
+      "name": "color",
+      "label": "Color",
+      "type": "text",
+      "default": "#2bbfb8"
+    },
+    {
+      "name": "labelField",
+      "label": "Label Field",
+      "type": "text",
+      "default": "label"
+    },
+    {
+      "name": "valueField",
+      "label": "Value Field",
+      "type": "text",
+      "default": "value"
+    }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": [
+      "label",
+      "value"
+    ]
+  },
+  "entry": "visualization.js"
+}

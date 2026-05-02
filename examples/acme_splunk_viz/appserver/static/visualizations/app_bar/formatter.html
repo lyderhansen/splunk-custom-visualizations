@@ -1,0 +1,74 @@
+<form class="splunk-formatter-section" section-label="App Bar">
+    <splunk-control-group label="Theme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="App name">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.appName" value="Enterprise Security"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Nav items" help="Comma-separated list of nav item labels.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.navItems" value="Apps,Search & Reporting,Dashboards,Alerts,Datasets"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Active nav index" help="0-based index of the active nav item.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.activeNavIndex" value="2"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Nav gap" help="Pixel gap between nav items.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.navGap" value="18"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Nav underline colour" help="Colour of the active nav item underline.">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.navUnderlineColor" type="custom" value="#ff6600">
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+            <splunk-color>#a78bfa</splunk-color>
+            <splunk-color>#f73873</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Wordmark size" help="Pixel height of the brand wordmark.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.wordmarkSize" value="17"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Separator character" help="Character drawn between wordmark and app name. Leave blank to hide.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.separator" value="|"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="User initials">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.userInitials" value="JH"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Avatar colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.avatarColor" type="custom" value="#7eb1ff">
+            <splunk-color>#7eb1ff</splunk-color>
+            <splunk-color>#a78bfa</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#118832</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show avatar">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showAvatar" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show timestamp">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showTimestamp" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Timestamp override" help="Leave blank to use the current local time at render.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.timestamp" value=""></splunk-text-input>
+    </splunk-control-group>
+</form>

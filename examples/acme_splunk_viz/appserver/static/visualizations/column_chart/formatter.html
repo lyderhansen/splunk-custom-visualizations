@@ -1,0 +1,133 @@
+<form class="splunk-formatter-section" section-label="Column Chart">
+    <splunk-control-group label="Theme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Bar colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.color" type="custom" value="#2bbfb8">
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#5ce1e6</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+            <splunk-color>#a78bfa</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Highlight colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.highlightColor" type="custom" value="#ff6600">
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#d41f1f</splunk-color>
+            <splunk-color>#cba700</splunk-color>
+            <splunk-color>#118832</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Highlight index">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.highlightIndex" value="-1">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Bar radius">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.barRadius" value="2">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Max bar width">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxBarWidth" value="20">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show value labels">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showValueLabels" value="false">
+            <option value="false">Hide</option>
+            <option value="true">Show</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Value-label colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.valueLabelColor" type="custom" value="#e5eaf2">
+            <splunk-color>#e5eaf2</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sort order">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.sortOrder" value="none">
+            <option value="none">None</option>
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Y gridlines">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.gridY" value="4">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show grid">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showGrid" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show X axis">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showXAxis" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show Y axis">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showYAxis" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="X label rotation (°)" help="Negative values lean labels left.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.xLabelRotation" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Y unit suffix">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.yUnit" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Y max override (0=auto)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.yMaxOverride" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Padding top">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.padTop" value="10">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Padding right">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.padRight" value="16">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Padding bottom">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.padBottom" value="26">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Padding left">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.padLeft" value="44">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Background colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.bgColor" type="custom" value="transparent">
+            <splunk-color>transparent</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

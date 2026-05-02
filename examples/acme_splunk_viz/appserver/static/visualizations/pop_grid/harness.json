@@ -1,0 +1,282 @@
+{
+  "label": "PoP Grid",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 720,
+    "height": 360
+  },
+  "noDataMessage": "PoP grid \u2014 awaiting sites",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "_numRows",
+      "label": "Number of sites",
+      "type": "slider",
+      "min": 4,
+      "max": 16,
+      "step": 1,
+      "default": 16
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "columns",
+      "label": "Columns",
+      "type": "text",
+      "default": "4"
+    },
+    {
+      "name": "codeField",
+      "label": "Code field",
+      "type": "text",
+      "default": "code"
+    },
+    {
+      "name": "nameField",
+      "label": "Name field",
+      "type": "text",
+      "default": "name"
+    },
+    {
+      "name": "statusField",
+      "label": "Status field",
+      "type": "text",
+      "default": "status"
+    },
+    {
+      "name": "utilField",
+      "label": "Util field",
+      "type": "text",
+      "default": "util"
+    },
+    {
+      "name": "sortOrder",
+      "label": "Sort order",
+      "type": "radio",
+      "options": [
+        "none",
+        "severity",
+        "util-desc",
+        "util-asc",
+        "code"
+      ],
+      "default": "none"
+    },
+    {
+      "name": "maxCells",
+      "label": "Max cells (0=all)",
+      "type": "text",
+      "default": "0"
+    },
+    {
+      "name": "showStatusDot",
+      "label": "Show status dot",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "showUtil",
+      "label": "Show util bar",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "codeFontSize",
+      "label": "Code font size",
+      "type": "text",
+      "default": "13"
+    },
+    {
+      "name": "nameFontSize",
+      "label": "Name font size",
+      "type": "text",
+      "default": "11"
+    },
+    {
+      "name": "utilFontSize",
+      "label": "Util font size",
+      "type": "text",
+      "default": "10"
+    },
+    {
+      "name": "utilBarHeight",
+      "label": "Util bar height",
+      "type": "text",
+      "default": "4"
+    },
+    {
+      "name": "cellRadius",
+      "label": "Cell radius",
+      "type": "text",
+      "default": "4"
+    },
+    {
+      "name": "cellPadding",
+      "label": "Cell padding",
+      "type": "text",
+      "default": "10"
+    },
+    {
+      "name": "gap",
+      "label": "Gap",
+      "type": "text",
+      "default": "10"
+    },
+    {
+      "name": "sidePadding",
+      "label": "Side padding",
+      "type": "text",
+      "default": "12"
+    },
+    {
+      "name": "minCellHeight",
+      "label": "Min cell height",
+      "type": "text",
+      "default": "64"
+    },
+    {
+      "name": "maxCellHeight",
+      "label": "Max cell height",
+      "type": "text",
+      "default": "100"
+    },
+    {
+      "name": "cellBgColor",
+      "label": "Cell background",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "bgColor",
+      "label": "Background colour",
+      "type": "color",
+      "default": "transparent"
+    }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "rowCountField": "_numRows",
+    "columns": [
+      "code",
+      "name",
+      "status",
+      "util"
+    ],
+    "sampleRows": [
+      [
+        "IAD",
+        "Ashburn",
+        "ok",
+        "64"
+      ],
+      [
+        "ORD",
+        "Chicago",
+        "ok",
+        "48"
+      ],
+      [
+        "DFW",
+        "Dallas",
+        "warn",
+        "78"
+      ],
+      [
+        "SJC",
+        "San Jose",
+        "ok",
+        "52"
+      ],
+      [
+        "LHR",
+        "London",
+        "ok",
+        "61"
+      ],
+      [
+        "FRA",
+        "Frankfurt",
+        "warn",
+        "82"
+      ],
+      [
+        "AMS",
+        "Amsterdam",
+        "ok",
+        "44"
+      ],
+      [
+        "CDG",
+        "Paris",
+        "ok",
+        "55"
+      ],
+      [
+        "NRT",
+        "Tokyo",
+        "ok",
+        "39"
+      ],
+      [
+        "SIN",
+        "Singapore",
+        "warn",
+        "71"
+      ],
+      [
+        "SYD",
+        "Sydney",
+        "ok",
+        "42"
+      ],
+      [
+        "HKG",
+        "Hong Kong",
+        "danger",
+        "91"
+      ],
+      [
+        "GRU",
+        "Sao Paulo",
+        "ok",
+        "35"
+      ],
+      [
+        "YUL",
+        "Montreal",
+        "ok",
+        "48"
+      ],
+      [
+        "JNB",
+        "Johannesburg",
+        "ok",
+        "29"
+      ],
+      [
+        "DXB",
+        "Dubai",
+        "warn",
+        "73"
+      ]
+    ]
+  }
+}

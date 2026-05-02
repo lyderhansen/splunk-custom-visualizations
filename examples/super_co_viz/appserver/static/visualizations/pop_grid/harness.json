@@ -1,0 +1,36 @@
+{
+  "label": "PoP Grid",
+  "entry": "visualization.js",
+  "defaultSize": { "width": 600, "height": 350 },
+  "fields": [],
+  "formatter": [
+    { "name": "theme", "label": "Theme", "type": "radio", "options": ["dark", "light"], "default": "dark" },
+    { "name": "columns", "label": "Columns", "type": "text", "default": "4" },
+    { "name": "codeField", "label": "Code Field", "type": "text", "default": "site_code" },
+    { "name": "nameField", "label": "Name Field", "type": "text", "default": "site_name" },
+    { "name": "statusField", "label": "Status Field", "type": "text", "default": "status" },
+    { "name": "utilField", "label": "Util Field", "type": "text", "default": "util" }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "columns": ["site_code", "site_name", "status", "util"],
+    "sampleRows": [
+      ["IAD", "Ashburn", "ok", "64"],
+      ["SJC", "San Jose", "ok", "52"],
+      ["LHR", "London", "warn", "78"],
+      ["FRA", "Frankfurt", "ok", "41"],
+      ["NRT", "Tokyo", "ok", "55"],
+      ["SYD", "Sydney", "critical", "92"],
+      ["GRU", "Sao Paulo", "ok", "38"],
+      ["CDG", "Paris", "ok", "47"],
+      ["SIN", "Singapore", "warn", "71"],
+      ["ORD", "Chicago", "ok", "33"],
+      ["DFW", "Dallas", "ok", "29"],
+      ["SEA", "Seattle", "ok", "44"],
+      ["MIA", "Miami", "degraded", "67"],
+      ["YYZ", "Toronto", "ok", "51"],
+      ["AMS", "Amsterdam", "ok", "36"],
+      ["BOM", "Mumbai", "ok", "58"]
+    ]
+  }
+}

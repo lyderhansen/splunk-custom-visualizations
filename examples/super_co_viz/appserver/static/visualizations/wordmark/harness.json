@@ -1,0 +1,48 @@
+{
+  "label": "Wordmark",
+  "defaultSize": {
+    "width": 400,
+    "height": 48
+  },
+  "fields": [],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "subMark",
+      "label": "Sub Mark",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "align",
+      "label": "Align",
+      "type": "radio",
+      "options": [
+        "left",
+        "center"
+      ],
+      "default": "left"
+    }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": [
+      "brand"
+    ],
+    "sampleRows": [
+      [
+        "splunk"
+      ]
+    ]
+  },
+  "entry": "visualization.js"
+}

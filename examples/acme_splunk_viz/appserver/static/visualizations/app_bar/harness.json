@@ -1,0 +1,116 @@
+{
+  "label": "App Bar",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 1280,
+    "height": 48
+  },
+  "noDataMessage": "App bar",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "x",
+      "label": "Trigger",
+      "type": "text",
+      "default": "1"
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "appName",
+      "label": "App name",
+      "type": "text",
+      "default": "Enterprise Security"
+    },
+    {
+      "name": "navItems",
+      "label": "Nav items",
+      "type": "text",
+      "default": "Apps,Search & Reporting,Dashboards,Alerts,Datasets"
+    },
+    {
+      "name": "activeNavIndex",
+      "label": "Active nav index",
+      "type": "text",
+      "default": "2"
+    },
+    {
+      "name": "navGap",
+      "label": "Nav gap",
+      "type": "text",
+      "default": "18"
+    },
+    {
+      "name": "navUnderlineColor",
+      "label": "Nav underline colour",
+      "type": "color",
+      "default": "#ff6600"
+    },
+    {
+      "name": "wordmarkSize",
+      "label": "Wordmark size",
+      "type": "text",
+      "default": "17"
+    },
+    {
+      "name": "separator",
+      "label": "Separator character",
+      "type": "text",
+      "default": "|"
+    },
+    {
+      "name": "userInitials",
+      "label": "User initials",
+      "type": "text",
+      "default": "JH"
+    },
+    {
+      "name": "avatarColor",
+      "label": "Avatar colour",
+      "type": "color",
+      "default": "#7eb1ff"
+    },
+    {
+      "name": "showAvatar",
+      "label": "Show avatar",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "showTimestamp",
+      "label": "Show timestamp",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "timestamp",
+      "label": "Timestamp override",
+      "type": "text",
+      "default": ""
+    }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": [
+      "x"
+    ]
+  }
+}

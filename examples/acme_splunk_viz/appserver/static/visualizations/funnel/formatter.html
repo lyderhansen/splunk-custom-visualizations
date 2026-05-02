@@ -1,0 +1,102 @@
+<form class="splunk-formatter-section" section-label="Funnel">
+    <splunk-control-group label="Theme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Bar colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.color" type="custom" value="#2bbfb8">
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#5ce1e6</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+            <splunk-color>#a78bfa</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Track colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.trackColor" type="custom" value="">
+            <splunk-color>rgba(255,255,255,0.08)</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Label colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.labelColor" type="custom" value="#e5eaf2">
+            <splunk-color>#e5eaf2</splunk-color>
+            <splunk-color>rgba(229,234,242,0.66)</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show absolute count in bar">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showAbsoluteCount" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show step percent column">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showStepPercent" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Percent mode">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.percentMode" value="fromPrev">
+            <option value="fromPrev">vs previous stage</option>
+            <option value="fromFirst">vs first stage</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Drop-off warn (%)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.dropoffWarnThreshold" value="30">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Number format">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.numberFormat" value="auto">
+            <option value="auto">Auto</option>
+            <option value="compact">Compact</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Label width">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelWidth" value="130">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Step column width">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.stepWidth" value="64">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Bar height">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.barHeight" value="26">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Bar radius">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.barRadius" value="3">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.fontSize" value="12">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Side padding">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.sidePadding" value="14">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Background colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.bgColor" type="custom" value="transparent">
+            <splunk-color>transparent</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

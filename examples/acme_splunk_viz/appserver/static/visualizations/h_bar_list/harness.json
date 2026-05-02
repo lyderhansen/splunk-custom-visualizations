@@ -1,0 +1,191 @@
+{
+  "label": "Horizontal Bar List",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 480,
+    "height": 320
+  },
+  "noDataMessage": "H-bar list \u2014 awaiting rows",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "_numRows",
+      "label": "Number of rows",
+      "type": "slider",
+      "min": 3,
+      "max": 9,
+      "step": 1,
+      "default": 7
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "colors",
+      "label": "Tier colours",
+      "type": "text",
+      "default": "#2bbfb8,#5ce1e6,#7eb1ff"
+    },
+    {
+      "name": "spotlightIndex",
+      "label": "Spotlight index",
+      "type": "text",
+      "default": "-1"
+    },
+    {
+      "name": "spotlightColor",
+      "label": "Spotlight colour",
+      "type": "color",
+      "default": "#ff6600"
+    },
+    {
+      "name": "trackColor",
+      "label": "Track colour",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "labelColor",
+      "label": "Label colour",
+      "type": "color",
+      "default": "#e5eaf2"
+    },
+    {
+      "name": "valueColor",
+      "label": "Value colour",
+      "type": "color",
+      "default": "#e5eaf2"
+    },
+    {
+      "name": "suffix",
+      "label": "Value suffix",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "numberFormat",
+      "label": "Number format",
+      "type": "radio",
+      "options": [
+        "compact",
+        "auto",
+        "raw"
+      ],
+      "default": "compact"
+    },
+    {
+      "name": "sortOrder",
+      "label": "Sort order",
+      "type": "radio",
+      "options": [
+        "none",
+        "desc",
+        "asc"
+      ],
+      "default": "none"
+    },
+    {
+      "name": "maxRows",
+      "label": "Max rows",
+      "type": "text",
+      "default": "7"
+    },
+    {
+      "name": "labelWidth",
+      "label": "Label width",
+      "type": "text",
+      "default": "130"
+    },
+    {
+      "name": "valueWidth",
+      "label": "Value width",
+      "type": "text",
+      "default": "72"
+    },
+    {
+      "name": "barHeight",
+      "label": "Bar height",
+      "type": "text",
+      "default": "8"
+    },
+    {
+      "name": "barRadius",
+      "label": "Bar radius",
+      "type": "text",
+      "default": "4"
+    },
+    {
+      "name": "fontSize",
+      "label": "Font size",
+      "type": "text",
+      "default": "13"
+    },
+    {
+      "name": "sidePadding",
+      "label": "Side padding",
+      "type": "text",
+      "default": "14"
+    },
+    {
+      "name": "bgColor",
+      "label": "Background colour",
+      "type": "color",
+      "default": "transparent"
+    }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "rowCountField": "_numRows",
+    "columns": [
+      "label",
+      "value"
+    ],
+    "sampleRows": [
+      [
+        "firewall",
+        "482"
+      ],
+      [
+        "proxy",
+        "317"
+      ],
+      [
+        "edr",
+        "268"
+      ],
+      [
+        "authentication",
+        "214"
+      ],
+      [
+        "dns",
+        "189"
+      ],
+      [
+        "vpn",
+        "142"
+      ],
+      [
+        "wafs",
+        "96"
+      ],
+      [
+        "ids",
+        "72"
+      ],
+      [
+        "mail",
+        "54"
+      ]
+    ]
+  }
+}

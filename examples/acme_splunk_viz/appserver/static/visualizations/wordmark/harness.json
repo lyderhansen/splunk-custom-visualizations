@@ -1,0 +1,101 @@
+{
+  "label": "Wordmark",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 360,
+    "height": 64
+  },
+  "noDataMessage": "Wordmark",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "x",
+      "label": "Trigger",
+      "type": "text",
+      "default": "1"
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "subMark",
+      "label": "Sub-mark",
+      "type": "text",
+      "default": "Enterprise Security"
+    },
+    {
+      "name": "size",
+      "label": "Wordmark size",
+      "type": "text",
+      "default": "17"
+    },
+    {
+      "name": "subMarkSize",
+      "label": "Sub-mark size",
+      "type": "text",
+      "default": "13"
+    },
+    {
+      "name": "chevronColor",
+      "label": "Chevron colour",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "textColor",
+      "label": "Wordmark colour",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "subMarkColor",
+      "label": "Sub-mark colour",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "separator",
+      "label": "Separator character",
+      "type": "text",
+      "default": "|"
+    },
+    {
+      "name": "separatorColor",
+      "label": "Separator colour",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "alignH",
+      "label": "Alignment",
+      "type": "radio",
+      "options": [
+        "left",
+        "center",
+        "right"
+      ],
+      "default": "center"
+    },
+    {
+      "name": "bgColor",
+      "label": "Background colour",
+      "type": "color",
+      "default": "transparent"
+    }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": [
+      "x"
+    ]
+  }
+}

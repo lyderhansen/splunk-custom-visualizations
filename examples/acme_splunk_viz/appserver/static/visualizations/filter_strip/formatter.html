@@ -1,0 +1,61 @@
+<form class="splunk-formatter-section" section-label="Filter Strip">
+    <splunk-control-group label="Theme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Filters" help="Pipe-separated `Label:Value` pairs. Each chip fires a drilldown on click.">
+        <splunk-text-area name="{{VIZ_NAMESPACE}}.filters">Time range:Last 24 hours|Environment:Production|Index:notable|Severity:All</splunk-text-area>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show CTA button">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showCta" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="CTA label">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.ctaLabel" value="Run search">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="CTA colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.ctaColor" type="custom" value="#ff6600">
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+            <splunk-color>#118832</splunk-color>
+            <splunk-color>#f73873</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Chip radius" help="Pixel border-radius of each chip and the CTA.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.chipRadius" value="4">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Chip gap" help="Pixel gap between chips.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.chipGap" value="10">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show caret">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showCaret" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Caret glyph" help="Character used as the dropdown indicator.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.caretGlyph" value="▾">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Side padding" help="Pixel padding inside the strip on left and right.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.sidePadding" value="14">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>

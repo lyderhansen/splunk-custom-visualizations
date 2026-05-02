@@ -1,0 +1,177 @@
+{
+  "label": "Funnel",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 520,
+    "height": 360
+  },
+  "noDataMessage": "Funnel \u2014 awaiting stages",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "_numRows",
+      "label": "Number of stages",
+      "type": "slider",
+      "min": 3,
+      "max": 7,
+      "step": 1,
+      "default": 6
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "color",
+      "label": "Bar colour",
+      "type": "color",
+      "default": "#2bbfb8"
+    },
+    {
+      "name": "trackColor",
+      "label": "Track colour",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "labelColor",
+      "label": "Label colour",
+      "type": "color",
+      "default": "#e5eaf2"
+    },
+    {
+      "name": "showAbsoluteCount",
+      "label": "Show absolute count in bar",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "showStepPercent",
+      "label": "Show step percent column",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "percentMode",
+      "label": "Percent mode",
+      "type": "radio",
+      "options": [
+        "fromPrev",
+        "fromFirst"
+      ],
+      "default": "fromPrev"
+    },
+    {
+      "name": "dropoffWarnThreshold",
+      "label": "Drop-off warn (%)",
+      "type": "text",
+      "default": "30"
+    },
+    {
+      "name": "numberFormat",
+      "label": "Number format",
+      "type": "radio",
+      "options": [
+        "auto",
+        "compact"
+      ],
+      "default": "auto"
+    },
+    {
+      "name": "labelWidth",
+      "label": "Label width",
+      "type": "text",
+      "default": "130"
+    },
+    {
+      "name": "stepWidth",
+      "label": "Step column width",
+      "type": "text",
+      "default": "64"
+    },
+    {
+      "name": "barHeight",
+      "label": "Bar height",
+      "type": "text",
+      "default": "26"
+    },
+    {
+      "name": "barRadius",
+      "label": "Bar radius",
+      "type": "text",
+      "default": "3"
+    },
+    {
+      "name": "fontSize",
+      "label": "Font size",
+      "type": "text",
+      "default": "12"
+    },
+    {
+      "name": "sidePadding",
+      "label": "Side padding",
+      "type": "text",
+      "default": "14"
+    },
+    {
+      "name": "bgColor",
+      "label": "Background colour",
+      "type": "color",
+      "default": "transparent"
+    }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "rowCountField": "_numRows",
+    "columns": [
+      "stage",
+      "value"
+    ],
+    "sampleRows": [
+      [
+        "Visitors",
+        "48210"
+      ],
+      [
+        "Signups started",
+        "21640"
+      ],
+      [
+        "Email verified",
+        "18430"
+      ],
+      [
+        "Profile completed",
+        "14820"
+      ],
+      [
+        "Subscribed",
+        "9380"
+      ],
+      [
+        "Active 30d",
+        "6210"
+      ],
+      [
+        "Renewed",
+        "3120"
+      ]
+    ]
+  }
+}

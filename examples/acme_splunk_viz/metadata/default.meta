@@ -1,0 +1,56 @@
+[]
+access = read : [ * ], write : [ admin, sc_admin ]
+
+[views]
+export = system
+
+[nav]
+export = system
+
+[visualizations/single_value_tile]
+export = system
+
+[visualizations/sparkline]
+export = system
+
+[visualizations/area_chart]
+export = system
+
+[visualizations/column_chart]
+export = system
+
+[visualizations/h_bar_list]
+export = system
+
+[visualizations/heatmap]
+export = system
+
+[visualizations/ring_gauge]
+export = system
+
+[visualizations/donut]
+export = system
+
+[visualizations/funnel]
+export = system
+
+[visualizations/status_chip]
+export = system
+
+[visualizations/data_table]
+export = system
+
+[visualizations/pop_grid]
+export = system
+
+[visualizations/app_bar]
+export = system
+
+[visualizations/filter_strip]
+export = system
+
+[visualizations/dashboard_frame]
+export = system
+
+[visualizations/wordmark]
+export = system

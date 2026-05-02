@@ -1,0 +1,129 @@
+{
+  "label": "Heatmap Grid",
+  "defaultSize": {
+    "width": 600,
+    "height": 300
+  },
+  "fields": [],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "rowField",
+      "label": "Row Field",
+      "type": "text",
+      "default": "row_label"
+    },
+    {
+      "name": "colField",
+      "label": "Col Field",
+      "type": "text",
+      "default": "col_label"
+    },
+    {
+      "name": "valueField",
+      "label": "Value Field",
+      "type": "text",
+      "default": "count"
+    },
+    {
+      "name": "showCellValues",
+      "label": "Show Values",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "colorMode",
+      "label": "Color Mode",
+      "type": "radio",
+      "options": [
+        "default",
+        "severity"
+      ],
+      "default": "default"
+    }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "columns": [
+      "row_label",
+      "col_label",
+      "count"
+    ],
+    "sampleRows": [
+      [
+        "Initial Access",
+        "Mon",
+        5
+      ],
+      [
+        "Initial Access",
+        "Tue",
+        3
+      ],
+      [
+        "Initial Access",
+        "Wed",
+        8
+      ],
+      [
+        "Execution",
+        "Mon",
+        2
+      ],
+      [
+        "Execution",
+        "Tue",
+        7
+      ],
+      [
+        "Execution",
+        "Wed",
+        4
+      ],
+      [
+        "Persistence",
+        "Mon",
+        6
+      ],
+      [
+        "Persistence",
+        "Tue",
+        1
+      ],
+      [
+        "Persistence",
+        "Wed",
+        9
+      ],
+      [
+        "Lateral Movement",
+        "Mon",
+        3
+      ],
+      [
+        "Lateral Movement",
+        "Tue",
+        5
+      ],
+      [
+        "Lateral Movement",
+        "Wed",
+        2
+      ]
+    ]
+  },
+  "entry": "visualization.js"
+}

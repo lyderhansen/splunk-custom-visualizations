@@ -1,0 +1,270 @@
+{
+  "label": "Sparkline",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 240,
+    "height": 60
+  },
+  "noDataMessage": "Sparkline \u2014 awaiting series",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "_numRows",
+      "label": "Series length",
+      "type": "slider",
+      "min": 4,
+      "max": 32,
+      "step": 1,
+      "default": 24
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "field",
+      "label": "Value field",
+      "type": "text",
+      "default": "count"
+    },
+    {
+      "name": "color",
+      "label": "Line colour",
+      "type": "color",
+      "default": "#2bbfb8"
+    },
+    {
+      "name": "strokeWidth",
+      "label": "Stroke width",
+      "type": "text",
+      "default": "1.5"
+    },
+    {
+      "name": "lineCap",
+      "label": "Line cap",
+      "type": "radio",
+      "options": [
+        "round",
+        "butt",
+        "square"
+      ],
+      "default": "round"
+    },
+    {
+      "name": "smooth",
+      "label": "Smooth curve",
+      "type": "radio",
+      "options": [
+        "false",
+        "true"
+      ],
+      "default": "false"
+    },
+    {
+      "name": "fill",
+      "label": "Area fill",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "fillOpacity",
+      "label": "Fill opacity",
+      "type": "text",
+      "default": "0.22"
+    },
+    {
+      "name": "showMarkers",
+      "label": "Show markers",
+      "type": "radio",
+      "options": [
+        "false",
+        "true"
+      ],
+      "default": "false"
+    },
+    {
+      "name": "markerSize",
+      "label": "Marker size",
+      "type": "text",
+      "default": "3"
+    },
+    {
+      "name": "showLastDot",
+      "label": "Show last-point dot",
+      "type": "radio",
+      "options": [
+        "false",
+        "true"
+      ],
+      "default": "false"
+    },
+    {
+      "name": "lastDotColor",
+      "label": "Last-dot colour",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "padding",
+      "label": "Padding",
+      "type": "text",
+      "default": "2"
+    },
+    {
+      "name": "bgColor",
+      "label": "Background colour",
+      "type": "color",
+      "default": "transparent"
+    }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "rowCountField": "_numRows",
+    "columns": [
+      "_time",
+      "count"
+    ],
+    "sampleRows": [
+      [
+        "1",
+        "52"
+      ],
+      [
+        "2",
+        "57"
+      ],
+      [
+        "3",
+        "63"
+      ],
+      [
+        "4",
+        "70"
+      ],
+      [
+        "5",
+        "65"
+      ],
+      [
+        "6",
+        "58"
+      ],
+      [
+        "7",
+        "52"
+      ],
+      [
+        "8",
+        "48"
+      ],
+      [
+        "9",
+        "55"
+      ],
+      [
+        "10",
+        "62"
+      ],
+      [
+        "11",
+        "70"
+      ],
+      [
+        "12",
+        "78"
+      ],
+      [
+        "13",
+        "75"
+      ],
+      [
+        "14",
+        "70"
+      ],
+      [
+        "15",
+        "62"
+      ],
+      [
+        "16",
+        "55"
+      ],
+      [
+        "17",
+        "60"
+      ],
+      [
+        "18",
+        "68"
+      ],
+      [
+        "19",
+        "75"
+      ],
+      [
+        "20",
+        "82"
+      ],
+      [
+        "21",
+        "78"
+      ],
+      [
+        "22",
+        "70"
+      ],
+      [
+        "23",
+        "62"
+      ],
+      [
+        "24",
+        "55"
+      ],
+      [
+        "25",
+        "50"
+      ],
+      [
+        "26",
+        "55"
+      ],
+      [
+        "27",
+        "63"
+      ],
+      [
+        "28",
+        "70"
+      ],
+      [
+        "29",
+        "78"
+      ],
+      [
+        "30",
+        "85"
+      ],
+      [
+        "31",
+        "78"
+      ],
+      [
+        "32",
+        "70"
+      ]
+    ]
+  }
+}

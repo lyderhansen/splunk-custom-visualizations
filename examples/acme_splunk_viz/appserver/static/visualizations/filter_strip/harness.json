@@ -1,0 +1,98 @@
+{
+  "label": "Filter Strip",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 1280,
+    "height": 60
+  },
+  "noDataMessage": "Filter strip",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "x",
+      "label": "Trigger",
+      "type": "text",
+      "default": "1"
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "filters",
+      "label": "Filters",
+      "type": "text",
+      "default": "Time range:Last 24 hours|Environment:Production|Index:notable|Severity:All"
+    },
+    {
+      "name": "showCta",
+      "label": "Show CTA button",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "ctaLabel",
+      "label": "CTA label",
+      "type": "text",
+      "default": "Run search"
+    },
+    {
+      "name": "ctaColor",
+      "label": "CTA colour",
+      "type": "color",
+      "default": "#ff6600"
+    },
+    {
+      "name": "chipRadius",
+      "label": "Chip radius",
+      "type": "text",
+      "default": "4"
+    },
+    {
+      "name": "chipGap",
+      "label": "Chip gap",
+      "type": "text",
+      "default": "10"
+    },
+    {
+      "name": "showCaret",
+      "label": "Show caret",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "caretGlyph",
+      "label": "Caret glyph",
+      "type": "text",
+      "default": "\u25be"
+    },
+    {
+      "name": "sidePadding",
+      "label": "Side padding",
+      "type": "text",
+      "default": "14"
+    }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": [
+      "x"
+    ]
+  }
+}

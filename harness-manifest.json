@@ -2,6 +2,39 @@
   "pathTemplate": "examples/{name}/appserver/static/visualizations/{name}",
   "fontCSS": "shared/fonts.css",
   "categories": {
+    "SUPER CO": [
+      "sc_single_value_tile",
+      "sc_sparkline",
+      "sc_area_chart",
+      "sc_column_chart",
+      "sc_h_bar_list",
+      "sc_heatmap",
+      "sc_ring_gauge",
+      "sc_donut",
+      "sc_funnel",
+      "sc_status_chip",
+      "sc_data_table",
+      "sc_pop_grid",
+      "sc_wordmark"
+    ],
+    "ACME Design System": [
+      "single_value_tile",
+      "sparkline",
+      "area_chart",
+      "column_chart",
+      "h_bar_list",
+      "heatmap",
+      "ring_gauge",
+      "donut",
+      "funnel",
+      "status_chip",
+      "data_table",
+      "pop_grid",
+      "app_bar",
+      "filter_strip",
+      "dashboard_frame",
+      "wordmark"
+    ],
     "Splunk": [
       "splunk_status_board",
       "license_gauge",
@@ -41,6 +74,122 @@
     ]
   },
   "vizs": [
+    {
+      "name": "sc_single_value_tile",
+      "path": "examples/super_co_viz/appserver/static/visualizations/single_value_tile"
+    },
+    {
+      "name": "sc_sparkline",
+      "path": "examples/super_co_viz/appserver/static/visualizations/sparkline"
+    },
+    {
+      "name": "sc_area_chart",
+      "path": "examples/super_co_viz/appserver/static/visualizations/area_chart"
+    },
+    {
+      "name": "sc_column_chart",
+      "path": "examples/super_co_viz/appserver/static/visualizations/column_chart"
+    },
+    {
+      "name": "sc_h_bar_list",
+      "path": "examples/super_co_viz/appserver/static/visualizations/h_bar_list"
+    },
+    {
+      "name": "sc_heatmap",
+      "path": "examples/super_co_viz/appserver/static/visualizations/heatmap"
+    },
+    {
+      "name": "sc_ring_gauge",
+      "path": "examples/super_co_viz/appserver/static/visualizations/ring_gauge"
+    },
+    {
+      "name": "sc_donut",
+      "path": "examples/super_co_viz/appserver/static/visualizations/donut"
+    },
+    {
+      "name": "sc_funnel",
+      "path": "examples/super_co_viz/appserver/static/visualizations/funnel"
+    },
+    {
+      "name": "sc_status_chip",
+      "path": "examples/super_co_viz/appserver/static/visualizations/status_chip"
+    },
+    {
+      "name": "sc_data_table",
+      "path": "examples/super_co_viz/appserver/static/visualizations/data_table"
+    },
+    {
+      "name": "sc_pop_grid",
+      "path": "examples/super_co_viz/appserver/static/visualizations/pop_grid"
+    },
+    {
+      "name": "sc_wordmark",
+      "path": "examples/super_co_viz/appserver/static/visualizations/wordmark"
+    },
+    {
+      "name": "single_value_tile",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/single_value_tile"
+    },
+    {
+      "name": "sparkline",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/sparkline"
+    },
+    {
+      "name": "area_chart",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/area_chart"
+    },
+    {
+      "name": "column_chart",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/column_chart"
+    },
+    {
+      "name": "h_bar_list",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/h_bar_list"
+    },
+    {
+      "name": "heatmap",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/heatmap"
+    },
+    {
+      "name": "ring_gauge",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/ring_gauge"
+    },
+    {
+      "name": "donut",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/donut"
+    },
+    {
+      "name": "funnel",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/funnel"
+    },
+    {
+      "name": "status_chip",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/status_chip"
+    },
+    {
+      "name": "data_table",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/data_table"
+    },
+    {
+      "name": "pop_grid",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/pop_grid"
+    },
+    {
+      "name": "app_bar",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/app_bar"
+    },
+    {
+      "name": "filter_strip",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/filter_strip"
+    },
+    {
+      "name": "dashboard_frame",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/dashboard_frame"
+    },
+    {
+      "name": "wordmark",
+      "path": "examples/acme_splunk_viz/appserver/static/visualizations/wordmark"
+    },
     "custom_single_value",
     "component_status_board",
     "gauge",

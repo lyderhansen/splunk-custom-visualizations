@@ -1,0 +1,187 @@
+<form class="splunk-formatter-section" section-label="Data">
+    <splunk-control-group label="Theme" help="Dark or light token set">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Label" help="Caption shown above the big number">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.label" value="Notable events (24h)">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sub-label" help="Helper text next to the delta">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.subLabel" value="vs prev 24h">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Unit" help="Suffix shown next to the value, e.g. ms, %, GB">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.unit" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Value field" help="Search column to read the headline value from">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueField" value="value">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Delta field" help="Search column to read the change value from">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.deltaField" value="delta">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Spark field" help="Search column with comma-separated numbers for the sparkline">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.sparkField" value="spark">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Delta">
+    <splunk-control-group label="Delta semantics" help="Up-good = green when delta is positive. Down-good = green when delta is negative. Neutral = always grey.">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.deltaSemantics" value="downGood">
+            <option value="upGood">Up is good</option>
+            <option value="downGood">Down is good</option>
+            <option value="neutral">Neutral</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show delta arrow" help="Show an up/down arrow before the delta value">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showDeltaArrow" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Delta font size" help="Pixel size of the delta number">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.deltaFontSize" value="13">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Format">
+    <splunk-control-group label="Number format" help="Auto = thousand-separators. Compact = 1.2k/1.2M. Raw = passthrough. Fixed = decimal precision.">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.numberFormat" value="auto">
+            <option value="auto">Auto</option>
+            <option value="compact">Compact</option>
+            <option value="raw">Raw</option>
+            <option value="fixed">Fixed</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Precision" help="Decimal places when format = Fixed">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.precision" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Value font size" help="Pixel size of the big headline number">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueFontSize" value="32">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Label font size" help="Pixel size of the caption">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelFontSize" value="12">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Style">
+    <splunk-control-group label="Accent" help="Default colour applied to the big number">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.accent" type="custom" value="#ff6600">
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+            <splunk-color>#118832</splunk-color>
+            <splunk-color>#cba700</splunk-color>
+            <splunk-color>#d41f1f</splunk-color>
+            <splunk-color>#a78bfa</splunk-color>
+            <splunk-color>#e5eaf2</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Value colour" help="Override accent for the big number. Leave default to use accent.">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.valueColor" type="custom" value="">
+            <splunk-color>#e5eaf2</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+            <splunk-color>#118832</splunk-color>
+            <splunk-color>#d41f1f</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Label colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.labelColor" type="custom" value="rgba(229,234,242,0.66)">
+            <splunk-color>rgba(229,234,242,0.66)</splunk-color>
+            <splunk-color>#e5eaf2</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sub-label colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.subLabelColor" type="custom" value="rgba(229,234,242,0.66)">
+            <splunk-color>rgba(229,234,242,0.66)</splunk-color>
+            <splunk-color>#e5eaf2</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Sparkline">
+    <splunk-control-group label="Sparkline" help="Show the inline trend line at the bottom right">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showSparkline" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sparkline colour" help="Leave blank to inherit the accent colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.sparkColor" type="custom" value="">
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sparkline fill" help="Show the gradient fill under the sparkline">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.sparkFill" value="true">
+            <option value="true">On</option>
+            <option value="false">Off</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Layout">
+    <splunk-control-group label="Alignment" help="Horizontal alignment of label and value">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.alignH" value="left">
+            <option value="left">Left</option>
+            <option value="center">Centre</option>
+            <option value="right">Right</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Padding" help="Pixel padding inside the tile">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.padding" value="14">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Background colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.bgColor" type="custom" value="transparent">
+            <splunk-color>transparent</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+            <splunk-color>#171d27</splunk-color>
+            <splunk-color>#ffffff</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show border">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showBorder" value="false">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Border radius" help="Pixel border-radius when background or border is shown">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.borderRadius" value="6">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>

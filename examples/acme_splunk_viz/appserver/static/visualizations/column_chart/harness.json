@@ -1,0 +1,280 @@
+{
+  "label": "Column Chart",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 640,
+    "height": 280
+  },
+  "noDataMessage": "Column chart \u2014 awaiting bars",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "_numRows",
+      "label": "Number of bars",
+      "type": "slider",
+      "min": 3,
+      "max": 24,
+      "step": 1,
+      "default": 12
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "color",
+      "label": "Bar colour",
+      "type": "color",
+      "default": "#2bbfb8"
+    },
+    {
+      "name": "highlightColor",
+      "label": "Highlight colour",
+      "type": "color",
+      "default": "#ff6600"
+    },
+    {
+      "name": "highlightIndex",
+      "label": "Highlight index",
+      "type": "text",
+      "default": "-1"
+    },
+    {
+      "name": "barRadius",
+      "label": "Bar radius",
+      "type": "text",
+      "default": "2"
+    },
+    {
+      "name": "maxBarWidth",
+      "label": "Max bar width",
+      "type": "text",
+      "default": "20"
+    },
+    {
+      "name": "showValueLabels",
+      "label": "Show value labels",
+      "type": "radio",
+      "options": [
+        "false",
+        "true"
+      ],
+      "default": "false"
+    },
+    {
+      "name": "valueLabelColor",
+      "label": "Value-label colour",
+      "type": "color",
+      "default": "#e5eaf2"
+    },
+    {
+      "name": "sortOrder",
+      "label": "Sort order",
+      "type": "radio",
+      "options": [
+        "none",
+        "asc",
+        "desc"
+      ],
+      "default": "none"
+    },
+    {
+      "name": "gridY",
+      "label": "Y gridlines",
+      "type": "text",
+      "default": "4"
+    },
+    {
+      "name": "showGrid",
+      "label": "Show grid",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "showXAxis",
+      "label": "Show X axis",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "showYAxis",
+      "label": "Show Y axis",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "xLabelRotation",
+      "label": "X label rotation (\u00b0)",
+      "type": "text",
+      "default": "0"
+    },
+    {
+      "name": "yUnit",
+      "label": "Y unit suffix",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "yMaxOverride",
+      "label": "Y max override (0=auto)",
+      "type": "text",
+      "default": "0"
+    },
+    {
+      "name": "padTop",
+      "label": "Padding top",
+      "type": "text",
+      "default": "10"
+    },
+    {
+      "name": "padRight",
+      "label": "Padding right",
+      "type": "text",
+      "default": "16"
+    },
+    {
+      "name": "padBottom",
+      "label": "Padding bottom",
+      "type": "text",
+      "default": "26"
+    },
+    {
+      "name": "padLeft",
+      "label": "Padding left",
+      "type": "text",
+      "default": "44"
+    },
+    {
+      "name": "bgColor",
+      "label": "Background colour",
+      "type": "color",
+      "default": "transparent"
+    }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "rowCountField": "_numRows",
+    "columns": [
+      "category",
+      "count"
+    ],
+    "sampleRows": [
+      [
+        "D1",
+        "60"
+      ],
+      [
+        "D2",
+        "82"
+      ],
+      [
+        "D3",
+        "75"
+      ],
+      [
+        "D4",
+        "88"
+      ],
+      [
+        "D5",
+        "92"
+      ],
+      [
+        "D6",
+        "78"
+      ],
+      [
+        "D7",
+        "62"
+      ],
+      [
+        "D8",
+        "120"
+      ],
+      [
+        "D9",
+        "98"
+      ],
+      [
+        "D10",
+        "85"
+      ],
+      [
+        "D11",
+        "70"
+      ],
+      [
+        "D12",
+        "55"
+      ],
+      [
+        "D13",
+        "48"
+      ],
+      [
+        "D14",
+        "62"
+      ],
+      [
+        "D15",
+        "78"
+      ],
+      [
+        "D16",
+        "88"
+      ],
+      [
+        "D17",
+        "95"
+      ],
+      [
+        "D18",
+        "82"
+      ],
+      [
+        "D19",
+        "70"
+      ],
+      [
+        "D20",
+        "60"
+      ],
+      [
+        "D21",
+        "52"
+      ],
+      [
+        "D22",
+        "65"
+      ],
+      [
+        "D23",
+        "78"
+      ],
+      [
+        "D24",
+        "88"
+      ]
+    ]
+  }
+}

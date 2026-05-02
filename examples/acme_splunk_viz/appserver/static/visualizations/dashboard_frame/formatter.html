@@ -1,0 +1,96 @@
+<form class="splunk-formatter-section" section-label="Dashboard Frame">
+    <splunk-control-group label="Theme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Background colour" help="Backdrop behind the chrome — defaults to the bg token.">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.bgColor" type="custom" value="#171d27">
+            <splunk-color>#171d27</splunk-color>
+            <splunk-color>#0b1220</splunk-color>
+            <splunk-color>#f4f6f9</splunk-color>
+            <splunk-color>#000000</splunk-color>
+            <splunk-color>transparent</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="App bar">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showAppBar" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="App name">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.appName" value="Enterprise Security"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="User initials">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.userInitials" value="JH"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Avatar colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.avatarColor" type="custom" value="#7eb1ff">
+            <splunk-color>#7eb1ff</splunk-color>
+            <splunk-color>#a78bfa</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Breadcrumb">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.breadcrumb" value="Apps · Enterprise Security · Dashboards"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Title">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.title" value="Security operations overview"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Title font size" help="Pixel font size for the H1 title.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.titleFontSize" value="26"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Subtitle">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.subtitle" value="Real-time across all production indexes · auto-refresh 30s"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Subtitle font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.subtitleFontSize" value="13"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Status pills" help="Pipe-separated. Each pill is `Label:Value:#color`. Each fires a drilldown on click.">
+        <splunk-text-area name="{{VIZ_NAMESPACE}}.statusPills">Notables:1247:#ff6600|Open:182:#cba700|Healthy::#118832</splunk-text-area>
+    </splunk-control-group>
+
+    <splunk-control-group label="Pill border radius">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.pillRadius" value="4"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Side padding" help="Horizontal padding inside the frame.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.sidePadding" value="28"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Filter strip">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showFilters" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Footer">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showFooter" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Footer left" help="Usually the SPL hint.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.footerLeft" value="index=notable | stats count by source · auto-refresh 30s"></splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Footer right">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.footerRight" value="build 1.0.0"></splunk-text-input>
+    </splunk-control-group>
+</form>

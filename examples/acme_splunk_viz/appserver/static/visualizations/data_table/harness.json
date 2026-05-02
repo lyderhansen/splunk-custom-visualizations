@@ -1,0 +1,207 @@
+{
+  "label": "Data Table",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 720,
+    "height": 360
+  },
+  "noDataMessage": "Data table \u2014 awaiting rows",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "_numRows",
+      "label": "Number of rows",
+      "type": "slider",
+      "min": 1,
+      "max": 8,
+      "step": 1,
+      "default": 5
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "columns",
+      "label": "Columns",
+      "type": "text",
+      "default": "severity:Severity:badge:90,event:Event:text:flex,source:Source:mono:160,time:Time:text:120:right"
+    },
+    {
+      "name": "maxRows",
+      "label": "Max rows",
+      "type": "text",
+      "default": "50"
+    },
+    {
+      "name": "errorThreshold",
+      "label": "Error threshold",
+      "type": "text",
+      "default": "1.0"
+    },
+    {
+      "name": "sortColIdx",
+      "label": "Sort by column index",
+      "type": "text",
+      "default": "-1"
+    },
+    {
+      "name": "sortDir",
+      "label": "Sort direction",
+      "type": "radio",
+      "options": [
+        "desc",
+        "asc"
+      ],
+      "default": "desc"
+    },
+    {
+      "name": "rowHeight",
+      "label": "Row height",
+      "type": "text",
+      "default": "32"
+    },
+    {
+      "name": "headerHeight",
+      "label": "Header height",
+      "type": "text",
+      "default": "28"
+    },
+    {
+      "name": "fontSize",
+      "label": "Body font size",
+      "type": "text",
+      "default": "12"
+    },
+    {
+      "name": "headerFontSize",
+      "label": "Header font size",
+      "type": "text",
+      "default": "11"
+    },
+    {
+      "name": "headerColor",
+      "label": "Header text colour",
+      "type": "color",
+      "default": "rgba(229,234,242,0.42)"
+    },
+    {
+      "name": "headerBgColor",
+      "label": "Header background",
+      "type": "color",
+      "default": "transparent"
+    },
+    {
+      "name": "alternatingRow",
+      "label": "Alternating rows",
+      "type": "radio",
+      "options": [
+        "false",
+        "true"
+      ],
+      "default": "false"
+    },
+    {
+      "name": "altRowColor",
+      "label": "Alternate row colour",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "showRowBorders",
+      "label": "Show row borders",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "rowBorderColor",
+      "label": "Row border colour",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "sidePadding",
+      "label": "Side padding",
+      "type": "text",
+      "default": "14"
+    },
+    {
+      "name": "bgColor",
+      "label": "Background colour",
+      "type": "color",
+      "default": "transparent"
+    }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "rowCountField": "_numRows",
+    "columns": [
+      "severity",
+      "event",
+      "source",
+      "time"
+    ],
+    "sampleRows": [
+      [
+        "high",
+        "Brute force on web-prod-03",
+        "auth_combined",
+        "2m ago"
+      ],
+      [
+        "crit",
+        "Suspicious data egress",
+        "netflow",
+        "5m ago"
+      ],
+      [
+        "med",
+        "DNS tunnelling",
+        "dns",
+        "14m ago"
+      ],
+      [
+        "low",
+        "Anomalous login from new geo",
+        "okta",
+        "22m ago"
+      ],
+      [
+        "med",
+        "Malware artifact in upload",
+        "edr",
+        "38m ago"
+      ],
+      [
+        "high",
+        "Privilege escalation attempt",
+        "audit_linux",
+        "44m ago"
+      ],
+      [
+        "low",
+        "Outbound to known C2",
+        "firewall",
+        "1h ago"
+      ],
+      [
+        "med",
+        "Rare process execution",
+        "endpoint",
+        "1h ago"
+      ]
+    ]
+  }
+}

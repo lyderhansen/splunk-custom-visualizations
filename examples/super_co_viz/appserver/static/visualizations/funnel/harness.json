@@ -1,0 +1,23 @@
+{
+  "label": "Funnel",
+  "entry": "visualization.js",
+  "defaultSize": { "width": 500, "height": 280 },
+  "fields": [],
+  "formatter": [
+    { "name": "theme", "label": "Theme", "type": "radio", "options": ["dark", "light"], "default": "dark" },
+    { "name": "labelField", "label": "Label Field", "type": "text", "default": "stage" },
+    { "name": "valueField", "label": "Value Field", "type": "text", "default": "count" },
+    { "name": "dropoffWarnThreshold", "label": "Dropoff Warn %", "type": "text", "default": "30" }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "columns": ["stage", "count"],
+    "sampleRows": [
+      ["Visits", "10000"],
+      ["Signups", "3200"],
+      ["Trials", "1800"],
+      ["Purchases", "900"],
+      ["Renewals", "620"]
+    ]
+  }
+}

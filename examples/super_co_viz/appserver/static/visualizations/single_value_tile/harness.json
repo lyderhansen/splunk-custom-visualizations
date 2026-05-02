@@ -1,0 +1,137 @@
+{
+  "label": "Single Value Tile",
+  "defaultSize": {
+    "width": 280,
+    "height": 120
+  },
+  "fields": [
+    {
+      "name": "label",
+      "label": "Label",
+      "type": "text",
+      "default": "Notable events (24h)"
+    },
+    {
+      "name": "value",
+      "label": "Value",
+      "type": "text",
+      "default": "247"
+    },
+    {
+      "name": "unit",
+      "label": "Unit",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "delta",
+      "label": "Delta",
+      "type": "text",
+      "default": "+12"
+    },
+    {
+      "name": "deltaDir",
+      "label": "Delta Dir",
+      "type": "radio",
+      "options": [
+        "up",
+        "down",
+        "flat"
+      ],
+      "default": "up"
+    },
+    {
+      "name": "sparkline",
+      "label": "Sparkline",
+      "type": "text",
+      "default": "180,195,210,205,230,225,240,247"
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "labelField",
+      "label": "Label Field",
+      "type": "text",
+      "default": "label"
+    },
+    {
+      "name": "valueField",
+      "label": "Value Field",
+      "type": "text",
+      "default": "value"
+    },
+    {
+      "name": "unitField",
+      "label": "Unit Field",
+      "type": "text",
+      "default": "unit"
+    },
+    {
+      "name": "deltaField",
+      "label": "Delta Field",
+      "type": "text",
+      "default": "delta"
+    },
+    {
+      "name": "deltaDirField",
+      "label": "Delta Dir Field",
+      "type": "text",
+      "default": "deltaDir"
+    },
+    {
+      "name": "deltaSemantics",
+      "label": "Delta Semantics",
+      "type": "radio",
+      "options": [
+        "up-good",
+        "down-good",
+        "neutral"
+      ],
+      "default": "up-good"
+    },
+    {
+      "name": "showSparkline",
+      "label": "Show Sparkline",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "sparklineField",
+      "label": "Sparkline Field",
+      "type": "text",
+      "default": "sparkline"
+    },
+    {
+      "name": "accentColor",
+      "label": "Accent Color",
+      "type": "text",
+      "default": "#e5eaf2"
+    }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": [
+      "label",
+      "value",
+      "unit",
+      "delta",
+      "deltaDir",
+      "sparkline"
+    ]
+  },
+  "entry": "visualization.js"
+}

@@ -1,0 +1,98 @@
+<form class="splunk-formatter-section" section-label="Sparkline">
+    <splunk-control-group label="Theme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Value field">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.field" value="count">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Line colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.color" type="custom" value="#2bbfb8">
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#5ce1e6</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#a78bfa</splunk-color>
+            <splunk-color>#118832</splunk-color>
+            <splunk-color>#cba700</splunk-color>
+            <splunk-color>#d41f1f</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Stroke width">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.strokeWidth" value="1.5">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Line cap">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.lineCap" value="round">
+            <option value="round">Round</option>
+            <option value="butt">Butt</option>
+            <option value="square">Square</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Smooth curve">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.smooth" value="false">
+            <option value="false">Straight</option>
+            <option value="true">Smooth</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Area fill">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.fill" value="true">
+            <option value="true">On</option>
+            <option value="false">Off</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Fill opacity">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.fillOpacity" value="0.22">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show markers">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showMarkers" value="false">
+            <option value="false">Hide</option>
+            <option value="true">Show</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Marker size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.markerSize" value="3">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show last-point dot">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showLastDot" value="false">
+            <option value="false">Hide</option>
+            <option value="true">Show</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Last-dot colour" help="Defaults to line colour.">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.lastDotColor" type="custom" value="">
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Padding">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.padding" value="2">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Background colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.bgColor" type="custom" value="transparent">
+            <splunk-color>transparent</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+            <splunk-color>#ffffff</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

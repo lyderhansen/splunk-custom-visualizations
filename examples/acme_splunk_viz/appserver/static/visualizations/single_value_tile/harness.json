@@ -1,0 +1,232 @@
+{
+  "label": "Single-Value Tile",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 320,
+    "height": 140
+  },
+  "noDataMessage": "Awaiting data",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "value",
+      "label": "Value",
+      "type": "text",
+      "default": "247"
+    },
+    {
+      "name": "delta",
+      "label": "Delta",
+      "type": "text",
+      "default": "-12"
+    },
+    {
+      "name": "spark",
+      "label": "Spark series (csv)",
+      "type": "text",
+      "default": "120,140,160,150,170,190,180,200,210,200,220,247"
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "label",
+      "label": "Label",
+      "type": "text",
+      "default": "Notable events (24h)"
+    },
+    {
+      "name": "subLabel",
+      "label": "Sub-label",
+      "type": "text",
+      "default": "vs prev 24h"
+    },
+    {
+      "name": "unit",
+      "label": "Unit",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "valueField",
+      "label": "Value field",
+      "type": "text",
+      "default": "value"
+    },
+    {
+      "name": "deltaField",
+      "label": "Delta field",
+      "type": "text",
+      "default": "delta"
+    },
+    {
+      "name": "sparkField",
+      "label": "Spark field",
+      "type": "text",
+      "default": "spark"
+    },
+    {
+      "name": "deltaSemantics",
+      "label": "Delta semantics",
+      "type": "radio",
+      "options": [
+        "upGood",
+        "downGood",
+        "neutral"
+      ],
+      "default": "downGood"
+    },
+    {
+      "name": "showDeltaArrow",
+      "label": "Show delta arrow",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "deltaFontSize",
+      "label": "Delta font size",
+      "type": "text",
+      "default": "13"
+    },
+    {
+      "name": "numberFormat",
+      "label": "Number format",
+      "type": "radio",
+      "options": [
+        "auto",
+        "compact",
+        "raw",
+        "fixed"
+      ],
+      "default": "auto"
+    },
+    {
+      "name": "precision",
+      "label": "Precision",
+      "type": "text",
+      "default": "0"
+    },
+    {
+      "name": "valueFontSize",
+      "label": "Value font size",
+      "type": "text",
+      "default": "32"
+    },
+    {
+      "name": "labelFontSize",
+      "label": "Label font size",
+      "type": "text",
+      "default": "12"
+    },
+    {
+      "name": "accent",
+      "label": "Accent",
+      "type": "color",
+      "default": "#ff6600"
+    },
+    {
+      "name": "valueColor",
+      "label": "Value colour",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "labelColor",
+      "label": "Label colour",
+      "type": "color",
+      "default": "rgba(229,234,242,0.66)"
+    },
+    {
+      "name": "subLabelColor",
+      "label": "Sub-label colour",
+      "type": "color",
+      "default": "rgba(229,234,242,0.66)"
+    },
+    {
+      "name": "showSparkline",
+      "label": "Sparkline",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "sparkColor",
+      "label": "Sparkline colour",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "sparkFill",
+      "label": "Sparkline fill",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "alignH",
+      "label": "Alignment",
+      "type": "radio",
+      "options": [
+        "left",
+        "center",
+        "right"
+      ],
+      "default": "left"
+    },
+    {
+      "name": "padding",
+      "label": "Padding",
+      "type": "text",
+      "default": "14"
+    },
+    {
+      "name": "bgColor",
+      "label": "Background colour",
+      "type": "color",
+      "default": "transparent"
+    },
+    {
+      "name": "showBorder",
+      "label": "Show border",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "false"
+    },
+    {
+      "name": "borderRadius",
+      "label": "Border radius",
+      "type": "text",
+      "default": "6"
+    }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": [
+      "value",
+      "delta",
+      "spark"
+    ]
+  }
+}

@@ -1,0 +1,150 @@
+{
+  "label": "Dashboard Frame",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 1280,
+    "height": 720
+  },
+  "noDataMessage": "Dashboard frame",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "x",
+      "label": "Trigger",
+      "type": "text",
+      "default": "1"
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "bgColor",
+      "label": "Background colour",
+      "type": "color",
+      "default": "#171d27"
+    },
+    {
+      "name": "showAppBar",
+      "label": "App bar",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "appName",
+      "label": "App name",
+      "type": "text",
+      "default": "Enterprise Security"
+    },
+    {
+      "name": "userInitials",
+      "label": "User initials",
+      "type": "text",
+      "default": "JH"
+    },
+    {
+      "name": "avatarColor",
+      "label": "Avatar colour",
+      "type": "color",
+      "default": "#7eb1ff"
+    },
+    {
+      "name": "breadcrumb",
+      "label": "Breadcrumb",
+      "type": "text",
+      "default": "Apps \u00b7 Enterprise Security \u00b7 Dashboards"
+    },
+    {
+      "name": "title",
+      "label": "Title",
+      "type": "text",
+      "default": "Security operations overview"
+    },
+    {
+      "name": "titleFontSize",
+      "label": "Title font size",
+      "type": "text",
+      "default": "26"
+    },
+    {
+      "name": "subtitle",
+      "label": "Subtitle",
+      "type": "text",
+      "default": "Real-time across all production indexes \u00b7 auto-refresh 30s"
+    },
+    {
+      "name": "subtitleFontSize",
+      "label": "Subtitle font size",
+      "type": "text",
+      "default": "13"
+    },
+    {
+      "name": "statusPills",
+      "label": "Status pills",
+      "type": "text",
+      "default": "Notables:1247:#ff6600|Open:182:#cba700|Healthy::#118832"
+    },
+    {
+      "name": "pillRadius",
+      "label": "Pill border radius",
+      "type": "text",
+      "default": "4"
+    },
+    {
+      "name": "sidePadding",
+      "label": "Side padding",
+      "type": "text",
+      "default": "28"
+    },
+    {
+      "name": "showFilters",
+      "label": "Filter strip",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "showFooter",
+      "label": "Footer",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "footerLeft",
+      "label": "Footer left",
+      "type": "text",
+      "default": "index=notable | stats count by source \u00b7 auto-refresh 30s"
+    },
+    {
+      "name": "footerRight",
+      "label": "Footer right",
+      "type": "text",
+      "default": "build 1.0.0"
+    }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": [
+      "x"
+    ]
+  }
+}

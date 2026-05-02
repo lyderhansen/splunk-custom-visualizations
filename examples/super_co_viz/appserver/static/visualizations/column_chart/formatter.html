@@ -1,0 +1,27 @@
+<form class="splunk-formatter-section" section-label="Display">
+    <splunk-control-group label="Theme" help="Color theme for the chart">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Grid Lines" help="Number of horizontal gridlines">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.gridLines" value="4">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Highlight Index" help="Bar index to highlight in orange (-1 = none)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.highlightIndex" value="-1">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Bar Color" help="Default bar color (single series)">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.barColor" type="custom" value="#2bbfb8">
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+            <splunk-color>#a78bfa</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#f73873</splunk-color>
+            <splunk-color>#1a91a8</splunk-color>
+            <splunk-color>#5ce1e6</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

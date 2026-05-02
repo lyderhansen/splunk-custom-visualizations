@@ -1,0 +1,113 @@
+<form class="splunk-formatter-section" section-label="Heatmap">
+    <splunk-control-group label="Theme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Flavor">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.flavor" value="mitre">
+            <option value="mitre">MITRE</option>
+            <option value="error">Error rate</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show cell values">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showCellValues" value="true">
+            <option value="true">On</option>
+            <option value="false">Off</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sort by total">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.sortOrder" value="none">
+            <option value="none">None</option>
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Low-bucket colour" help="Empty fallback if blank.">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.cellLow" type="custom" value="">
+            <splunk-color>rgba(126,177,255,0.30)</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Mid-bucket colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.cellMid" type="custom" value="">
+            <splunk-color>rgba(92,225,230,0.55)</splunk-color>
+            <splunk-color>#5ce1e6</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="High-bucket colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.cellHigh" type="custom" value="#ff6600">
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Extreme-bucket colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.cellExtreme" type="custom" value="#d41f1f">
+            <splunk-color>#d41f1f</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Cell padding">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.cellPadding" value="3">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Cell radius">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.cellRadius" value="2">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Max cell height">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxCellHeight" value="22">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Label column width">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelColumnWidth" value="130">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Value font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueFontSize" value="10">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Label font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelFontSize" value="12">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show legend">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showLegend" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Legend low label">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.legendLow" value="Less">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Legend high label">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.legendHigh" value="More">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Background colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.bgColor" type="custom" value="transparent">
+            <splunk-color>transparent</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

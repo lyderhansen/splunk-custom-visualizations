@@ -1,0 +1,358 @@
+{
+  "label": "Area Chart",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 720,
+    "height": 320
+  },
+  "noDataMessage": "Area chart \u2014 awaiting series",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "_numRows",
+      "label": "Number of points",
+      "type": "slider",
+      "min": 4,
+      "max": 24,
+      "step": 1,
+      "default": 24
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "colors",
+      "label": "Series colours",
+      "type": "text",
+      "default": "#ff6600,#2bbfb8,#7eb1ff"
+    },
+    {
+      "name": "dashedSeries",
+      "label": "Dashed series indices",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "noFillSeries",
+      "label": "No-fill series indices",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "lineWidth",
+      "label": "Line width",
+      "type": "text",
+      "default": "1.75"
+    },
+    {
+      "name": "fillOpacity",
+      "label": "Fill opacity",
+      "type": "text",
+      "default": "0.22"
+    },
+    {
+      "name": "smooth",
+      "label": "Smooth lines",
+      "type": "radio",
+      "options": [
+        "false",
+        "true"
+      ],
+      "default": "false"
+    },
+    {
+      "name": "showPoints",
+      "label": "Show data points",
+      "type": "radio",
+      "options": [
+        "false",
+        "true"
+      ],
+      "default": "false"
+    },
+    {
+      "name": "pointSize",
+      "label": "Point size",
+      "type": "text",
+      "default": "3"
+    },
+    {
+      "name": "gridY",
+      "label": "Y gridlines",
+      "type": "text",
+      "default": "4"
+    },
+    {
+      "name": "showGrid",
+      "label": "Show grid",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "showXAxis",
+      "label": "Show X axis",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "showYAxis",
+      "label": "Show Y axis",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "xTickCount",
+      "label": "X tick count",
+      "type": "text",
+      "default": "6"
+    },
+    {
+      "name": "yUnit",
+      "label": "Y unit suffix",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "yMaxOverride",
+      "label": "Y max override",
+      "type": "text",
+      "default": "0"
+    },
+    {
+      "name": "legendPosition",
+      "label": "Legend position",
+      "type": "radio",
+      "options": [
+        "off",
+        "top",
+        "bottom"
+      ],
+      "default": "off"
+    },
+    {
+      "name": "markerIdx",
+      "label": "Marker index",
+      "type": "text",
+      "default": "-1"
+    },
+    {
+      "name": "markerSeries",
+      "label": "Marker series",
+      "type": "text",
+      "default": "0"
+    },
+    {
+      "name": "markerLabel",
+      "label": "Marker label",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "padTop",
+      "label": "Padding top",
+      "type": "text",
+      "default": "10"
+    },
+    {
+      "name": "padRight",
+      "label": "Padding right",
+      "type": "text",
+      "default": "16"
+    },
+    {
+      "name": "padBottom",
+      "label": "Padding bottom",
+      "type": "text",
+      "default": "26"
+    },
+    {
+      "name": "padLeft",
+      "label": "Padding left",
+      "type": "text",
+      "default": "44"
+    },
+    {
+      "name": "bgColor",
+      "label": "Background colour",
+      "type": "color",
+      "default": "transparent"
+    }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "rowCountField": "_numRows",
+    "columns": [
+      "_time",
+      "notable",
+      "blocked",
+      "authfail"
+    ],
+    "sampleRows": [
+      [
+        "00:00",
+        "42",
+        "85",
+        "32"
+      ],
+      [
+        "01:00",
+        "48",
+        "92",
+        "35"
+      ],
+      [
+        "02:00",
+        "55",
+        "98",
+        "38"
+      ],
+      [
+        "03:00",
+        "52",
+        "90",
+        "33"
+      ],
+      [
+        "04:00",
+        "46",
+        "82",
+        "30"
+      ],
+      [
+        "05:00",
+        "50",
+        "78",
+        "28"
+      ],
+      [
+        "06:00",
+        "58",
+        "85",
+        "32"
+      ],
+      [
+        "07:00",
+        "64",
+        "98",
+        "38"
+      ],
+      [
+        "08:00",
+        "72",
+        "112",
+        "44"
+      ],
+      [
+        "09:00",
+        "78",
+        "120",
+        "48"
+      ],
+      [
+        "10:00",
+        "82",
+        "128",
+        "52"
+      ],
+      [
+        "11:00",
+        "78",
+        "122",
+        "48"
+      ],
+      [
+        "12:00",
+        "72",
+        "115",
+        "44"
+      ],
+      [
+        "13:00",
+        "68",
+        "110",
+        "42"
+      ],
+      [
+        "14:00",
+        "65",
+        "105",
+        "40"
+      ],
+      [
+        "15:00",
+        "62",
+        "100",
+        "38"
+      ],
+      [
+        "16:00",
+        "58",
+        "95",
+        "36"
+      ],
+      [
+        "17:00",
+        "55",
+        "92",
+        "34"
+      ],
+      [
+        "18:00",
+        "50",
+        "85",
+        "32"
+      ],
+      [
+        "19:00",
+        "48",
+        "82",
+        "30"
+      ],
+      [
+        "20:00",
+        "45",
+        "78",
+        "28"
+      ],
+      [
+        "21:00",
+        "42",
+        "75",
+        "26"
+      ],
+      [
+        "22:00",
+        "40",
+        "72",
+        "24"
+      ],
+      [
+        "23:00",
+        "38",
+        "68",
+        "22"
+      ]
+    ]
+  }
+}

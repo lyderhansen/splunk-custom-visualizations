@@ -1,0 +1,37 @@
+<form class="splunk-formatter-section" section-label="Display">
+    <splunk-control-group label="Theme" help="Light or dark colour scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Max Rows" help="Maximum number of rows to display">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxRows" value="20">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Columns">
+    <splunk-control-group label="Column Types" help="JSON mapping of field names to types: text, mono, number, badge, chip, time. Empty = auto-detect.">
+        <splunk-text-area name="{{VIZ_NAMESPACE}}.columnTypes">
+        </splunk-text-area>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Thresholds">
+    <splunk-control-group label="Threshold Field" help="Field name to apply conditional coloring (empty = disabled)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.thresholdField" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Warn Threshold" help="Values at or above this turn warn colour">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.thresholdWarn" value="50">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Danger Threshold" help="Values at or above this turn danger colour">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.thresholdDanger" value="80">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>

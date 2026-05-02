@@ -1,0 +1,110 @@
+{
+  "label": "Data Table",
+  "defaultSize": {
+    "width": 700,
+    "height": 350
+  },
+  "fields": [],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "maxRows",
+      "label": "Max Rows",
+      "type": "text",
+      "default": "20"
+    },
+    {
+      "name": "columnTypes",
+      "label": "Column Types (JSON)",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "thresholdField",
+      "label": "Threshold Field",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "thresholdWarn",
+      "label": "Threshold Warn",
+      "type": "text",
+      "default": "50"
+    },
+    {
+      "name": "thresholdDanger",
+      "label": "Threshold Danger",
+      "type": "text",
+      "default": "80"
+    }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "columns": [
+      "_time",
+      "severity",
+      "event",
+      "source"
+    ],
+    "sampleRows": [
+      [
+        "2026-05-01T00:05:00",
+        "Critical",
+        "Brute force attempt on admin",
+        "firewall.corp"
+      ],
+      [
+        "2026-05-01T00:10:00",
+        "High",
+        "Malware signature match",
+        "ids-sensor-01"
+      ],
+      [
+        "2026-05-01T00:15:00",
+        "Medium",
+        "Failed login attempts > 10",
+        "proxy-east"
+      ],
+      [
+        "2026-05-01T00:20:00",
+        "Low",
+        "Port scan detected",
+        "firewall.corp"
+      ],
+      [
+        "2026-05-01T00:25:00",
+        "Critical",
+        "Ransomware C2 callback",
+        "ids-sensor-01"
+      ],
+      [
+        "2026-05-01T00:30:00",
+        "High",
+        "Privilege escalation",
+        "vpn-gateway"
+      ],
+      [
+        "2026-05-01T00:35:00",
+        "Medium",
+        "DNS exfiltration attempt",
+        "dns-resolver"
+      ],
+      [
+        "2026-05-01T00:40:00",
+        "Low",
+        "Unusual outbound traffic",
+        "proxy-east"
+      ]
+    ]
+  },
+  "entry": "visualization.js"
+}

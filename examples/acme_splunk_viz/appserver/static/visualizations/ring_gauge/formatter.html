@@ -1,0 +1,149 @@
+<form class="splunk-formatter-section" section-label="Ring Gauge">
+    <splunk-control-group label="Theme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Value field">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.field" value="value">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Min value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.min" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Max value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.max" value="100">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Stroke thickness">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.thick" value="11">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Line cap">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.lineCap" value="round">
+            <option value="round">Round</option>
+            <option value="butt">Butt</option>
+            <option value="square">Square</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Title">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.label" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sub-label">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.sub" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Unit suffix">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.unit" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Display mode">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.displayMode" value="auto">
+            <option value="auto">Auto</option>
+            <option value="percent">Percent</option>
+            <option value="raw">Raw</option>
+            <option value="fixed">Fixed precision</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Decimal precision" help="Used when display mode = Fixed.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.precision" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Value font size" help="0 = auto from gauge size.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueFontSize" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Title font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelFontSize" value="13">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sub-label font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.subFontSize" value="11">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Ring colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.color" type="custom" value="#ff6600">
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+            <splunk-color>#118832</splunk-color>
+            <splunk-color>#cba700</splunk-color>
+            <splunk-color>#d41f1f</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Track colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.trackColor" type="custom" value="">
+            <splunk-color>rgba(255,255,255,0.08)</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Value colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.valueColor" type="custom" value="#e5eaf2">
+            <splunk-color>#e5eaf2</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Label colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.labelColor" type="custom" value="rgba(229,234,242,0.66)">
+            <splunk-color>rgba(229,234,242,0.66)</splunk-color>
+            <splunk-color>#e5eaf2</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Half-arc">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.half" value="false">
+            <option value="false">Full</option>
+            <option value="true">Half</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Threshold legend">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showLegend" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Legend low label">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.legendLow" value="Low 0–39">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Legend mid label">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.legendMed" value="Med 40–69">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Legend high label">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.legendHigh" value="High 70+">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Background colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.bgColor" type="custom" value="transparent">
+            <splunk-color>transparent</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

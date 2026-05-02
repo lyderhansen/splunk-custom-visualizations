@@ -1,0 +1,121 @@
+{
+  "label": "Ring Gauge",
+  "defaultSize": {
+    "width": 200,
+    "height": 200
+  },
+  "fields": [
+    {
+      "name": "value",
+      "label": "Value",
+      "type": "slider",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 62
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "field",
+      "label": "Field",
+      "type": "text",
+      "default": "value"
+    },
+    {
+      "name": "max",
+      "label": "Max",
+      "type": "text",
+      "default": "100"
+    },
+    {
+      "name": "thick",
+      "label": "Thickness",
+      "type": "text",
+      "default": "10"
+    },
+    {
+      "name": "half",
+      "label": "Half Arc",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "false"
+    },
+    {
+      "name": "color",
+      "label": "Color",
+      "type": "text",
+      "default": "#2bbfb8"
+    },
+    {
+      "name": "subLabel",
+      "label": "Sub Label",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "showThresholds",
+      "label": "Show Thresholds",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "false"
+    },
+    {
+      "name": "thresholdMid",
+      "label": "Threshold Mid",
+      "type": "text",
+      "default": "40"
+    },
+    {
+      "name": "thresholdHigh",
+      "label": "Threshold High",
+      "type": "text",
+      "default": "70"
+    },
+    {
+      "name": "colorLow",
+      "label": "Color Low",
+      "type": "text",
+      "default": "#118832"
+    },
+    {
+      "name": "colorMid",
+      "label": "Color Mid",
+      "type": "text",
+      "default": "#cba700"
+    },
+    {
+      "name": "colorHigh",
+      "label": "Color High",
+      "type": "text",
+      "default": "#d41f1f"
+    }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": [
+      "value"
+    ],
+    "dynamicColumnName": {
+      "column": "value",
+      "configKey": "field"
+    }
+  },
+  "entry": "visualization.js"
+}

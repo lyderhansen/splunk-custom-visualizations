@@ -1,0 +1,23 @@
+<form class="splunk-formatter-section" section-label="Data">
+    <splunk-control-group label="Label Field" help="Column name for stage labels (e.g. stage, step)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelField" value="stage">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Value Field" help="Column name for stage values (e.g. count, users)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueField" value="count">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Drop-off Warn Threshold" help="Conversion below this % turns warn color (0-100)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.dropoffWarnThreshold" value="30">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Style">
+    <splunk-control-group label="Theme" help="Light or dark colour scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>

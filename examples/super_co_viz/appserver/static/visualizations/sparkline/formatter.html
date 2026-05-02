@@ -1,0 +1,33 @@
+<form class="splunk-formatter-section" section-label="Sparkline">
+
+    <splunk-control-group label="Color" help="Line and fill color">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.color" type="custom" value="#2bbfb8">
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#1a91a8</splunk-color>
+            <splunk-color>#5ce1e6</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+            <splunk-color>#a78bfa</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#f73873</splunk-color>
+            <splunk-color>#118832</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Stroke Width" help="Line thickness in pixels (e.g. 1, 1.5, 2)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.strokeWidth" value="1.5">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show Fill" help="Gradient area fill below the line">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showFill" value="true">
+            <option value="true">On</option>
+            <option value="false">Off</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Field" help="Column name to plot (e.g. count, avg_response_time)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.field" value="count">
+        </splunk-text-input>
+    </splunk-control-group>
+
+</form>

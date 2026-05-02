@@ -1,0 +1,130 @@
+{
+  "label": "Status Chip",
+  "entry": "visualization.js",
+  "defaultSize": {
+    "width": 240,
+    "height": 60
+  },
+  "noDataMessage": "Awaiting value",
+  "dependencies": [],
+  "fields": [
+    {
+      "name": "value",
+      "label": "Value",
+      "type": "text",
+      "default": "1247"
+    }
+  ],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "variant",
+      "label": "Variant",
+      "type": "radio",
+      "options": [
+        "header",
+        "badge",
+        "service"
+      ],
+      "default": "header"
+    },
+    {
+      "name": "label",
+      "label": "Label",
+      "type": "text",
+      "default": "Notables"
+    },
+    {
+      "name": "valueField",
+      "label": "Value field",
+      "type": "text",
+      "default": "value"
+    },
+    {
+      "name": "color",
+      "label": "Pill colour",
+      "type": "color",
+      "default": "#ff6600"
+    },
+    {
+      "name": "labelColor",
+      "label": "Label colour",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "valueColor",
+      "label": "Value colour",
+      "type": "color",
+      "default": ""
+    },
+    {
+      "name": "fontSize",
+      "label": "Value font size",
+      "type": "text",
+      "default": "13"
+    },
+    {
+      "name": "labelFontSize",
+      "label": "Label font size",
+      "type": "text",
+      "default": "12"
+    },
+    {
+      "name": "dotSize",
+      "label": "Dot size",
+      "type": "text",
+      "default": "4"
+    },
+    {
+      "name": "paddingX",
+      "label": "Padding X",
+      "type": "text",
+      "default": "12"
+    },
+    {
+      "name": "paddingY",
+      "label": "Padding Y",
+      "type": "text",
+      "default": "7"
+    },
+    {
+      "name": "borderRadius",
+      "label": "Border radius",
+      "type": "text",
+      "default": "0"
+    },
+    {
+      "name": "alignH",
+      "label": "Horizontal alignment",
+      "type": "radio",
+      "options": [
+        "left",
+        "center",
+        "right"
+      ],
+      "default": "center"
+    },
+    {
+      "name": "bgColor",
+      "label": "Background colour",
+      "type": "color",
+      "default": "transparent"
+    }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": [
+      "value"
+    ]
+  }
+}

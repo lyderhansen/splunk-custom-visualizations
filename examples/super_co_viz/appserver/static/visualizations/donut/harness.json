@@ -1,0 +1,81 @@
+{
+  "label": "Donut Chart",
+  "defaultSize": {
+    "width": 400,
+    "height": 250
+  },
+  "fields": [],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "labelField",
+      "label": "Label Field",
+      "type": "text",
+      "default": "region"
+    },
+    {
+      "name": "valueField",
+      "label": "Value Field",
+      "type": "text",
+      "default": "amount"
+    },
+    {
+      "name": "centerLabel",
+      "label": "Center Label",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "centerSubLabel",
+      "label": "Center Sub Label",
+      "type": "text",
+      "default": "total"
+    },
+    {
+      "name": "legendPosition",
+      "label": "Legend Position",
+      "type": "radio",
+      "options": [
+        "auto",
+        "right",
+        "bottom"
+      ],
+      "default": "auto"
+    }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "columns": [
+      "region",
+      "amount"
+    ],
+    "sampleRows": [
+      [
+        "North America",
+        4250000
+      ],
+      [
+        "EMEA",
+        3180000
+      ],
+      [
+        "APAC",
+        2100000
+      ],
+      [
+        "LATAM",
+        1420000
+      ]
+    ]
+  },
+  "entry": "visualization.js"
+}

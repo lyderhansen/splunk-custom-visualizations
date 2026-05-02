@@ -1,0 +1,75 @@
+<form class="splunk-formatter-section" section-label="Wordmark">
+    <splunk-control-group label="Theme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sub-mark" help="Optional secondary text — leave blank to hide.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.subMark" value="Enterprise Security">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Wordmark size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.size" value="17">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sub-mark size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.subMarkSize" value="13">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Chevron colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.chevronColor" type="custom" value="">
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#f73873</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Wordmark colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.textColor" type="custom" value="">
+            <splunk-color>#e5eaf2</splunk-color>
+            <splunk-color>#171d27</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sub-mark colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.subMarkColor" type="custom" value="">
+            <splunk-color>rgba(229,234,242,0.66)</splunk-color>
+            <splunk-color>#e5eaf2</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Separator character">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.separator" value="|">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Separator colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.separatorColor" type="custom" value="">
+            <splunk-color>rgba(229,234,242,0.42)</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Alignment">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.alignH" value="center">
+            <option value="left">Left</option>
+            <option value="center">Centre</option>
+            <option value="right">Right</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Background colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.bgColor" type="custom" value="transparent">
+            <splunk-color>transparent</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+            <splunk-color>#171d27</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

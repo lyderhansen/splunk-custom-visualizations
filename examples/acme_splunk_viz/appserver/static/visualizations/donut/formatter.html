@@ -1,0 +1,91 @@
+<form class="splunk-formatter-section" section-label="Donut">
+    <splunk-control-group label="Theme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Segment colours">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.colors" value="#2bbfb8,#5ce1e6,#7eb1ff,#a78bfa">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Inner ratio" help="0 = pie, 1 = thin ring. Default 0.62.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.innerRatio" value="0.62">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Segment gap" help="Pixel gap between segments. 0 = no gap.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.segmentGap" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sort order">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.sortOrder" value="none">
+            <option value="none">None</option>
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Centre label">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.centerLabel" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Centre sub-label">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.centerSubLabel" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Centre font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.centerFontSize" value="22">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Centre sub font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.centerSubFontSize" value="11">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Legend position">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.legendPosition" value="right">
+            <option value="right">Right</option>
+            <option value="bottom">Bottom</option>
+            <option value="off">Off</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Legend font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.legendFontSize" value="12">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show percent in legend">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showPercent" value="false">
+            <option value="false">Hide</option>
+            <option value="true">Show</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Legend value unit">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.unit" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Stroke cap">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.lineCap" value="butt">
+            <option value="butt">Butt</option>
+            <option value="round">Round</option>
+            <option value="square">Square</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Background colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.bgColor" type="custom" value="transparent">
+            <splunk-color>transparent</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

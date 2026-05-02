@@ -1,0 +1,88 @@
+{
+  "label": "Horizontal Bar List",
+  "defaultSize": {
+    "width": 400,
+    "height": 280
+  },
+  "fields": [],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "labelField",
+      "label": "Label Field",
+      "type": "text",
+      "default": "source"
+    },
+    {
+      "name": "valueField",
+      "label": "Value Field",
+      "type": "text",
+      "default": "count"
+    },
+    {
+      "name": "suffix",
+      "label": "Suffix",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "name": "spotlightIndex",
+      "label": "Spotlight Index",
+      "type": "text",
+      "default": "-1"
+    },
+    {
+      "name": "maxRows",
+      "label": "Max Rows",
+      "type": "text",
+      "default": "10"
+    }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "columns": [
+      "source",
+      "count"
+    ],
+    "sampleRows": [
+      [
+        "firewall.corp",
+        4521
+      ],
+      [
+        "proxy-east",
+        3102
+      ],
+      [
+        "ids-sensor-01",
+        2847
+      ],
+      [
+        "dns-resolver",
+        1903
+      ],
+      [
+        "vpn-gateway",
+        1456
+      ],
+      [
+        "mail-relay",
+        892
+      ],
+      [
+        "web-app-01",
+        341
+      ]
+    ]
+  },
+  "entry": "visualization.js"
+}

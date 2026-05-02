@@ -1,0 +1,76 @@
+{
+  "label": "Column Chart",
+  "defaultSize": {
+    "width": 600,
+    "height": 300
+  },
+  "fields": [],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "gridLines",
+      "label": "Grid Lines",
+      "type": "text",
+      "default": "4"
+    },
+    {
+      "name": "highlightIndex",
+      "label": "Highlight Index",
+      "type": "text",
+      "default": "-1"
+    },
+    {
+      "name": "barColor",
+      "label": "Bar Color",
+      "type": "text",
+      "default": "#2bbfb8"
+    }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "columns": [
+      "category",
+      "count"
+    ],
+    "sampleRows": [
+      [
+        "Mon",
+        45
+      ],
+      [
+        "Tue",
+        62
+      ],
+      [
+        "Wed",
+        38
+      ],
+      [
+        "Thu",
+        71
+      ],
+      [
+        "Fri",
+        55
+      ],
+      [
+        "Sat",
+        28
+      ],
+      [
+        "Sun",
+        33
+      ]
+    ]
+  },
+  "entry": "visualization.js"
+}

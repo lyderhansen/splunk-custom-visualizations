@@ -1,0 +1,31 @@
+<form class="splunk-formatter-section" section-label="Data">
+    <splunk-control-group label="Label Field" help="Column name for row labels (e.g. source, protocol)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelField" value="source">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Value Field" help="Column name for bar values (e.g. count, bytes)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueField" value="count">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Suffix" help="Text appended to each value (e.g. ' GB', 'k')">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.suffix" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Max Rows" help="Maximum number of rows to display">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxRows" value="10">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Style">
+    <splunk-control-group label="Theme" help="Light or dark colour scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Spotlight Index" help="Row index (0-based) to highlight in orange (-1 for none)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.spotlightIndex" value="-1">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>

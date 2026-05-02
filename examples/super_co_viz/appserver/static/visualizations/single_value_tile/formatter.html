@@ -1,0 +1,73 @@
+<form class="splunk-formatter-section" section-label="Data">
+    <splunk-control-group label="Label Field" help="Column name for the tile label text">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelField" value="label">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Value Field" help="Column name for the big number value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueField" value="value">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Unit Field" help="Column name for the unit text shown after the value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.unitField" value="unit">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Delta Field" help="Column name for the trend delta value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.deltaField" value="delta">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Delta Direction Field" help="Column name for delta direction (up/down/flat)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.deltaDirField" value="deltaDir">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sparkline Field" help="Column name for comma-separated sparkline values">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.sparklineField" value="sparkline">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Delta Sub-Label" help="Text shown after the delta value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.deltaSubLabel" value="vs prev 24h">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Style">
+    <splunk-control-group label="Theme" help="Light or dark colour scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Delta Semantics" help="Whether an upward trend is good or bad">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.deltaSemantics" value="up-good">
+            <option value="up-good">Up Good</option>
+            <option value="down-good">Down Good</option>
+            <option value="neutral">Neutral</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show Sparkline" help="Display a mini trend line in the bottom-right">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showSparkline" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Big Number Colour" help="Override colour for the headline value">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.accentColor" type="custom" value="#e5eaf2">
+            <splunk-color>#e5eaf2</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+            <splunk-color>#a78bfa</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#f73873</splunk-color>
+            <splunk-color>#118832</splunk-color>
+            <splunk-color>#ffffff</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

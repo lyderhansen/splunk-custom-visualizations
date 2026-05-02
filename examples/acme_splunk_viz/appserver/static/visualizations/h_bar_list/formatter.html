@@ -1,0 +1,111 @@
+<form class="splunk-formatter-section" section-label="H-Bar List">
+    <splunk-control-group label="Theme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Tier colours" help="Comma-separated 3-step ramp: top-2, mid, tail.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.colors" value="#2bbfb8,#5ce1e6,#7eb1ff">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Spotlight index">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.spotlightIndex" value="-1">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Spotlight colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.spotlightColor" type="custom" value="#ff6600">
+            <splunk-color>#ff6600</splunk-color>
+            <splunk-color>#d41f1f</splunk-color>
+            <splunk-color>#cba700</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Track colour" help="Empty bar background.">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.trackColor" type="custom" value="">
+            <splunk-color>rgba(255,255,255,0.08)</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Label colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.labelColor" type="custom" value="#e5eaf2">
+            <splunk-color>#e5eaf2</splunk-color>
+            <splunk-color>rgba(229,234,242,0.66)</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Value colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.valueColor" type="custom" value="#e5eaf2">
+            <splunk-color>#e5eaf2</splunk-color>
+            <splunk-color>#2bbfb8</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Value suffix">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.suffix" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Number format">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.numberFormat" value="compact">
+            <option value="compact">Compact</option>
+            <option value="auto">Auto</option>
+            <option value="raw">Raw</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sort order">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.sortOrder" value="none">
+            <option value="none">None</option>
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Max rows">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxRows" value="7">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Label width">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelWidth" value="130">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Value width">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueWidth" value="72">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Bar height">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.barHeight" value="8">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Bar radius">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.barRadius" value="4">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.fontSize" value="13">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Side padding">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.sidePadding" value="14">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Background colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.bgColor" type="custom" value="transparent">
+            <splunk-color>transparent</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

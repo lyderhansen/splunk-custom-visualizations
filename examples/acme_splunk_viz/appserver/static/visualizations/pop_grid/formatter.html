@@ -1,0 +1,127 @@
+<form class="splunk-formatter-section" section-label="PoP Grid">
+    <splunk-control-group label="Theme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Columns">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.columns" value="4">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Code field">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.codeField" value="code">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Name field">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.nameField" value="name">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Status field" help="Values: ok, warn, danger.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.statusField" value="status">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Util field" help="0-100 utilisation.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.utilField" value="util">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sort order">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.sortOrder" value="none">
+            <option value="none">None</option>
+            <option value="severity">Severity</option>
+            <option value="util-desc">Util descending</option>
+            <option value="util-asc">Util ascending</option>
+            <option value="code">Code (A-Z)</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Max cells (0=all)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxCells" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show status dot">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showStatusDot" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show util bar">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showUtil" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Code font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.codeFontSize" value="13">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Name font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.nameFontSize" value="11">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Util font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.utilFontSize" value="10">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Util bar height">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.utilBarHeight" value="4">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Cell radius">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.cellRadius" value="4">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Cell padding">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.cellPadding" value="10">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Gap">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.gap" value="10">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Side padding">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.sidePadding" value="12">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Min cell height">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.minCellHeight" value="64">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Max cell height">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxCellHeight" value="100">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Cell background">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.cellBgColor" type="custom" value="">
+            <splunk-color>#2a3342</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+            <splunk-color>#171d27</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Background colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.bgColor" type="custom" value="transparent">
+            <splunk-color>transparent</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

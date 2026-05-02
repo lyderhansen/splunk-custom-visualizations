@@ -1,0 +1,31 @@
+<form class="splunk-formatter-section" section-label="Data">
+    <splunk-control-group label="Site Code Field" help="Column name for the site code (e.g. IAD, SJC)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.codeField" value="site_code">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Site Name Field" help="Column name for the site full name (e.g. Ashburn)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.nameField" value="site_name">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Status Field" help="Column name for site status (ok, warn, critical, etc.)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.statusField" value="status">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Utilization Field" help="Column name for utilization percentage (0-100)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.utilField" value="util">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Style">
+    <splunk-control-group label="Theme" help="Light or dark colour scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Columns" help="Number of columns in the grid (default 4)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.columns" value="4">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>

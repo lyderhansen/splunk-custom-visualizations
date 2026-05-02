@@ -1,0 +1,31 @@
+<form class="splunk-formatter-section" section-label="Donut Settings">
+    <splunk-control-group label="Theme" help="Visual theme for the donut chart">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Label Field" help="Column name for segment labels (e.g. region, category)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelField" value="region">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Value Field" help="Column name for segment values (e.g. amount, count)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueField" value="amount">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Center Label" help="Custom center label (leave empty for auto-total)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.centerLabel" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Center Sub-Label" help="Small text below the center value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.centerSubLabel" value="total">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Legend Position" help="Where to place the segment legend">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.legendPosition" value="auto">
+            <option value="auto">Auto</option>
+            <option value="right">Right</option>
+            <option value="bottom">Bottom</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>

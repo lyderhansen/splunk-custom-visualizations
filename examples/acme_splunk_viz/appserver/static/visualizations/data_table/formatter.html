@@ -1,0 +1,110 @@
+<form class="splunk-formatter-section" section-label="Data Table">
+    <splunk-control-group label="Theme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Columns" help="key:label:type:width[:align] — comma-separated. Types: text, mono, number, badge, chip, sparkline. Use 'flex' for elastic width.">
+        <splunk-text-area name="{{VIZ_NAMESPACE}}.columns">severity:Severity:badge:90,event:Event:text:flex,source:Source:mono:160,time:Time:text:120:right</splunk-text-area>
+    </splunk-control-group>
+
+    <splunk-control-group label="Max rows">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxRows" value="50">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Error threshold" help="Numeric columns whose key contains 'err' colour danger above this value.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.errorThreshold" value="1.0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sort by column index" help="0-based. -1 = no sort.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.sortColIdx" value="-1">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Sort direction">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.sortDir" value="desc">
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Row height">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.rowHeight" value="32">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Header height">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.headerHeight" value="28">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Body font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.fontSize" value="12">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Header font size">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.headerFontSize" value="11">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Header text colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.headerColor" type="custom" value="rgba(229,234,242,0.42)">
+            <splunk-color>rgba(229,234,242,0.42)</splunk-color>
+            <splunk-color>#7eb1ff</splunk-color>
+            <splunk-color>#ff6600</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Header background">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.headerBgColor" type="custom" value="transparent">
+            <splunk-color>transparent</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+            <splunk-color>#2a3342</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Alternating rows">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.alternatingRow" value="false">
+            <option value="false">Off</option>
+            <option value="true">On</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Alternate row colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.altRowColor" type="custom" value="">
+            <splunk-color>rgba(255,255,255,0.025)</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show row borders">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showRowBorders" value="true">
+            <option value="true">Show</option>
+            <option value="false">Hide</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Row border colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.rowBorderColor" type="custom" value="">
+            <splunk-color>rgba(255,255,255,0.08)</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Side padding">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.sidePadding" value="14">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Background colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.bgColor" type="custom" value="transparent">
+            <splunk-color>transparent</splunk-color>
+            <splunk-color>#1f2734</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>
