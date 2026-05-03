@@ -1,0 +1,3141 @@
+<dashboard version="2" theme="dark">
+<label>Infographic Shapes — Showcase</label>
+<description>All settings and capabilities of the Infographic Shapes visualization</description>
+<definition><![CDATA[
+{
+  "title": "Infographic Shapes — Showcase",
+  "description": "Visual reference for every shape, fill, effect, font, and animation setting",
+  "inputs": {},
+  "defaults": {},
+  "dataSources": {
+    "ds_stub": {
+      "type": "ds.test",
+      "options": {
+        "data": {
+          "fields": [
+            {
+              "name": "_stub"
+            }
+          ],
+          "columns": [
+            [
+              "1"
+            ]
+          ]
+        }
+      },
+      "name": "Stub data source for shape-only panels"
+    }
+  },
+  "visualizations": {
+    "viz_header_bg": {
+      "type": "splunk.rectangle",
+      "options": {
+        "fillColor": "#0F172A",
+        "strokeColor": "#1E293B",
+        "strokeWidth": 1,
+        "rx": 0
+      }
+    },
+    "viz_header": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "# Infographic Shapes — Showcase\nVisual reference for all 37 shapes, fill modes, effects, fonts, strokes &amp; animations",
+        "fontColor": "#F8FAFC"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_sec_shapes": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Shapes",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_rectangle": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.text": "Rectangle",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_rounded_rectangle": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.text": "Rounded Rect",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.fontSize": "0",
+        "infographic_shapes.infographic_shapes.cornerRadius": "16"
+      }
+    },
+    "viz_pill": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "pill",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.text": "Pill",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_circle": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "circle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.text": "Circle",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_ellipse": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "ellipse",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.text": "Ellipse",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_triangle": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "triangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#3B82F6",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_right_triangle": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "right_triangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#3B82F6",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_diamond": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "diamond",
+        "infographic_shapes.infographic_shapes.fillColor": "#8B5CF6",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_pentagon": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "pentagon",
+        "infographic_shapes.infographic_shapes.fillColor": "#8B5CF6",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_hexagon": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "hexagon",
+        "infographic_shapes.infographic_shapes.fillColor": "#8B5CF6",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_octagon": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "octagon",
+        "infographic_shapes.infographic_shapes.fillColor": "#8B5CF6",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_star4": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "star_4",
+        "infographic_shapes.infographic_shapes.fillColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#0F172A"
+      }
+    },
+    "viz_star5": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "star_5",
+        "infographic_shapes.infographic_shapes.fillColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#0F172A"
+      }
+    },
+    "viz_star6": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "star_6",
+        "infographic_shapes.infographic_shapes.fillColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#0F172A"
+      }
+    },
+    "viz_cross": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "cross",
+        "infographic_shapes.infographic_shapes.fillColor": "#EF4444",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_heart": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "heart",
+        "infographic_shapes.infographic_shapes.fillColor": "#EC4899",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_lightning": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "lightning",
+        "infographic_shapes.infographic_shapes.fillColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#0F172A"
+      }
+    },
+    "viz_cloud": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "cloud",
+        "infographic_shapes.infographic_shapes.fillColor": "#64748B",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_sun": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "sun",
+        "infographic_shapes.infographic_shapes.fillColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#0F172A"
+      }
+    },
+    "viz_moon": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "moon",
+        "infographic_shapes.infographic_shapes.fillColor": "#64748B",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_arrow_r": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "arrow_right",
+        "infographic_shapes.infographic_shapes.fillColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#0F172A"
+      }
+    },
+    "viz_arrow_l": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "arrow_left",
+        "infographic_shapes.infographic_shapes.fillColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#0F172A"
+      }
+    },
+    "viz_arrow_u": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "arrow_up",
+        "infographic_shapes.infographic_shapes.fillColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#0F172A"
+      }
+    },
+    "viz_arrow_d": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "arrow_down",
+        "infographic_shapes.infographic_shapes.fillColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#0F172A"
+      }
+    },
+    "viz_arrow_dbl": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "arrow_double",
+        "infographic_shapes.infographic_shapes.fillColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#0F172A"
+      }
+    },
+    "viz_chevron": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "chevron",
+        "infographic_shapes.infographic_shapes.fillColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#0F172A"
+      }
+    },
+    "viz_parallelogram": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "parallelogram",
+        "infographic_shapes.infographic_shapes.fillColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_trapezoid": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "trapezoid",
+        "infographic_shapes.infographic_shapes.fillColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_ring": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "ring",
+        "infographic_shapes.infographic_shapes.fillColor": "#3B82F6",
+        "infographic_shapes.infographic_shapes.strokeColor": "#3B82F6",
+        "infographic_shapes.infographic_shapes.strokeWidth": "3",
+        "infographic_shapes.infographic_shapes.fillType": "none"
+      }
+    },
+    "viz_arc": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "arc",
+        "infographic_shapes.infographic_shapes.fillColor": "#3B82F6",
+        "infographic_shapes.infographic_shapes.strokeColor": "#3B82F6",
+        "infographic_shapes.infographic_shapes.strokeWidth": "3",
+        "infographic_shapes.infographic_shapes.fillType": "none"
+      }
+    },
+    "viz_line_h": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "line_horizontal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.strokeWidth": "2"
+      }
+    },
+    "viz_line_v": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "line_vertical",
+        "infographic_shapes.infographic_shapes.strokeColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.strokeWidth": "2"
+      }
+    },
+    "viz_line_d": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "line_diagonal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.strokeWidth": "2"
+      }
+    },
+    "viz_bracket_l": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "bracket_left",
+        "infographic_shapes.infographic_shapes.strokeColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.strokeWidth": "2",
+        "infographic_shapes.infographic_shapes.fillType": "none"
+      }
+    },
+    "viz_bracket_r": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "bracket_right",
+        "infographic_shapes.infographic_shapes.strokeColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.strokeWidth": "2",
+        "infographic_shapes.infographic_shapes.fillType": "none"
+      }
+    },
+    "viz_curly_l": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "curly_left",
+        "infographic_shapes.infographic_shapes.strokeColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.strokeWidth": "2",
+        "infographic_shapes.infographic_shapes.fillType": "none"
+      }
+    },
+    "viz_curly_r": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "curly_right",
+        "infographic_shapes.infographic_shapes.strokeColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.strokeWidth": "2",
+        "infographic_shapes.infographic_shapes.fillType": "none"
+      }
+    },
+    "viz_sec_fills": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Fill Types &amp; Gradients",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_fill_solid": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "solid",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.text": "Solid",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_fill_grad_v": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "gradient",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.gradientColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.gradientDirection": "vertical",
+        "infographic_shapes.infographic_shapes.text": "Gradient ↓",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_fill_grad_h": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "gradient",
+        "infographic_shapes.infographic_shapes.fillColor": "#8B5CF6",
+        "infographic_shapes.infographic_shapes.gradientColor": "#EC4899",
+        "infographic_shapes.infographic_shapes.gradientDirection": "horizontal",
+        "infographic_shapes.infographic_shapes.text": "Gradient →",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_fill_grad_d": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "gradient",
+        "infographic_shapes.infographic_shapes.fillColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.gradientColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.gradientDirection": "diagonal",
+        "infographic_shapes.infographic_shapes.text": "Gradient ↘",
+        "infographic_shapes.infographic_shapes.textColor": "#0F172A",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_fill_grad_r": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "circle",
+        "infographic_shapes.infographic_shapes.fillType": "gradient",
+        "infographic_shapes.infographic_shapes.fillColor": "#3B82F6",
+        "infographic_shapes.infographic_shapes.gradientColor": "#0F172A",
+        "infographic_shapes.infographic_shapes.gradientDirection": "radial",
+        "infographic_shapes.infographic_shapes.text": "Radial",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_fill_multi": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "gradient",
+        "infographic_shapes.infographic_shapes.fillColor": "#EF4444",
+        "infographic_shapes.infographic_shapes.gradientColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.gradientColor2": "#22C55E",
+        "infographic_shapes.infographic_shapes.gradientColor3": "#3B82F6",
+        "infographic_shapes.infographic_shapes.gradientDirection": "horizontal",
+        "infographic_shapes.infographic_shapes.text": "4-Stop",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_fill_none": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "none",
+        "infographic_shapes.infographic_shapes.strokeColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.strokeWidth": "2",
+        "infographic_shapes.infographic_shapes.text": "No Fill",
+        "infographic_shapes.infographic_shapes.textColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_sec_stroke": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Stroke Styles",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_stroke_solid": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "none",
+        "infographic_shapes.infographic_shapes.strokeColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.strokeWidth": "3",
+        "infographic_shapes.infographic_shapes.strokeDash": "solid",
+        "infographic_shapes.infographic_shapes.text": "Solid",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_stroke_dashed": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "none",
+        "infographic_shapes.infographic_shapes.strokeColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.strokeWidth": "3",
+        "infographic_shapes.infographic_shapes.strokeDash": "dashed",
+        "infographic_shapes.infographic_shapes.text": "Dashed",
+        "infographic_shapes.infographic_shapes.textColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_stroke_dotted": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "none",
+        "infographic_shapes.infographic_shapes.strokeColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.strokeWidth": "3",
+        "infographic_shapes.infographic_shapes.strokeDash": "dotted",
+        "infographic_shapes.infographic_shapes.text": "Dotted",
+        "infographic_shapes.infographic_shapes.textColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_stroke_dashdot": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "none",
+        "infographic_shapes.infographic_shapes.strokeColor": "#EC4899",
+        "infographic_shapes.infographic_shapes.strokeWidth": "3",
+        "infographic_shapes.infographic_shapes.strokeDash": "dash_dot",
+        "infographic_shapes.infographic_shapes.text": "Dash-Dot",
+        "infographic_shapes.infographic_shapes.textColor": "#EC4899",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_sec_effects": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Effects",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_shadow": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.shadowEnabled": "true",
+        "infographic_shapes.infographic_shapes.shadowBlur": "16",
+        "infographic_shapes.infographic_shapes.shadowOffsetX": "6",
+        "infographic_shapes.infographic_shapes.shadowOffsetY": "6",
+        "infographic_shapes.infographic_shapes.shadowOpacity": "80",
+        "infographic_shapes.infographic_shapes.shadowSpread": "2",
+        "infographic_shapes.infographic_shapes.text": "Shadow",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_glow_cyan": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#0F172A",
+        "infographic_shapes.infographic_shapes.glowEnabled": "true",
+        "infographic_shapes.infographic_shapes.glowColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.glowSize": "20",
+        "infographic_shapes.infographic_shapes.glowIntensity": "3",
+        "infographic_shapes.infographic_shapes.text": "Glow",
+        "infographic_shapes.infographic_shapes.textColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_glow_neon": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#0F172A",
+        "infographic_shapes.infographic_shapes.glowEnabled": "true",
+        "infographic_shapes.infographic_shapes.glowColor": "#EC4899",
+        "infographic_shapes.infographic_shapes.glowSize": "25",
+        "infographic_shapes.infographic_shapes.glowIntensity": "5",
+        "infographic_shapes.infographic_shapes.text": "Neon",
+        "infographic_shapes.infographic_shapes.textColor": "#EC4899",
+        "infographic_shapes.infographic_shapes.fontWeight": "bold"
+      }
+    },
+    "viz_reflect": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "gradient",
+        "infographic_shapes.infographic_shapes.fillColor": "#3B82F6",
+        "infographic_shapes.infographic_shapes.gradientColor": "#8B5CF6",
+        "infographic_shapes.infographic_shapes.reflectionEnabled": "true",
+        "infographic_shapes.infographic_shapes.reflectionOpacity": "0.2",
+        "infographic_shapes.infographic_shapes.reflectionHeight": "40",
+        "infographic_shapes.infographic_shapes.reflectionGap": "4",
+        "infographic_shapes.infographic_shapes.text": "Reflect",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_combined": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "gradient",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.gradientColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.glowEnabled": "true",
+        "infographic_shapes.infographic_shapes.glowColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.glowSize": "15",
+        "infographic_shapes.infographic_shapes.glowIntensity": "2",
+        "infographic_shapes.infographic_shapes.shadowEnabled": "true",
+        "infographic_shapes.infographic_shapes.shadowBlur": "12",
+        "infographic_shapes.infographic_shapes.shadowOffsetX": "4",
+        "infographic_shapes.infographic_shapes.shadowOffsetY": "4",
+        "infographic_shapes.infographic_shapes.shadowOpacity": "60",
+        "infographic_shapes.infographic_shapes.reflectionEnabled": "true",
+        "infographic_shapes.infographic_shapes.reflectionOpacity": "0.15",
+        "infographic_shapes.infographic_shapes.text": "All Effects",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_sec_anim": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Animations",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_anim_pulse": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "circle",
+        "infographic_shapes.infographic_shapes.fillColor": "#EF4444",
+        "infographic_shapes.infographic_shapes.animationType": "pulse",
+        "infographic_shapes.infographic_shapes.text": "Pulse",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_anim_glow": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "circle",
+        "infographic_shapes.infographic_shapes.fillColor": "#0F172A",
+        "infographic_shapes.infographic_shapes.glowEnabled": "true",
+        "infographic_shapes.infographic_shapes.glowColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.glowSize": "20",
+        "infographic_shapes.infographic_shapes.glowIntensity": "3",
+        "infographic_shapes.infographic_shapes.animationType": "glow_pulse",
+        "infographic_shapes.infographic_shapes.text": "Glow",
+        "infographic_shapes.infographic_shapes.textColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_anim_breathe": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "circle",
+        "infographic_shapes.infographic_shapes.fillColor": "#3B82F6",
+        "infographic_shapes.infographic_shapes.animationType": "breathe",
+        "infographic_shapes.infographic_shapes.text": "Breathe",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_anim_spin": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "star_5",
+        "infographic_shapes.infographic_shapes.fillColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.animationType": "spin",
+        "infographic_shapes.infographic_shapes.text": "",
+        "infographic_shapes.infographic_shapes.textColor": "#0F172A"
+      }
+    },
+    "viz_sec_fonts": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Fonts (25 embedded)",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_font_inter": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Inter",
+        "infographic_shapes.infographic_shapes.fontFamily": "Inter",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_font_roboto": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Roboto",
+        "infographic_shapes.infographic_shapes.fontFamily": "Roboto",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_font_montserrat": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Montserrat",
+        "infographic_shapes.infographic_shapes.fontFamily": "Montserrat",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_font_oswald": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Oswald",
+        "infographic_shapes.infographic_shapes.fontFamily": "Oswald",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_font_lato": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Lato",
+        "infographic_shapes.infographic_shapes.fontFamily": "Lato",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_font_raleway": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Raleway",
+        "infographic_shapes.infographic_shapes.fontFamily": "Raleway",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_font_nunito": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Nunito",
+        "infographic_shapes.infographic_shapes.fontFamily": "Nunito",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_font_ibm": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "IBM Plex Sans",
+        "infographic_shapes.infographic_shapes.fontFamily": "IBM Plex Sans",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal"
+      }
+    },
+    "viz_font_playfair": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Playfair Display",
+        "infographic_shapes.infographic_shapes.fontFamily": "Playfair Display",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#8B5CF6",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_merriweather": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Merriweather",
+        "infographic_shapes.infographic_shapes.fontFamily": "Merriweather",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#8B5CF6",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_lora": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Lora",
+        "infographic_shapes.infographic_shapes.fontFamily": "Lora",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#8B5CF6",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_ptserif": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "PT Serif",
+        "infographic_shapes.infographic_shapes.fontFamily": "PT Serif",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#8B5CF6",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_garamond": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "EB Garamond",
+        "infographic_shapes.infographic_shapes.fontFamily": "EB Garamond",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#8B5CF6",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_notoserif": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Noto Serif",
+        "infographic_shapes.infographic_shapes.fontFamily": "Noto Serif",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#8B5CF6",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_robotomono": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Roboto Mono",
+        "infographic_shapes.infographic_shapes.fontFamily": "Roboto Mono",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_sourcecode": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Source Code Pro",
+        "infographic_shapes.infographic_shapes.fontFamily": "Source Code Pro",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_jetbrains": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "JetBrains Mono",
+        "infographic_shapes.infographic_shapes.fontFamily": "JetBrains Mono",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_courier": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Courier Prime",
+        "infographic_shapes.infographic_shapes.fontFamily": "Courier Prime",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_anonymous": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Anonymous Pro",
+        "infographic_shapes.infographic_shapes.fontFamily": "Anonymous Pro",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_cutive": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Cutive Mono",
+        "infographic_shapes.infographic_shapes.fontFamily": "Cutive Mono",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_orbitron": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Orbitron",
+        "infographic_shapes.infographic_shapes.fontFamily": "Orbitron",
+        "infographic_shapes.infographic_shapes.textColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.fontWeight": "bold",
+        "infographic_shapes.infographic_shapes.strokeColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_bebas": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "BEBAS NEUE",
+        "infographic_shapes.infographic_shapes.fontFamily": "Bebas Neue",
+        "infographic_shapes.infographic_shapes.textColor": "#EF4444",
+        "infographic_shapes.infographic_shapes.fontWeight": "bold",
+        "infographic_shapes.infographic_shapes.strokeColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_bangers": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Bangers",
+        "infographic_shapes.infographic_shapes.fontFamily": "Bangers",
+        "infographic_shapes.infographic_shapes.textColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.fontWeight": "bold",
+        "infographic_shapes.infographic_shapes.strokeColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_press": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Press Start",
+        "infographic_shapes.infographic_shapes.fontFamily": "Press Start 2P",
+        "infographic_shapes.infographic_shapes.textColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_font_elite": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Special Elite",
+        "infographic_shapes.infographic_shapes.fontFamily": "Special Elite",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.strokeColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.strokeWidth": "1"
+      }
+    },
+    "viz_sec_weight": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Font Weights",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_weight_light": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Light 300",
+        "infographic_shapes.infographic_shapes.fontFamily": "Inter",
+        "infographic_shapes.infographic_shapes.fontWeight": "light",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_weight_normal": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Normal 400",
+        "infographic_shapes.infographic_shapes.fontFamily": "Inter",
+        "infographic_shapes.infographic_shapes.fontWeight": "normal",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_weight_bold": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.text": "Bold 700",
+        "infographic_shapes.infographic_shapes.fontFamily": "Inter",
+        "infographic_shapes.infographic_shapes.fontWeight": "bold",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC"
+      }
+    },
+    "viz_sec_icons": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Icons &amp; Emoji",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_icon_above": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "circle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.icon": "⚡",
+        "infographic_shapes.infographic_shapes.text": "Power",
+        "infographic_shapes.infographic_shapes.iconPosition": "above",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_icon_below": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "circle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.icon": "✔",
+        "infographic_shapes.infographic_shapes.text": "OK",
+        "infographic_shapes.infographic_shapes.iconPosition": "below",
+        "infographic_shapes.infographic_shapes.textColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_icon_left": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.icon": "🔒",
+        "infographic_shapes.infographic_shapes.text": "Secure",
+        "infographic_shapes.infographic_shapes.iconPosition": "left",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_icon_right": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.icon": "📊",
+        "infographic_shapes.infographic_shapes.text": "Data",
+        "infographic_shapes.infographic_shapes.iconPosition": "right",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_sec_textpos": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Text Position",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_txtpos_top": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.text": "Top",
+        "infographic_shapes.infographic_shapes.textPosition": "top",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_txtpos_center": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.text": "Center",
+        "infographic_shapes.infographic_shapes.textPosition": "center",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_txtpos_bottom": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.text": "Bottom",
+        "infographic_shapes.infographic_shapes.textPosition": "bottom",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_txtpos_below": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#3B82F6",
+        "infographic_shapes.infographic_shapes.text": "Below",
+        "infographic_shapes.infographic_shapes.textPosition": "below",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_sec_subtitle": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Subtitles",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_subtitle1": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.text": "99.9%",
+        "infographic_shapes.infographic_shapes.subtitle": "Uptime",
+        "infographic_shapes.infographic_shapes.subtitleColor": "#94A3B8",
+        "infographic_shapes.infographic_shapes.textColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.fontWeight": "bold",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_subtitle2": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.text": "1,234",
+        "infographic_shapes.infographic_shapes.subtitle": "Events/sec",
+        "infographic_shapes.infographic_shapes.subtitleColor": "#94A3B8",
+        "infographic_shapes.infographic_shapes.textColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.fontWeight": "bold",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_sec_progress": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Progress Fill",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_progress_lr": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.progressEnabled": "true",
+        "infographic_shapes.infographic_shapes.progressValue": "73",
+        "infographic_shapes.infographic_shapes.progressColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.progressDirection": "left-to-right",
+        "infographic_shapes.infographic_shapes.text": "73%",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "bold",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_progress_bt": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "circle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.progressEnabled": "true",
+        "infographic_shapes.infographic_shapes.progressValue": "45",
+        "infographic_shapes.infographic_shapes.progressColor": "#3B82F6",
+        "infographic_shapes.infographic_shapes.progressDirection": "bottom-to-top",
+        "infographic_shapes.infographic_shapes.text": "45%",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "bold",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_progress_rad": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "circle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1a1a2e",
+        "infographic_shapes.infographic_shapes.progressEnabled": "true",
+        "infographic_shapes.infographic_shapes.progressValue": "88",
+        "infographic_shapes.infographic_shapes.progressColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.progressDirection": "radial",
+        "infographic_shapes.infographic_shapes.text": "88%",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "bold",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_sec_pattern": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Pattern Fills",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_pat_hatch": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.patternType": "hatch",
+        "infographic_shapes.infographic_shapes.patternColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.text": "Hatch",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_pat_dots": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#8B5CF6",
+        "infographic_shapes.infographic_shapes.patternType": "dots",
+        "infographic_shapes.infographic_shapes.patternColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.text": "Dots",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_pat_diag": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#0F172A",
+        "infographic_shapes.infographic_shapes.patternType": "diagonal",
+        "infographic_shapes.infographic_shapes.patternColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.text": "Diagonal",
+        "infographic_shapes.infographic_shapes.textColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_pat_cross": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#EF4444",
+        "infographic_shapes.infographic_shapes.patternType": "crosshatch",
+        "infographic_shapes.infographic_shapes.patternColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.text": "Cross",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_sec_textstroke": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Text Effects",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_txtstroke1": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#0F172A",
+        "infographic_shapes.infographic_shapes.text": "OUTLINED",
+        "infographic_shapes.infographic_shapes.textStrokeEnabled": "true",
+        "infographic_shapes.infographic_shapes.textStrokeColor": "#06B6D4",
+        "infographic_shapes.infographic_shapes.textStrokeWidth": "3",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "bold",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_txtstroke2": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "gradient",
+        "infographic_shapes.infographic_shapes.fillColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.gradientColor": "#EF4444",
+        "infographic_shapes.infographic_shapes.text": "BOLD",
+        "infographic_shapes.infographic_shapes.textStrokeEnabled": "true",
+        "infographic_shapes.infographic_shapes.textStrokeColor": "#000000",
+        "infographic_shapes.infographic_shapes.textStrokeWidth": "2",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontWeight": "bold",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_sec_innershad": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Inner Shadow",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_innershad1": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillColor": "#1E3A5F",
+        "infographic_shapes.infographic_shapes.innerShadowEnabled": "true",
+        "infographic_shapes.infographic_shapes.innerShadowColor": "#000000",
+        "infographic_shapes.infographic_shapes.innerShadowBlur": "12",
+        "infographic_shapes.infographic_shapes.text": "Inset",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_innershad2": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "circle",
+        "infographic_shapes.infographic_shapes.fillColor": "#3B82F6",
+        "infographic_shapes.infographic_shapes.innerShadowEnabled": "true",
+        "infographic_shapes.infographic_shapes.innerShadowColor": "#000000",
+        "infographic_shapes.infographic_shapes.innerShadowBlur": "16",
+        "infographic_shapes.infographic_shapes.innerShadowOffsetX": "4",
+        "infographic_shapes.infographic_shapes.innerShadowOffsetY": "4",
+        "infographic_shapes.infographic_shapes.text": "Deep",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_sec_flip": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Flip &amp; Transform",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_flip_h": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "gradient",
+        "infographic_shapes.infographic_shapes.fillColor": "#3B82F6",
+        "infographic_shapes.infographic_shapes.gradientColor": "#8B5CF6",
+        "infographic_shapes.infographic_shapes.gradientDirection": "horizontal",
+        "infographic_shapes.infographic_shapes.text": "Flipped H",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.flipH": "true",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_flip_v": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "rounded_rectangle",
+        "infographic_shapes.infographic_shapes.fillType": "gradient",
+        "infographic_shapes.infographic_shapes.fillColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.gradientColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.gradientDirection": "vertical",
+        "infographic_shapes.infographic_shapes.text": "Flipped V",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.flipV": "true",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_sec_animspeed": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Animation Speed",
+        "fontColor": "#06B6D4"
+      },
+      "dataSources": {
+        "primary": "ds_stub"
+      }
+    },
+    "viz_anim_slow": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "circle",
+        "infographic_shapes.infographic_shapes.fillColor": "#EF4444",
+        "infographic_shapes.infographic_shapes.animationType": "pulse",
+        "infographic_shapes.infographic_shapes.animationSpeed": "slow",
+        "infographic_shapes.infographic_shapes.text": "Slow",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_anim_normal": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "circle",
+        "infographic_shapes.infographic_shapes.fillColor": "#F59E0B",
+        "infographic_shapes.infographic_shapes.animationType": "pulse",
+        "infographic_shapes.infographic_shapes.animationSpeed": "normal",
+        "infographic_shapes.infographic_shapes.text": "Normal",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    },
+    "viz_anim_fast": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": {
+        "primary": "ds_stub"
+      },
+      "options": {
+        "infographic_shapes.infographic_shapes.shape": "circle",
+        "infographic_shapes.infographic_shapes.fillColor": "#22C55E",
+        "infographic_shapes.infographic_shapes.animationType": "pulse",
+        "infographic_shapes.infographic_shapes.animationSpeed": "fast",
+        "infographic_shapes.infographic_shapes.text": "Fast",
+        "infographic_shapes.infographic_shapes.textColor": "#F8FAFC",
+        "infographic_shapes.infographic_shapes.fontSize": "0"
+      }
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1440,
+      "height": 3400,
+      "display": "auto-scale",
+      "backgroundColor": "#101014"
+    },
+    "globalInputs": [],
+    "structure": [
+      {
+        "item": "viz_header_bg",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 1440,
+          "h": 70
+        }
+      },
+      {
+        "item": "viz_header",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 5,
+          "w": 1400,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_sec_shapes",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 80,
+          "w": 300,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_rectangle",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 120,
+          "w": 170,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_rounded_rectangle",
+        "type": "block",
+        "position": {
+          "x": 200,
+          "y": 120,
+          "w": 170,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_pill",
+        "type": "block",
+        "position": {
+          "x": 380,
+          "y": 120,
+          "w": 170,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_circle",
+        "type": "block",
+        "position": {
+          "x": 560,
+          "y": 120,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_ellipse",
+        "type": "block",
+        "position": {
+          "x": 670,
+          "y": 120,
+          "w": 170,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_triangle",
+        "type": "block",
+        "position": {
+          "x": 850,
+          "y": 120,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_right_triangle",
+        "type": "block",
+        "position": {
+          "x": 960,
+          "y": 120,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_diamond",
+        "type": "block",
+        "position": {
+          "x": 1070,
+          "y": 120,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_pentagon",
+        "type": "block",
+        "position": {
+          "x": 1180,
+          "y": 120,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_hexagon",
+        "type": "block",
+        "position": {
+          "x": 1290,
+          "y": 120,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_octagon",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 230,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_star4",
+        "type": "block",
+        "position": {
+          "x": 130,
+          "y": 230,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_star5",
+        "type": "block",
+        "position": {
+          "x": 240,
+          "y": 230,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_star6",
+        "type": "block",
+        "position": {
+          "x": 350,
+          "y": 230,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_cross",
+        "type": "block",
+        "position": {
+          "x": 460,
+          "y": 230,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_heart",
+        "type": "block",
+        "position": {
+          "x": 570,
+          "y": 230,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_lightning",
+        "type": "block",
+        "position": {
+          "x": 680,
+          "y": 230,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_cloud",
+        "type": "block",
+        "position": {
+          "x": 790,
+          "y": 230,
+          "w": 120,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_sun",
+        "type": "block",
+        "position": {
+          "x": 920,
+          "y": 230,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_moon",
+        "type": "block",
+        "position": {
+          "x": 1030,
+          "y": 230,
+          "w": 100,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_arrow_r",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 340,
+          "w": 120,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_arrow_l",
+        "type": "block",
+        "position": {
+          "x": 150,
+          "y": 340,
+          "w": 120,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_arrow_u",
+        "type": "block",
+        "position": {
+          "x": 280,
+          "y": 340,
+          "w": 80,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_arrow_d",
+        "type": "block",
+        "position": {
+          "x": 370,
+          "y": 340,
+          "w": 80,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_arrow_dbl",
+        "type": "block",
+        "position": {
+          "x": 460,
+          "y": 340,
+          "w": 120,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_chevron",
+        "type": "block",
+        "position": {
+          "x": 590,
+          "y": 340,
+          "w": 120,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_parallelogram",
+        "type": "block",
+        "position": {
+          "x": 720,
+          "y": 340,
+          "w": 150,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_trapezoid",
+        "type": "block",
+        "position": {
+          "x": 880,
+          "y": 340,
+          "w": 150,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_ring",
+        "type": "block",
+        "position": {
+          "x": 1040,
+          "y": 340,
+          "w": 80,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_arc",
+        "type": "block",
+        "position": {
+          "x": 1130,
+          "y": 340,
+          "w": 80,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_line_h",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 430,
+          "w": 150,
+          "h": 40
+        }
+      },
+      {
+        "item": "viz_line_v",
+        "type": "block",
+        "position": {
+          "x": 180,
+          "y": 430,
+          "w": 40,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_line_d",
+        "type": "block",
+        "position": {
+          "x": 230,
+          "y": 430,
+          "w": 100,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_bracket_l",
+        "type": "block",
+        "position": {
+          "x": 340,
+          "y": 430,
+          "w": 50,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_bracket_r",
+        "type": "block",
+        "position": {
+          "x": 400,
+          "y": 430,
+          "w": 50,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_curly_l",
+        "type": "block",
+        "position": {
+          "x": 460,
+          "y": 430,
+          "w": 50,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_curly_r",
+        "type": "block",
+        "position": {
+          "x": 520,
+          "y": 430,
+          "w": 50,
+          "h": 80
+        }
+      },
+      {
+        "item": "viz_sec_fills",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 530,
+          "w": 400,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_fill_solid",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 570,
+          "w": 200,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_fill_grad_v",
+        "type": "block",
+        "position": {
+          "x": 230,
+          "y": 570,
+          "w": 200,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_fill_grad_h",
+        "type": "block",
+        "position": {
+          "x": 440,
+          "y": 570,
+          "w": 200,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_fill_grad_d",
+        "type": "block",
+        "position": {
+          "x": 650,
+          "y": 570,
+          "w": 200,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_fill_grad_r",
+        "type": "block",
+        "position": {
+          "x": 860,
+          "y": 570,
+          "w": 120,
+          "h": 120
+        }
+      },
+      {
+        "item": "viz_fill_multi",
+        "type": "block",
+        "position": {
+          "x": 990,
+          "y": 570,
+          "w": 200,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_fill_none",
+        "type": "block",
+        "position": {
+          "x": 1200,
+          "y": 570,
+          "w": 200,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_sec_stroke",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 710,
+          "w": 300,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_stroke_solid",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 750,
+          "w": 200,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_stroke_dashed",
+        "type": "block",
+        "position": {
+          "x": 230,
+          "y": 750,
+          "w": 200,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_stroke_dotted",
+        "type": "block",
+        "position": {
+          "x": 440,
+          "y": 750,
+          "w": 200,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_stroke_dashdot",
+        "type": "block",
+        "position": {
+          "x": 650,
+          "y": 750,
+          "w": 200,
+          "h": 100
+        }
+      },
+      {
+        "item": "viz_sec_effects",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 870,
+          "w": 300,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_shadow",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 910,
+          "w": 240,
+          "h": 140
+        }
+      },
+      {
+        "item": "viz_glow_cyan",
+        "type": "block",
+        "position": {
+          "x": 280,
+          "y": 910,
+          "w": 240,
+          "h": 140
+        }
+      },
+      {
+        "item": "viz_glow_neon",
+        "type": "block",
+        "position": {
+          "x": 540,
+          "y": 910,
+          "w": 240,
+          "h": 140
+        }
+      },
+      {
+        "item": "viz_reflect",
+        "type": "block",
+        "position": {
+          "x": 800,
+          "y": 910,
+          "w": 240,
+          "h": 180
+        }
+      },
+      {
+        "item": "viz_combined",
+        "type": "block",
+        "position": {
+          "x": 1060,
+          "y": 910,
+          "w": 340,
+          "h": 180
+        }
+      },
+      {
+        "item": "viz_sec_anim",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 1110,
+          "w": 300,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_anim_pulse",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 1150,
+          "w": 120,
+          "h": 120
+        }
+      },
+      {
+        "item": "viz_anim_glow",
+        "type": "block",
+        "position": {
+          "x": 160,
+          "y": 1150,
+          "w": 120,
+          "h": 120
+        }
+      },
+      {
+        "item": "viz_anim_breathe",
+        "type": "block",
+        "position": {
+          "x": 300,
+          "y": 1150,
+          "w": 120,
+          "h": 120
+        }
+      },
+      {
+        "item": "viz_anim_spin",
+        "type": "block",
+        "position": {
+          "x": 440,
+          "y": 1150,
+          "w": 120,
+          "h": 120
+        }
+      },
+      {
+        "item": "viz_sec_fonts",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 1290,
+          "w": 400,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_font_inter",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 1330,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_roboto",
+        "type": "block",
+        "position": {
+          "x": 200,
+          "y": 1330,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_montserrat",
+        "type": "block",
+        "position": {
+          "x": 380,
+          "y": 1330,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_oswald",
+        "type": "block",
+        "position": {
+          "x": 560,
+          "y": 1330,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_lato",
+        "type": "block",
+        "position": {
+          "x": 740,
+          "y": 1330,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_raleway",
+        "type": "block",
+        "position": {
+          "x": 920,
+          "y": 1330,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_nunito",
+        "type": "block",
+        "position": {
+          "x": 1100,
+          "y": 1330,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_ibm",
+        "type": "block",
+        "position": {
+          "x": 1280,
+          "y": 1330,
+          "w": 140,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_playfair",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 1400,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_merriweather",
+        "type": "block",
+        "position": {
+          "x": 200,
+          "y": 1400,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_lora",
+        "type": "block",
+        "position": {
+          "x": 380,
+          "y": 1400,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_ptserif",
+        "type": "block",
+        "position": {
+          "x": 560,
+          "y": 1400,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_garamond",
+        "type": "block",
+        "position": {
+          "x": 740,
+          "y": 1400,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_notoserif",
+        "type": "block",
+        "position": {
+          "x": 920,
+          "y": 1400,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_robotomono",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 1470,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_sourcecode",
+        "type": "block",
+        "position": {
+          "x": 200,
+          "y": 1470,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_jetbrains",
+        "type": "block",
+        "position": {
+          "x": 380,
+          "y": 1470,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_courier",
+        "type": "block",
+        "position": {
+          "x": 560,
+          "y": 1470,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_anonymous",
+        "type": "block",
+        "position": {
+          "x": 740,
+          "y": 1470,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_cutive",
+        "type": "block",
+        "position": {
+          "x": 920,
+          "y": 1470,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_orbitron",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 1540,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_bebas",
+        "type": "block",
+        "position": {
+          "x": 200,
+          "y": 1540,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_bangers",
+        "type": "block",
+        "position": {
+          "x": 380,
+          "y": 1540,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_press",
+        "type": "block",
+        "position": {
+          "x": 560,
+          "y": 1540,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_font_elite",
+        "type": "block",
+        "position": {
+          "x": 740,
+          "y": 1540,
+          "w": 170,
+          "h": 60
+        }
+      },
+      {
+        "item": "viz_sec_weight",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 1620,
+          "w": 300,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_weight_light",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 1660,
+          "w": 200,
+          "h": 70
+        }
+      },
+      {
+        "item": "viz_weight_normal",
+        "type": "block",
+        "position": {
+          "x": 230,
+          "y": 1660,
+          "w": 200,
+          "h": 70
+        }
+      },
+      {
+        "item": "viz_weight_bold",
+        "type": "block",
+        "position": {
+          "x": 440,
+          "y": 1660,
+          "w": 200,
+          "h": 70
+        }
+      },
+      {
+        "item": "viz_sec_icons",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 1760,
+          "w": 400,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_icon_above",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 1800,
+          "w": 120,
+          "h": 120
+        }
+      },
+      {
+        "item": "viz_icon_below",
+        "type": "block",
+        "position": {
+          "x": 155,
+          "y": 1800,
+          "w": 120,
+          "h": 120
+        }
+      },
+      {
+        "item": "viz_icon_left",
+        "type": "block",
+        "position": {
+          "x": 290,
+          "y": 1800,
+          "w": 230,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_icon_right",
+        "type": "block",
+        "position": {
+          "x": 535,
+          "y": 1800,
+          "w": 230,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_sec_textpos",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 1935,
+          "w": 400,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_txtpos_top",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 1975,
+          "w": 200,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_txtpos_center",
+        "type": "block",
+        "position": {
+          "x": 230,
+          "y": 1975,
+          "w": 200,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_txtpos_bottom",
+        "type": "block",
+        "position": {
+          "x": 440,
+          "y": 1975,
+          "w": 200,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_txtpos_below",
+        "type": "block",
+        "position": {
+          "x": 650,
+          "y": 1975,
+          "w": 200,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_sec_subtitle",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 2110,
+          "w": 400,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_subtitle1",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 2150,
+          "w": 320,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_subtitle2",
+        "type": "block",
+        "position": {
+          "x": 355,
+          "y": 2150,
+          "w": 320,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_sec_progress",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 2285,
+          "w": 400,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_progress_lr",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 2325,
+          "w": 280,
+          "h": 120
+        }
+      },
+      {
+        "item": "viz_progress_bt",
+        "type": "block",
+        "position": {
+          "x": 315,
+          "y": 2325,
+          "w": 120,
+          "h": 120
+        }
+      },
+      {
+        "item": "viz_progress_rad",
+        "type": "block",
+        "position": {
+          "x": 450,
+          "y": 2325,
+          "w": 120,
+          "h": 120
+        }
+      },
+      {
+        "item": "viz_sec_pattern",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 2470,
+          "w": 400,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_pat_hatch",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 2510,
+          "w": 225,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_pat_dots",
+        "type": "block",
+        "position": {
+          "x": 258,
+          "y": 2510,
+          "w": 225,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_pat_diag",
+        "type": "block",
+        "position": {
+          "x": 496,
+          "y": 2510,
+          "w": 225,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_pat_cross",
+        "type": "block",
+        "position": {
+          "x": 734,
+          "y": 2510,
+          "w": 225,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_sec_textstroke",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 2645,
+          "w": 400,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_txtstroke1",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 2685,
+          "w": 340,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_txtstroke2",
+        "type": "block",
+        "position": {
+          "x": 375,
+          "y": 2685,
+          "w": 340,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_sec_innershad",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 2820,
+          "w": 400,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_innershad1",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 2860,
+          "w": 280,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_innershad2",
+        "type": "block",
+        "position": {
+          "x": 315,
+          "y": 2860,
+          "w": 120,
+          "h": 120
+        }
+      },
+      {
+        "item": "viz_sec_flip",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 2995,
+          "w": 400,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_flip_h",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 3035,
+          "w": 340,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_flip_v",
+        "type": "block",
+        "position": {
+          "x": 375,
+          "y": 3035,
+          "w": 340,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_sec_animspeed",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 3170,
+          "w": 400,
+          "h": 30
+        }
+      },
+      {
+        "item": "viz_anim_slow",
+        "type": "block",
+        "position": {
+          "x": 20,
+          "y": 3210,
+          "w": 120,
+          "h": 120
+        }
+      },
+      {
+        "item": "viz_anim_normal",
+        "type": "block",
+        "position": {
+          "x": 155,
+          "y": 3210,
+          "w": 120,
+          "h": 120
+        }
+      },
+      {
+        "item": "viz_anim_fast",
+        "type": "block",
+        "position": {
+          "x": 290,
+          "y": 3210,
+          "w": 120,
+          "h": 120
+        }
+      }
+    ]
+  },
+  "applicationProperties": {
+    "theme": "dark"
+  }
+}
+]]></definition>
+</dashboard>

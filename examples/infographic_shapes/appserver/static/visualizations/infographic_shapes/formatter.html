@@ -1,0 +1,707 @@
+<form class="splunk-formatter-section" section-label="Shape">
+    <splunk-control-group label="Shape Type" help="Select the shape to render">
+        <splunk-select name="{{VIZ_NAMESPACE}}.shape" value="rounded_rectangle">
+            <option value="rectangle">Rectangle</option>
+            <option value="rounded_rectangle">Rounded Rectangle</option>
+            <option value="pill">Pill / Capsule</option>
+            <option value="circle">Circle</option>
+            <option value="ellipse">Ellipse</option>
+            <option value="triangle">Triangle</option>
+            <option value="right_triangle">Right Triangle</option>
+            <option value="diamond">Diamond</option>
+            <option value="pentagon">Pentagon</option>
+            <option value="hexagon">Hexagon</option>
+            <option value="octagon">Octagon</option>
+            <option value="star_4">Star (4-point)</option>
+            <option value="star_5">Star (5-point)</option>
+            <option value="star_6">Star (6-point)</option>
+            <option value="cross">Cross / Plus</option>
+            <option value="heart">Heart</option>
+            <option value="lightning">Lightning Bolt</option>
+            <option value="cloud">Cloud</option>
+            <option value="sun">Sun</option>
+            <option value="moon">Crescent Moon</option>
+            <option value="arrow_right">Arrow Right</option>
+            <option value="arrow_left">Arrow Left</option>
+            <option value="arrow_up">Arrow Up</option>
+            <option value="arrow_down">Arrow Down</option>
+            <option value="arrow_double">Arrow Double</option>
+            <option value="chevron">Chevron</option>
+            <option value="parallelogram">Parallelogram</option>
+            <option value="trapezoid">Trapezoid</option>
+            <option value="ring">Ring</option>
+            <option value="arc">Arc</option>
+            <option value="line_horizontal">Line - Horizontal</option>
+            <option value="line_vertical">Line - Vertical</option>
+            <option value="line_diagonal">Line - Diagonal</option>
+            <option value="bracket_left">Bracket Left [</option>
+            <option value="bracket_right">Bracket Right ]</option>
+            <option value="curly_left">Curly Brace {</option>
+            <option value="curly_right">Curly Brace }</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Corner Radius" help="Radius for rounded rectangle corners (px)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.cornerRadius" value="12">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Rotation" help="Rotation angle in degrees (0-360)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.rotation" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Padding" help="Inner padding from panel edge in pixels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.padding" value="8">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Opacity" help="Overall opacity from 0 (invisible) to 100 (fully opaque)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.opacity" value="100">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Override Width" help="Custom shape width in pixels (0 = fill panel)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.overrideWidth" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Override Height" help="Custom shape height in pixels (0 = fill panel)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.overrideHeight" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Position X" help="Horizontal position in pixels from left edge (used when W or H is set)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.overrideX" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Position Y" help="Vertical position in pixels from top edge (used when W or H is set)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.overrideY" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Flip Horizontal" help="Mirror the shape along the vertical axis">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.flipH" value="false">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Flip Vertical" help="Mirror the shape along the horizontal axis">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.flipV" value="false">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Corner Radius - TL" help="Leave empty to use Corner Radius for all corners">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.radiusTL" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Corner Radius - TR" help="Leave empty to use Corner Radius for all corners">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.radiusTR" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Corner Radius - BL" help="Leave empty to use Corner Radius for all corners">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.radiusBL" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Corner Radius - BR" help="Leave empty to use Corner Radius for all corners">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.radiusBR" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Fill and Stroke">
+    <splunk-control-group label="Fill Type" help="Solid colour, gradient, or no fill (stroke only)">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.fillType" value="solid">
+            <option value="solid">Solid</option>
+            <option value="gradient">Gradient</option>
+            <option value="none">None</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Fill Colour" help="Primary fill colour (also gradient start colour)">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.fillColor" type="custom" value="#1E3A5F">
+            <splunk-color>#1E3A5F</splunk-color>
+            <splunk-color>#0F172A</splunk-color>
+            <splunk-color>#1a1a2e</splunk-color>
+            <splunk-color>#06B6D4</splunk-color>
+            <splunk-color>#3B82F6</splunk-color>
+            <splunk-color>#22C55E</splunk-color>
+            <splunk-color>#F59E0B</splunk-color>
+            <splunk-color>#EF4444</splunk-color>
+            <splunk-color>#8B5CF6</splunk-color>
+            <splunk-color>#EC4899</splunk-color>
+            <splunk-color>#F8FAFC</splunk-color>
+            <splunk-color>#64748B</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Gradient End Colour" help="Second colour for gradient fill">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.gradientColor" type="custom" value="#06B6D4">
+            <splunk-color>#06B6D4</splunk-color>
+            <splunk-color>#3B82F6</splunk-color>
+            <splunk-color>#8B5CF6</splunk-color>
+            <splunk-color>#EC4899</splunk-color>
+            <splunk-color>#22C55E</splunk-color>
+            <splunk-color>#F59E0B</splunk-color>
+            <splunk-color>#EF4444</splunk-color>
+            <splunk-color>#F8FAFC</splunk-color>
+            <splunk-color>#1E3A5F</splunk-color>
+            <splunk-color>#0F172A</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Gradient Stop 3" help="Optional third gradient colour (leave empty for 2-colour gradient)">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.gradientColor2" type="custom" value="">
+            <splunk-color>#8B5CF6</splunk-color>
+            <splunk-color>#EC4899</splunk-color>
+            <splunk-color>#06B6D4</splunk-color>
+            <splunk-color>#22C55E</splunk-color>
+            <splunk-color>#F59E0B</splunk-color>
+            <splunk-color>#EF4444</splunk-color>
+            <splunk-color>#F8FAFC</splunk-color>
+            <splunk-color>#0F172A</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Gradient Stop 4" help="Optional fourth gradient colour">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.gradientColor3" type="custom" value="">
+            <splunk-color>#EC4899</splunk-color>
+            <splunk-color>#8B5CF6</splunk-color>
+            <splunk-color>#06B6D4</splunk-color>
+            <splunk-color>#22C55E</splunk-color>
+            <splunk-color>#F59E0B</splunk-color>
+            <splunk-color>#EF4444</splunk-color>
+            <splunk-color>#F8FAFC</splunk-color>
+            <splunk-color>#0F172A</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Gradient Direction" help="Direction of the colour gradient">
+        <splunk-select name="{{VIZ_NAMESPACE}}.gradientDirection" value="vertical">
+            <option value="horizontal">Horizontal</option>
+            <option value="vertical">Vertical</option>
+            <option value="diagonal">Diagonal (down-right)</option>
+            <option value="diagonal_rev">Diagonal (down-left)</option>
+            <option value="radial">Radial</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Stroke Colour" help="Colour of the shape outline">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.strokeColor" type="custom" value="#06B6D4">
+            <splunk-color>#06B6D4</splunk-color>
+            <splunk-color>#3B82F6</splunk-color>
+            <splunk-color>#22C55E</splunk-color>
+            <splunk-color>#F59E0B</splunk-color>
+            <splunk-color>#EF4444</splunk-color>
+            <splunk-color>#F8FAFC</splunk-color>
+            <splunk-color>#64748B</splunk-color>
+            <splunk-color>#8B5CF6</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Stroke Width" help="Width of the outline in pixels (0 = no stroke)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.strokeWidth" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Stroke Style" help="Solid, dashed, dotted, or dash-dot outline">
+        <splunk-select name="{{VIZ_NAMESPACE}}.strokeDash" value="solid">
+            <option value="solid">Solid</option>
+            <option value="dashed">Dashed</option>
+            <option value="dotted">Dotted</option>
+            <option value="dash_dot">Dash-Dot</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Pattern Type" help="Overlay hatch or dot pattern on the fill">
+        <splunk-select name="{{VIZ_NAMESPACE}}.patternType" value="none">
+            <option value="none">None</option>
+            <option value="hatch">Hatch</option>
+            <option value="dots">Dots</option>
+            <option value="diagonal">Diagonal</option>
+            <option value="crosshatch">Crosshatch</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Pattern Colour" help="Colour of the fill pattern lines or dots">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.patternColor" type="custom" value="#FFFFFF">
+            <splunk-color>#FFFFFF</splunk-color>
+            <splunk-color>#F8FAFC</splunk-color>
+            <splunk-color>#06B6D4</splunk-color>
+            <splunk-color>#3B82F6</splunk-color>
+            <splunk-color>#22C55E</splunk-color>
+            <splunk-color>#F59E0B</splunk-color>
+            <splunk-color>#EF4444</splunk-color>
+            <splunk-color>#64748B</splunk-color>
+            <splunk-color>#8B5CF6</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Pattern Scale" help="Density of the pattern (1 = fine, 5 = coarse)">
+        <splunk-select name="{{VIZ_NAMESPACE}}.patternScale" value="2">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Background Image URL" help="Optional image URL drawn behind the fill (transparent areas show fill)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.backgroundImage" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Background Fit" help="How the background image is scaled within the shape">
+        <splunk-select name="{{VIZ_NAMESPACE}}.backgroundFit" value="cover">
+            <option value="cover">Cover</option>
+            <option value="contain">Contain</option>
+            <option value="stretch">Stretch</option>
+            <option value="tile">Tile</option>
+        </splunk-select>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Effects">
+    <splunk-control-group label="Drop Shadow" help="Enable a drop shadow behind the shape">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.shadowEnabled" value="false">
+            <option value="true">On</option>
+            <option value="false">Off</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Shadow Colour" help="Colour of the drop shadow">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.shadowColor" type="custom" value="#000000">
+            <splunk-color>#000000</splunk-color>
+            <splunk-color>#1E3A5F</splunk-color>
+            <splunk-color>#06B6D4</splunk-color>
+            <splunk-color>#EF4444</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Shadow Blur" help="Shadow blur radius in pixels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.shadowBlur" value="12">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Shadow Offset X" help="Horizontal shadow offset in pixels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.shadowOffsetX" value="4">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Shadow Offset Y" help="Vertical shadow offset in pixels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.shadowOffsetY" value="4">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Shadow Opacity" help="Shadow opacity from 0 (invisible) to 100 (fully opaque)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.shadowOpacity" value="60">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Shadow Spread" help="Shadow thickness - number of render passes (1-5)">
+        <splunk-select name="{{VIZ_NAMESPACE}}.shadowSpread" value="1">
+            <option value="1">1 - Subtle</option>
+            <option value="2">2 - Normal</option>
+            <option value="3">3 - Strong</option>
+            <option value="4">4 - Heavy</option>
+            <option value="5">5 - Maximum</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Glow" help="Enable a glow effect around the shape">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.glowEnabled" value="false">
+            <option value="true">On</option>
+            <option value="false">Off</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Glow Colour" help="Colour of the glow effect">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.glowColor" type="custom" value="#06B6D4">
+            <splunk-color>#06B6D4</splunk-color>
+            <splunk-color>#3B82F6</splunk-color>
+            <splunk-color>#22C55E</splunk-color>
+            <splunk-color>#F59E0B</splunk-color>
+            <splunk-color>#EF4444</splunk-color>
+            <splunk-color>#EC4899</splunk-color>
+            <splunk-color>#8B5CF6</splunk-color>
+            <splunk-color>#F8FAFC</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Glow Size" help="Size of the glow halo in pixels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.glowSize" value="15">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Glow Intensity" help="Number of glow render passes (1 = subtle, 5 = neon)">
+        <splunk-select name="{{VIZ_NAMESPACE}}.glowIntensity" value="2">
+            <option value="1">1 - Subtle</option>
+            <option value="2">2 - Normal</option>
+            <option value="3">3 - Bright</option>
+            <option value="4">4 - Strong</option>
+            <option value="5">5 - Neon</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Reflection" help="Show a fading reflection below the shape">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.reflectionEnabled" value="false">
+            <option value="true">On</option>
+            <option value="false">Off</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Reflection Opacity" help="Opacity of the reflection (0.0 to 1.0)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.reflectionOpacity" value="0.15">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Reflection Height" help="Height of the reflection as % of shape height (10-80)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.reflectionHeight" value="35">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Reflection Gap" help="Gap between shape and reflection in pixels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.reflectionGap" value="2">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Inner Shadow" help="Draw an inset shadow inside the shape edge">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.innerShadowEnabled" value="false">
+            <option value="true">On</option>
+            <option value="false">Off</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Inner Shadow Colour" help="Colour of the inner shadow">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.innerShadowColor" type="custom" value="#000000">
+            <splunk-color>#000000</splunk-color>
+            <splunk-color>#1E3A5F</splunk-color>
+            <splunk-color>#0F172A</splunk-color>
+            <splunk-color>#64748B</splunk-color>
+            <splunk-color>#EF4444</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Inner Shadow Blur" help="Blur radius of the inner shadow in pixels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.innerShadowBlur" value="8">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Inner Shadow Offset X" help="Horizontal inset shadow offset in pixels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.innerShadowOffsetX" value="2">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Inner Shadow Offset Y" help="Vertical inset shadow offset in pixels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.innerShadowOffsetY" value="2">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Animation" help="Animated effect applied to the shape">
+        <splunk-select name="{{VIZ_NAMESPACE}}.animationType" value="none">
+            <option value="none">None</option>
+            <option value="pulse">Pulse (opacity)</option>
+            <option value="glow_pulse">Glow Pulse</option>
+            <option value="breathe">Breathe (scale)</option>
+            <option value="spin">Spin</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Animation Speed" help="Speed multiplier for shape animation playback">
+        <splunk-select name="{{VIZ_NAMESPACE}}.animationSpeed" value="normal">
+            <option value="slow">Slow</option>
+            <option value="normal">Normal</option>
+            <option value="fast">Fast</option>
+        </splunk-select>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Text and Font">
+    <splunk-control-group label="Text" help="Static text to display on the shape (overridden by Text Field if set)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.text" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Font" help="Locally embedded font (25 included). Run fonts/download-fonts.sh to add more.">
+        <splunk-select name="{{VIZ_NAMESPACE}}.fontFamily" value="">
+            <option value="">System (sans-serif)</option>
+            <option value="serif">System (serif)</option>
+            <option value="monospace">System (monospace)</option>
+            <option value="Inter">Inter</option>
+            <option value="Roboto">Roboto</option>
+            <option value="Montserrat">Montserrat</option>
+            <option value="Oswald">Oswald</option>
+            <option value="Lato">Lato</option>
+            <option value="Nunito">Nunito</option>
+            <option value="Raleway">Raleway</option>
+            <option value="IBM Plex Sans">IBM Plex Sans</option>
+            <option value="Playfair Display">Playfair Display (serif)</option>
+            <option value="Merriweather">Merriweather (serif)</option>
+            <option value="Lora">Lora (serif)</option>
+            <option value="PT Serif">PT Serif (serif)</option>
+            <option value="EB Garamond">EB Garamond (serif)</option>
+            <option value="Noto Serif">Noto Serif (serif)</option>
+            <option value="Roboto Mono">Roboto Mono (mono)</option>
+            <option value="Source Code Pro">Source Code Pro (mono)</option>
+            <option value="JetBrains Mono">JetBrains Mono (mono)</option>
+            <option value="Courier Prime">Courier Prime (mono)</option>
+            <option value="Anonymous Pro">Anonymous Pro (mono)</option>
+            <option value="Cutive Mono">Cutive Mono (mono)</option>
+            <option value="Orbitron">Orbitron (display)</option>
+            <option value="Bebas Neue">Bebas Neue (display)</option>
+            <option value="Bangers">Bangers (display)</option>
+            <option value="Press Start 2P">Press Start 2P (display)</option>
+            <option value="Special Elite">Special Elite (typewriter)</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Font Size" help="Text size in pixels (0 = auto-scale to fit shape)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.fontSize" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Font Weight" help="Text weight - bold, normal, or light">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.fontWeight" value="bold">
+            <option value="bold">Bold</option>
+            <option value="normal">Normal</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Text Colour" help="Colour of the text on the shape">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.textColor" type="custom" value="#FFFFFF">
+            <splunk-color>#FFFFFF</splunk-color>
+            <splunk-color>#F8FAFC</splunk-color>
+            <splunk-color>#06B6D4</splunk-color>
+            <splunk-color>#3B82F6</splunk-color>
+            <splunk-color>#22C55E</splunk-color>
+            <splunk-color>#F59E0B</splunk-color>
+            <splunk-color>#EF4444</splunk-color>
+            <splunk-color>#0F172A</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Text Align" help="Horizontal text alignment within the shape">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.textAlign" value="center">
+            <option value="left">Left</option>
+            <option value="center">Centre</option>
+            <option value="right">Right</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Text Position" help="Vertical placement of the main title within the shape">
+        <splunk-select name="{{VIZ_NAMESPACE}}.textPosition" value="center">
+            <option value="top">Top</option>
+            <option value="center">Centre</option>
+            <option value="bottom">Bottom</option>
+            <option value="below">Below shape</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Subtitle" help="Secondary line displayed under or near the title">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.subtitle" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Subtitle Size" help="Subtitle text size in pixels (0 = auto-scale)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.subtitleSize" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Subtitle Colour" help="Colour of the subtitle text">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.subtitleColor" type="custom" value="#94A3B8">
+            <splunk-color>#94A3B8</splunk-color>
+            <splunk-color>#CBD5E1</splunk-color>
+            <splunk-color>#64748B</splunk-color>
+            <splunk-color>#F8FAFC</splunk-color>
+            <splunk-color>#06B6D4</splunk-color>
+            <splunk-color>#3B82F6</splunk-color>
+            <splunk-color>#22C55E</splunk-color>
+            <splunk-color>#F59E0B</splunk-color>
+            <splunk-color>#EF4444</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Text Stroke" help="Draw an outline around the main text">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.textStrokeEnabled" value="false">
+            <option value="true">On</option>
+            <option value="false">Off</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Text Stroke Colour" help="Colour of the text outline">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.textStrokeColor" type="custom" value="#000000">
+            <splunk-color>#000000</splunk-color>
+            <splunk-color>#0F172A</splunk-color>
+            <splunk-color>#1E3A5F</splunk-color>
+            <splunk-color>#FFFFFF</splunk-color>
+            <splunk-color>#06B6D4</splunk-color>
+            <splunk-color>#EF4444</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Text Stroke Width" help="Thickness of the text outline in pixels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.textStrokeWidth" value="2">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Icon" help="Unicode emoji or symbol (e.g. * * * *)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.icon" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Icon Size" help="Icon size in pixels (0 = auto-scale)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.iconSize" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Icon Position" help="Placement of the icon relative to the title text">
+        <splunk-select name="{{VIZ_NAMESPACE}}.iconPosition" value="above">
+            <option value="above">Above</option>
+            <option value="below">Below</option>
+            <option value="left">Left</option>
+            <option value="right">Right</option>
+        </splunk-select>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data Binding">
+    <splunk-control-group label="Value Field" help="Numeric field for threshold-based colour changes">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.field" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Colour Field" help="Field containing a hex colour code to override the fill colour">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.colorField" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Text Field" help="Field to use as dynamic text on the shape">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.textField" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Warning Threshold" help="Value at or above which the shape turns warning colour">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.warningThreshold" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Critical Threshold" help="Value at or above which the shape turns critical colour">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.criticalThreshold" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Normal Colour" help="Fill colour when value is below all thresholds">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.normalColor" type="custom" value="#22C55E">
+            <splunk-color>#22C55E</splunk-color>
+            <splunk-color>#06B6D4</splunk-color>
+            <splunk-color>#3B82F6</splunk-color>
+            <splunk-color>#1E3A5F</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Warning Colour" help="Fill colour when value exceeds warning threshold">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.warningColor" type="custom" value="#F59E0B">
+            <splunk-color>#F59E0B</splunk-color>
+            <splunk-color>#FB923C</splunk-color>
+            <splunk-color>#FBBF24</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Critical Colour" help="Fill colour when value exceeds critical threshold">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.criticalColor" type="custom" value="#EF4444">
+            <splunk-color>#EF4444</splunk-color>
+            <splunk-color>#DC2626</splunk-color>
+            <splunk-color>#D93F3C</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Subtitle Field" help="Field name supplying dynamic subtitle text">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.subtitleField" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Progress Enabled" help="Show a progress fill driven by value or field">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.progressEnabled" value="false">
+            <option value="true">On</option>
+            <option value="false">Off</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Progress Value" help="Static progress percentage when no field is set (0-100)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.progressValue" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Progress Field" help="Data field for progress value (0-100)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.progressField" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Progress Colour" help="Colour of the progress fill indicator">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.progressColor" type="custom" value="#22C55E">
+            <splunk-color>#22C55E</splunk-color>
+            <splunk-color>#16A34A</splunk-color>
+            <splunk-color>#06B6D4</splunk-color>
+            <splunk-color>#3B82F6</splunk-color>
+            <splunk-color>#F59E0B</splunk-color>
+            <splunk-color>#EF4444</splunk-color>
+            <splunk-color>#8B5CF6</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+
+    <splunk-control-group label="Progress Direction" help="Direction the progress fill grows">
+        <splunk-select name="{{VIZ_NAMESPACE}}.progressDirection" value="left-to-right">
+            <option value="left-to-right">Left to right</option>
+            <option value="bottom-to-top">Bottom to top</option>
+            <option value="radial">Radial</option>
+        </splunk-select>
+    </splunk-control-group>
+
+    <splunk-control-group label="Tooltip" help="Tooltip text on hover. Use {fieldname} for data values">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.tooltip" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Tooltip Field" help="Field name to display as tooltip">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.tooltipField" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Drilldown URL" help="URL to navigate on click. Use {fieldname} for data tokens">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.drilldownUrl" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Open in New Tab" help="Open drilldown URL in a new browser tab when enabled">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.drilldownNewTab" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Visibility Field" help="Data field that controls shape visibility">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.visibilityField" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Visibility Value" help="Expected value to show shape (empty = show when field is truthy)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.visibilityValue" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Visibility Invert" help="Invert logic: hide when value matches">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.visibilityInvert" value="false">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
