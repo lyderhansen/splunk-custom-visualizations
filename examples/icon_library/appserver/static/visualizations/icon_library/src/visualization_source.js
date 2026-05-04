@@ -47,13 +47,17 @@ define([
 
     // ── Font loading ────────────────────────────────────────────
 
-    var _fontLoaded = false;
+    var _fontReady = false;
+    var _fontCallbacks = [];
 
-    function ensureFontLoaded() {
-        if (_fontLoaded) return;
+    function ensureFontLoaded(cb) {
+        if (_fontReady) { if (cb) cb(); return; }
+        if (cb) _fontCallbacks.push(cb);
         if (typeof document !== 'undefined' && document.fonts && document.fonts.load) {
             document.fonts.load('400 48px "Material Symbols Outlined"').then(function() {
-                _fontLoaded = true;
+                _fontReady = true;
+                var cbs = _fontCallbacks.splice(0);
+                for (var i = 0; i < cbs.length; i++) cbs[i]();
             });
         }
     }
@@ -96,11 +100,13 @@ define([
             this.el.classList.add('icon-library-viz');
             this._lastConfig = null;
             this._lastData = null;
+            this._drilldownEnabled = false;
             this._drilldownUrl = '';
             this._drilldownNewTab = true;
             this._resolvedIcon = 'home';
             this._resolvedLabel = '';
             this._resolvedColor = '#06B6D4';
+            this._fontRendered = false;
             this._setupNoDataObserver();
             this._setupClickHandler();
         },
@@ -132,10 +138,10 @@ define([
         _setupClickHandler: function() {
             var self = this;
             this.el.addEventListener('click', function(event) {
-                // URL drilldown takes priority if configured
+                if (!self._drilldownEnabled) return;
+
                 var url = self._drilldownUrl;
                 if (url) {
-                    // Replace tokens in URL
                     url = url.replace(/\$icon\$/g, self._resolvedIcon || '');
                     url = url.replace(/\$label\$/g, self._resolvedLabel || '');
                     url = url.replace(/\$color\$/g, encodeURIComponent(self._resolvedColor || ''));
@@ -147,7 +153,6 @@ define([
                     return;
                 }
 
-                // Native Splunk drilldown (Dashboard Studio eventHandlers)
                 var drilldownData = {};
                 drilldownData['icon'] = self._resolvedIcon || '';
                 drilldownData['label'] = self._resolvedLabel || '';
@@ -174,8 +179,16 @@ define([
         updateView: function(data, config) {
             this._lastConfig = config;
             this._lastData = data;
-            ensureFontLoaded();
-            this._render(data, config);
+            var self = this;
+            if (!_fontReady) {
+                ensureFontLoaded(function() {
+                    self._fontRendered = false;
+                    self._render(data, config);
+                });
+                this._render(data, config);
+            } else {
+                this._render(data, config);
+            }
         },
 
         reflow: function() {
@@ -236,9 +249,11 @@ define([
             var glowSize    = parseInt(getOption(config, ns, 'glowSize', '12'), 10);
             var rotation    = parseInt(getOption(config, ns, 'rotation', '0'), 10);
 
+            var drilldownOn  = getOption(config, ns, 'drilldown', 'no');
             var drilldownUrl = getOption(config, ns, 'drilldownUrl', '');
             var drilldownNewTab = getOption(config, ns, 'drilldownNewTab', 'yes') === 'yes';
 
+            this._drilldownEnabled = (drilldownOn === 'yes') || (drilldownUrl !== '');
             this._drilldownUrl = drilldownUrl;
             this._drilldownNewTab = drilldownNewTab;
 
@@ -273,25 +288,47 @@ define([
                 }
             }
 
-            // Cache for drilldown payload
             this._resolvedIcon = resolvedIcon;
             this._resolvedLabel = labelText;
             this._resolvedColor = iconColor;
 
-            // Cursor style
-            el.style.cursor = drilldownUrl ? 'pointer' : '';
+            // Pointer cursor when drilldown is active
+            el.style.cursor = this._drilldownEnabled ? 'pointer' : '';
+            if (canvas) canvas.style.cursor = this._drilldownEnabled ? 'pointer' : '';
 
             // ── Calculate sizes ──────────────────────────────────
             var hasLabel = (showLabel === 'yes' && labelText && labelText.trim() !== '');
             var pad = Math.max(8, Math.min(w, h) * 0.04);
 
+            // Extra room needed for effects (glow/shadow bleed)
+            var effectPad = 0;
+            if (glowOn === 'yes') effectPad = Math.max(effectPad, glowSize);
+            if (shadowOn === 'yes') effectPad = Math.max(effectPad, shadowBlur + Math.abs(shadowX) + Math.abs(shadowY));
+
+            // Available space after padding and effect bleed
+            var availW = w - (pad + effectPad) * 2;
+            var availH = h - (pad + effectPad) * 2;
+            if (availW < 16) availW = 16;
+            if (availH < 16) availH = 16;
+
             var computedIconSize;
             if (iconSize > 0) {
                 computedIconSize = iconSize;
-            } else {
-                var sizeRef = Math.min(w, h) - pad * 2;
+            } else if (bgShape !== 'none') {
+                // When background is active, icon must fit INSIDE
+                // background which itself must fit inside the panel.
+                // For circle: diameter = iconSize + bgPadding*2, must fit in min(availW, availH)
+                var maxBgDim = Math.min(availW, availH);
+                var iconBudget = maxBgDim - bgPadding * 2;
                 if (hasLabel) {
-                    sizeRef = Math.min(w, h * 0.78) - pad * 2;
+                    var estLabelH = Math.max(8, Math.min(20, Math.min(w, h) * 0.09)) + 6 + 8;
+                    iconBudget = iconBudget - estLabelH;
+                }
+                computedIconSize = Math.max(16, iconBudget);
+            } else {
+                var sizeRef = Math.min(availW, availH);
+                if (hasLabel) {
+                    sizeRef = Math.min(availW, availH * 0.78);
                 }
                 computedIconSize = Math.max(16, sizeRef * 0.80);
             }
@@ -310,17 +347,17 @@ define([
             var cx, cy;
 
             if (hAlign === 'left') {
-                cx = pad + computedIconSize / 2;
+                cx = pad + effectPad + computedIconSize / 2;
             } else if (hAlign === 'right') {
-                cx = w - pad - computedIconSize / 2;
+                cx = w - pad - effectPad - computedIconSize / 2;
             } else {
                 cx = w / 2;
             }
 
             if (vAlign === 'top') {
-                cy = pad + computedIconSize / 2;
+                cy = pad + effectPad + computedIconSize / 2;
             } else if (vAlign === 'bottom') {
-                cy = h - pad - labelH - (hasLabel ? 8 : 0) - computedIconSize / 2;
+                cy = h - pad - effectPad - labelH - (hasLabel ? 8 : 0) - computedIconSize / 2;
             } else {
                 var blockTop = (h - contentH) / 2;
                 cy = blockTop + computedIconSize / 2;
@@ -413,6 +450,8 @@ define([
                 ctx.fillText(labelText, cx, labelY);
                 ctx.restore();
             }
+
+            this._fontRendered = true;
         }
     });
 });

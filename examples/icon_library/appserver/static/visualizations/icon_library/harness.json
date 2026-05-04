@@ -136,6 +136,16 @@
           "default": "#94A3B8"
         },
         {
+          "label": "Enable Drilldown",
+          "type": "radio",
+          "key": "drilldown",
+          "default": "no",
+          "options": [
+            { "label": "Yes", "value": "yes" },
+            { "label": "No", "value": "no" }
+          ]
+        },
+        {
           "label": "Drilldown URL",
           "type": "text",
           "key": "drilldownUrl",

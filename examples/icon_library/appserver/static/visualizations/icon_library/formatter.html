@@ -248,6 +248,13 @@
         </splunk-color-picker>
     </splunk-control-group>
 
+    <splunk-control-group label="Enable Drilldown" help="Show pointer cursor and fire drilldown event on click. Works with Dashboard Studio eventHandlers (setToken, linkToSearch, linkToDashboard).">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.drilldown" value="no">
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
     <splunk-control-group label="Drilldown URL" help="URL to navigate to on click. Supports tokens: $icon$, $label$, $color$. Leave empty to use Dashboard Studio eventHandlers instead.">
         <splunk-text-input name="{{VIZ_NAMESPACE}}.drilldownUrl" value="">
         </splunk-text-input>
