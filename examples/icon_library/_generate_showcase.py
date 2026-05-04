@@ -2,7 +2,7 @@
 """Generate a 250-icon showcase dashboard for icon_library."""
 import json, textwrap
 
-NS = "display.visualizations.custom.icon_library.icon_library."
+NS = "icon_library.icon_library."
 
 # ── Section definitions ──────────────────────────────────────────
 # Each section: (title, description, icons_with_overrides)
