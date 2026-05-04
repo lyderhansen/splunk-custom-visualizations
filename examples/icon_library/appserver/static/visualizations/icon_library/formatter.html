@@ -247,6 +247,18 @@
             <splunk-color>#64748B</splunk-color>
         </splunk-color-picker>
     </splunk-control-group>
+
+    <splunk-control-group label="Drilldown URL" help="URL to navigate to on click. Supports tokens: $icon$, $label$, $color$. Leave empty to use Dashboard Studio eventHandlers instead.">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.drilldownUrl" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Drilldown Opens New Tab" help="Open drilldown URL in a new browser tab">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.drilldownNewTab" value="yes">
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
 </form>
 
 <form class="splunk-formatter-section" section-label="Color and style">

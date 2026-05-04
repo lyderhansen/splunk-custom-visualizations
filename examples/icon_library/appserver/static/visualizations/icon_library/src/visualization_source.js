@@ -3,6 +3,7 @@
  *
  * Renders Material Symbols icons on a Canvas with configurable color,
  * size, background shape, shadow, glow, label, and data-driven styling.
+ * Supports click drilldown (native Splunk + URL).
  *
  * Expected SPL columns (all optional):
  *   icon   — Material Symbols icon name (e.g. "home", "security")
@@ -38,12 +39,10 @@ define([
     }
 
     // ── Icon name sanitiser ─────────────────────────────────────
-    // Material Symbols names are lowercase_with_underscores only.
 
     function sanitizeIconName(name) {
         if (!name) return '';
-        var clean = name.toLowerCase().replace(/[^a-z0-9_]/g, '');
-        return clean;
+        return name.toLowerCase().replace(/[^a-z0-9_]/g, '');
     }
 
     // ── Font loading ────────────────────────────────────────────
@@ -96,7 +95,14 @@ define([
             SplunkVisualizationBase.prototype.initialize.apply(this, arguments);
             this.el.classList.add('icon-library-viz');
             this._lastConfig = null;
+            this._lastData = null;
+            this._drilldownUrl = '';
+            this._drilldownNewTab = true;
+            this._resolvedIcon = 'home';
+            this._resolvedLabel = '';
+            this._resolvedColor = '#06B6D4';
             this._setupNoDataObserver();
+            this._setupClickHandler();
         },
 
         _setupNoDataObserver: function() {
@@ -123,6 +129,37 @@ define([
             }
         },
 
+        _setupClickHandler: function() {
+            var self = this;
+            this.el.addEventListener('click', function(event) {
+                // URL drilldown takes priority if configured
+                var url = self._drilldownUrl;
+                if (url) {
+                    // Replace tokens in URL
+                    url = url.replace(/\$icon\$/g, self._resolvedIcon || '');
+                    url = url.replace(/\$label\$/g, self._resolvedLabel || '');
+                    url = url.replace(/\$color\$/g, encodeURIComponent(self._resolvedColor || ''));
+                    if (self._drilldownNewTab) {
+                        window.open(url, '_blank');
+                    } else {
+                        window.location.href = url;
+                    }
+                    return;
+                }
+
+                // Native Splunk drilldown (Dashboard Studio eventHandlers)
+                var drilldownData = {};
+                drilldownData['icon'] = self._resolvedIcon || '';
+                drilldownData['label'] = self._resolvedLabel || '';
+                drilldownData['color'] = self._resolvedColor || '';
+                event.preventDefault();
+                self.drilldown({
+                    action: SplunkVisualizationBase.FIELD_VALUE_DRILLDOWN,
+                    data: drilldownData
+                }, event);
+            });
+        },
+
         getInitialDataParams: function() {
             return {
                 outputMode: SplunkVisualizationBase.ROW_MAJOR_OUTPUT_MODE,
@@ -136,13 +173,14 @@ define([
 
         updateView: function(data, config) {
             this._lastConfig = config;
+            this._lastData = data;
             ensureFontLoaded();
             this._render(data, config);
         },
 
         reflow: function() {
             if (this._lastConfig) {
-                this._render(null, this._lastConfig);
+                this._render(this._lastData, this._lastConfig);
             }
         },
 
@@ -198,6 +236,12 @@ define([
             var glowSize    = parseInt(getOption(config, ns, 'glowSize', '12'), 10);
             var rotation    = parseInt(getOption(config, ns, 'rotation', '0'), 10);
 
+            var drilldownUrl = getOption(config, ns, 'drilldownUrl', '');
+            var drilldownNewTab = getOption(config, ns, 'drilldownNewTab', 'yes') === 'yes';
+
+            this._drilldownUrl = drilldownUrl;
+            this._drilldownNewTab = drilldownNewTab;
+
             // Sanitise and resolve icon name
             var resolvedIcon;
             var sanitized = sanitizeIconName(customIcon);
@@ -229,11 +273,18 @@ define([
                 }
             }
 
+            // Cache for drilldown payload
+            this._resolvedIcon = resolvedIcon;
+            this._resolvedLabel = labelText;
+            this._resolvedColor = iconColor;
+
+            // Cursor style
+            el.style.cursor = drilldownUrl ? 'pointer' : '';
+
             // ── Calculate sizes ──────────────────────────────────
             var hasLabel = (showLabel === 'yes' && labelText && labelText.trim() !== '');
             var pad = Math.max(8, Math.min(w, h) * 0.04);
 
-            // Auto-size icon: fill most of the panel
             var computedIconSize;
             if (iconSize > 0) {
                 computedIconSize = iconSize;
@@ -245,7 +296,6 @@ define([
                 computedIconSize = Math.max(16, sizeRef * 0.80);
             }
 
-            // Auto-size label
             var computedLabelSize;
             if (labelSize > 0) {
                 computedLabelSize = labelSize;
@@ -253,17 +303,12 @@ define([
                 computedLabelSize = Math.max(8, Math.min(20, Math.min(w, h) * 0.09));
             }
 
-            // Label height for layout
             var labelH = hasLabel ? (computedLabelSize + 6) : 0;
-
-            // Total content height = icon + gap + label
             var contentH = computedIconSize + (hasLabel ? 8 + labelH : 0);
-            var contentW = computedIconSize;
 
             // ── Alignment ────────────────────────────────────────
             var cx, cy;
 
-            // Horizontal
             if (hAlign === 'left') {
                 cx = pad + computedIconSize / 2;
             } else if (hAlign === 'right') {
@@ -272,13 +317,11 @@ define([
                 cx = w / 2;
             }
 
-            // Vertical — cy is the center of the ICON (not the full content block)
             if (vAlign === 'top') {
                 cy = pad + computedIconSize / 2;
             } else if (vAlign === 'bottom') {
                 cy = h - pad - labelH - (hasLabel ? 8 : 0) - computedIconSize / 2;
             } else {
-                // center: center the entire content block (icon + gap + label)
                 var blockTop = (h - contentH) / 2;
                 cy = blockTop + computedIconSize / 2;
             }
@@ -287,14 +330,11 @@ define([
             ctx.clearRect(0, 0, w, h);
 
             // ── Draw background shape ────────────────────────────
-            // The background encompasses BOTH icon and label
             if (bgShape !== 'none') {
                 ctx.save();
 
-                // Background dimensions include icon + label + padding
                 var bgW = computedIconSize + bgPadding * 2;
                 var bgH = contentH + bgPadding * 2;
-                // For circle, use the larger dimension
                 var bgDiameter = Math.max(bgW, bgH);
 
                 var bgCx = cx;

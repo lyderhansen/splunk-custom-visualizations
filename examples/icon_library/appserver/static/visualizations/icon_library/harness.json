@@ -134,6 +134,22 @@
           "type": "color",
           "key": "labelColor",
           "default": "#94A3B8"
+        },
+        {
+          "label": "Drilldown URL",
+          "type": "text",
+          "key": "drilldownUrl",
+          "default": ""
+        },
+        {
+          "label": "Drilldown Opens New Tab",
+          "type": "radio",
+          "key": "drilldownNewTab",
+          "default": "yes",
+          "options": [
+            { "label": "Yes", "value": "yes" },
+            { "label": "No", "value": "no" }
+          ]
         }
       ]
     },
