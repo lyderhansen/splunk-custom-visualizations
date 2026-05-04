@@ -1,270 +1,93 @@
 {
+  "label": "Icon Library",
+  "defaultSize": { "width": 400, "height": 400 },
+  "noDataMessage": "No data — icon renders from config only",
+  "dependencies": [],
   "fields": [
-    { "name": "icon", "type": "string" },
-    { "name": "color", "type": "string" },
-    { "name": "label", "type": "string" },
-    { "name": "value", "type": "number" }
-  ],
-  "rows": [
-    ["security", "#06B6D4", "Security", 95]
+    { "name": "icon", "label": "Icon Name", "type": "text", "default": "security" },
+    { "name": "color", "label": "Color Override (hex)", "type": "text", "default": "" },
+    { "name": "label", "label": "Label Override", "type": "text", "default": "" },
+    { "name": "value", "label": "Value (threshold)", "type": "slider", "min": 0, "max": 100, "step": 1, "default": 95 }
   ],
   "formatter": [
-    {
-      "section": "Data configurations",
-      "controls": [
-        {
-          "label": "Icon (Popular)",
-          "type": "select",
-          "key": "iconName",
-          "default": "home",
-          "options": [
-            { "label": "home", "value": "home" },
-            { "label": "search", "value": "search" },
-            { "label": "settings", "value": "settings" },
-            { "label": "favorite", "value": "favorite" },
-            { "label": "star", "value": "star" },
-            { "label": "check_circle", "value": "check_circle" },
-            { "label": "cancel", "value": "cancel" },
-            { "label": "info", "value": "info" },
-            { "label": "warning", "value": "warning" },
-            { "label": "error", "value": "error" },
-            { "label": "lock", "value": "lock" },
-            { "label": "person", "value": "person" },
-            { "label": "group", "value": "group" },
-            { "label": "security", "value": "security" },
-            { "label": "shield", "value": "shield" },
-            { "label": "notifications", "value": "notifications" },
-            { "label": "email", "value": "email" },
-            { "label": "cloud", "value": "cloud" },
-            { "label": "storage", "value": "storage" },
-            { "label": "database", "value": "database" },
-            { "label": "dns", "value": "dns" },
-            { "label": "dashboard", "value": "dashboard" },
-            { "label": "analytics", "value": "analytics" },
-            { "label": "trending_up", "value": "trending_up" },
-            { "label": "speed", "value": "speed" },
-            { "label": "bolt", "value": "bolt" },
-            { "label": "memory", "value": "memory" },
-            { "label": "terminal", "value": "terminal" },
-            { "label": "code", "value": "code" },
-            { "label": "bug_report", "value": "bug_report" },
-            { "label": "hub", "value": "hub" },
-            { "label": "router", "value": "router" },
-            { "label": "wifi", "value": "wifi" },
-            { "label": "lan", "value": "lan" },
-            { "label": "devices", "value": "devices" },
-            { "label": "computer", "value": "computer" },
-            { "label": "smartphone", "value": "smartphone" },
-            { "label": "location_on", "value": "location_on" },
-            { "label": "rocket_launch", "value": "rocket_launch" },
-            { "label": "task_alt", "value": "task_alt" },
-            { "label": "flag", "value": "flag" },
-            { "label": "emergency", "value": "emergency" }
-          ]
-        },
-        {
-          "label": "Custom Icon Name",
-          "type": "text",
-          "key": "customIcon",
-          "default": ""
-        }
-      ]
-    },
-    {
-      "section": "Data display",
-      "controls": [
-        {
-          "label": "Icon Size",
-          "type": "text",
-          "key": "iconSize",
-          "default": "0"
-        },
-        {
-          "label": "Horizontal Align",
-          "type": "radio",
-          "key": "hAlign",
-          "default": "center",
-          "options": [
-            { "label": "Left", "value": "left" },
-            { "label": "Center", "value": "center" },
-            { "label": "Right", "value": "right" }
-          ]
-        },
-        {
-          "label": "Vertical Align",
-          "type": "radio",
-          "key": "vAlign",
-          "default": "center",
-          "options": [
-            { "label": "Top", "value": "top" },
-            { "label": "Center", "value": "center" },
-            { "label": "Bottom", "value": "bottom" }
-          ]
-        },
-        {
-          "label": "Rotation",
-          "type": "text",
-          "key": "rotation",
-          "default": "0"
-        },
-        {
-          "label": "Show Label",
-          "type": "radio",
-          "key": "showLabel",
-          "default": "no",
-          "options": [
-            { "label": "Yes", "value": "yes" },
-            { "label": "No", "value": "no" }
-          ]
-        },
-        {
-          "label": "Label Text",
-          "type": "text",
-          "key": "labelText",
-          "default": ""
-        },
-        {
-          "label": "Label Size",
-          "type": "text",
-          "key": "labelSize",
-          "default": "0"
-        },
-        {
-          "label": "Label Color",
-          "type": "color",
-          "key": "labelColor",
-          "default": "#94A3B8"
-        },
-        {
-          "label": "Enable Drilldown",
-          "type": "radio",
-          "key": "drilldown",
-          "default": "no",
-          "options": [
-            { "label": "Yes", "value": "yes" },
-            { "label": "No", "value": "no" }
-          ]
-        },
-        {
-          "label": "Drilldown URL",
-          "type": "text",
-          "key": "drilldownUrl",
-          "default": ""
-        },
-        {
-          "label": "Drilldown Opens New Tab",
-          "type": "radio",
-          "key": "drilldownNewTab",
-          "default": "yes",
-          "options": [
-            { "label": "Yes", "value": "yes" },
-            { "label": "No", "value": "no" }
-          ]
-        }
-      ]
-    },
-    {
-      "section": "Color and style",
-      "controls": [
-        {
-          "label": "Icon Color",
-          "type": "color",
-          "key": "iconColor",
-          "default": "#06B6D4"
-        },
-        {
-          "label": "Background Shape",
-          "type": "select",
-          "key": "bgShape",
-          "default": "none",
-          "options": [
-            { "label": "None", "value": "none" },
-            { "label": "Circle", "value": "circle" },
-            { "label": "Rounded Rectangle", "value": "rounded_rect" },
-            { "label": "Square", "value": "square" }
-          ]
-        },
-        {
-          "label": "Background Color",
-          "type": "color",
-          "key": "bgColor",
-          "default": "#1E293B"
-        },
-        {
-          "label": "Background Opacity",
-          "type": "text",
-          "key": "bgOpacity",
-          "default": "1"
-        },
-        {
-          "label": "Background Padding",
-          "type": "text",
-          "key": "bgPadding",
-          "default": "16"
-        },
-        {
-          "label": "Background Corner Radius",
-          "type": "text",
-          "key": "bgRadius",
-          "default": "12"
-        },
-        {
-          "label": "Shadow",
-          "type": "radio",
-          "key": "shadow",
-          "default": "no",
-          "options": [
-            { "label": "Yes", "value": "yes" },
-            { "label": "No", "value": "no" }
-          ]
-        },
-        {
-          "label": "Shadow Color",
-          "type": "color",
-          "key": "shadowColor",
-          "default": "#000000"
-        },
-        {
-          "label": "Shadow Blur",
-          "type": "text",
-          "key": "shadowBlur",
-          "default": "8"
-        },
-        {
-          "label": "Shadow Offset X",
-          "type": "text",
-          "key": "shadowOffsetX",
-          "default": "0"
-        },
-        {
-          "label": "Shadow Offset Y",
-          "type": "text",
-          "key": "shadowOffsetY",
-          "default": "4"
-        },
-        {
-          "label": "Glow",
-          "type": "radio",
-          "key": "glow",
-          "default": "no",
-          "options": [
-            { "label": "Yes", "value": "yes" },
-            { "label": "No", "value": "no" }
-          ]
-        },
-        {
-          "label": "Glow Color",
-          "type": "color",
-          "key": "glowColor",
-          "default": "#06B6D4"
-        },
-        {
-          "label": "Glow Size",
-          "type": "text",
-          "key": "glowSize",
-          "default": "12"
-        }
-      ]
-    }
-  ]
+    { "name": "iconName", "label": "Icon (Popular)", "type": "select", "default": "home", "options": [
+      { "v": "home", "l": "home" },
+      { "v": "search", "l": "search" },
+      { "v": "settings", "l": "settings" },
+      { "v": "favorite", "l": "favorite" },
+      { "v": "star", "l": "star" },
+      { "v": "check_circle", "l": "check_circle" },
+      { "v": "cancel", "l": "cancel" },
+      { "v": "info", "l": "info" },
+      { "v": "warning", "l": "warning" },
+      { "v": "error", "l": "error" },
+      { "v": "lock", "l": "lock" },
+      { "v": "person", "l": "person" },
+      { "v": "group", "l": "group" },
+      { "v": "security", "l": "security" },
+      { "v": "shield", "l": "shield" },
+      { "v": "notifications", "l": "notifications" },
+      { "v": "email", "l": "email" },
+      { "v": "cloud", "l": "cloud" },
+      { "v": "storage", "l": "storage" },
+      { "v": "database", "l": "database" },
+      { "v": "dns", "l": "dns" },
+      { "v": "dashboard", "l": "dashboard" },
+      { "v": "analytics", "l": "analytics" },
+      { "v": "trending_up", "l": "trending_up" },
+      { "v": "speed", "l": "speed" },
+      { "v": "bolt", "l": "bolt" },
+      { "v": "memory", "l": "memory" },
+      { "v": "terminal", "l": "terminal" },
+      { "v": "code", "l": "code" },
+      { "v": "bug_report", "l": "bug_report" },
+      { "v": "hub", "l": "hub" },
+      { "v": "router", "l": "router" },
+      { "v": "wifi", "l": "wifi" },
+      { "v": "lan", "l": "lan" },
+      { "v": "devices", "l": "devices" },
+      { "v": "computer", "l": "computer" },
+      { "v": "smartphone", "l": "smartphone" },
+      { "v": "location_on", "l": "location_on" },
+      { "v": "rocket_launch", "l": "rocket_launch" },
+      { "v": "task_alt", "l": "task_alt" },
+      { "v": "flag", "l": "flag" },
+      { "v": "emergency", "l": "emergency" }
+    ]},
+    { "name": "customIcon", "label": "Custom Icon Name", "type": "text", "default": "" },
+    { "name": "iconColor", "label": "Icon Color", "type": "color", "default": "#06B6D4" },
+    { "name": "iconSize", "label": "Icon Size (0=auto)", "type": "text", "default": "0" },
+    { "name": "hAlign", "label": "Horizontal Align", "type": "radio", "options": ["left", "center", "right"], "default": "center" },
+    { "name": "vAlign", "label": "Vertical Align", "type": "radio", "options": ["top", "center", "bottom"], "default": "center" },
+    { "name": "rotation", "label": "Rotation (degrees)", "type": "text", "default": "0" },
+    { "name": "showLabel", "label": "Show Label", "type": "radio", "options": ["yes", "no"], "default": "no" },
+    { "name": "labelText", "label": "Label Text", "type": "text", "default": "" },
+    { "name": "labelSize", "label": "Label Size (0=auto)", "type": "text", "default": "0" },
+    { "name": "labelColor", "label": "Label Color", "type": "color", "default": "#94A3B8" },
+    { "name": "bgShape", "label": "Background Shape", "type": "select", "default": "none", "options": [
+      { "v": "none", "l": "None" },
+      { "v": "circle", "l": "Circle" },
+      { "v": "rounded_rect", "l": "Rounded Rectangle" },
+      { "v": "square", "l": "Square" }
+    ]},
+    { "name": "bgColor", "label": "Background Color", "type": "color", "default": "#1E293B" },
+    { "name": "bgOpacity", "label": "Background Opacity", "type": "text", "default": "1" },
+    { "name": "bgPadding", "label": "Background Padding", "type": "text", "default": "16" },
+    { "name": "bgRadius", "label": "Corner Radius", "type": "text", "default": "12" },
+    { "name": "shadow", "label": "Shadow", "type": "radio", "options": ["yes", "no"], "default": "no" },
+    { "name": "shadowColor", "label": "Shadow Color", "type": "color", "default": "#000000" },
+    { "name": "shadowBlur", "label": "Shadow Blur", "type": "text", "default": "8" },
+    { "name": "shadowOffsetX", "label": "Shadow X", "type": "text", "default": "0" },
+    { "name": "shadowOffsetY", "label": "Shadow Y", "type": "text", "default": "4" },
+    { "name": "glow", "label": "Glow", "type": "radio", "options": ["yes", "no"], "default": "no" },
+    { "name": "glowColor", "label": "Glow Color", "type": "color", "default": "#06B6D4" },
+    { "name": "glowSize", "label": "Glow Size", "type": "text", "default": "12" },
+    { "name": "drilldown", "label": "Enable Drilldown", "type": "radio", "options": ["yes", "no"], "default": "no" },
+    { "name": "drilldownUrl", "label": "Drilldown URL", "type": "text", "default": "" },
+    { "name": "drilldownNewTab", "label": "Drilldown New Tab", "type": "radio", "options": ["yes", "no"], "default": "yes" }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": ["icon", "color", "label", "value"]
+  }
 }

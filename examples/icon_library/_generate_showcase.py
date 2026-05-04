@@ -26,7 +26,7 @@ color_icons = [
     "home", "star", "favorite", "bolt", "rocket_launch",
     "diamond", "light_mode", "dark_mode", "palette", "brush",
     "water_drop", "eco", "local_fire_department", "ac_unit", "sunny",
-    "nightlight", "cloud", "thunderstorm", "rainbow", "grade",
+    "nightlight", "cloud", "thunderstorm", "looks", "grade",
 ]
 for i, icon in enumerate(color_icons):
     sec1.append((icon, {"iconColor": COLORS[i % len(COLORS)]}))

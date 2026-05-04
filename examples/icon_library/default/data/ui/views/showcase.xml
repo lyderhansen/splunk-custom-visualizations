@@ -221,7 +221,7 @@
         "primary": "ds_stub"
       },
       "options": {
-        "icon_library.icon_library.iconName": "rainbow",
+        "icon_library.icon_library.iconName": "looks",
         "icon_library.icon_library.iconColor": "#64748B"
       }
     },
