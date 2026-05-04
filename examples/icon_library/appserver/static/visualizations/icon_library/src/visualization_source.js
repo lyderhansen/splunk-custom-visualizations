@@ -26,6 +26,14 @@ define([
         return defaultValue;
     }
 
+    function getNS(viz) {
+        try {
+            var info = viz.getPropertyNamespaceInfo();
+            if (info && info.propertyNamespace) return info.propertyNamespace;
+        } catch (e) { /* harness or early call */ }
+        return '';
+    }
+
     // ── Colour utilities ────────────────────────────────────────
 
     function hexToRgba(hex, alpha) {
@@ -48,18 +56,32 @@ define([
     // ── Font loading ────────────────────────────────────────────
 
     var _fontReady = false;
-    var _fontCallbacks = [];
+    var _fontPending = false;
 
-    function ensureFontLoaded(cb) {
-        if (_fontReady) { if (cb) cb(); return; }
-        if (cb) _fontCallbacks.push(cb);
-        if (typeof document !== 'undefined' && document.fonts && document.fonts.load) {
+    function loadFont(onReady) {
+        if (_fontReady) { onReady(); return; }
+        if (typeof document === 'undefined' || !document.fonts || !document.fonts.load) {
+            setTimeout(onReady, 200);
+            return;
+        }
+        if (!_fontPending) {
+            _fontPending = true;
             document.fonts.load('400 48px "Material Symbols Outlined"').then(function() {
                 _fontReady = true;
-                var cbs = _fontCallbacks.splice(0);
-                for (var i = 0; i < cbs.length; i++) cbs[i]();
             });
         }
+        // Poll until font is ready (handles both promise and CSS @font-face race)
+        var attempts = 0;
+        var poll = function() {
+            attempts++;
+            if (_fontReady || attempts > 30) {
+                _fontReady = true;
+                onReady();
+                return;
+            }
+            setTimeout(poll, 100);
+        };
+        poll();
     }
 
     // ── Background shape helpers ────────────────────────────────
@@ -97,7 +119,7 @@ define([
 
         initialize: function() {
             SplunkVisualizationBase.prototype.initialize.apply(this, arguments);
-            this.el.classList.add('icon-library-viz');
+            if (this.el) this.el.classList.add('icon-library-viz');
             this._lastConfig = null;
             this._lastData = null;
             this._drilldownEnabled = false;
@@ -106,13 +128,15 @@ define([
             this._resolvedIcon = 'home';
             this._resolvedLabel = '';
             this._resolvedColor = '#06B6D4';
-            this._fontRendered = false;
-            this._setupNoDataObserver();
-            this._setupClickHandler();
+            this._fontDone = false;
+            if (this.el) {
+                this._setupNoDataObserver();
+                this._setupClickHandler();
+            }
         },
 
         _setupNoDataObserver: function() {
-            if (typeof MutationObserver !== 'undefined') {
+            if (typeof MutationObserver !== 'undefined' && this.el) {
                 var observer = new MutationObserver(function(mutations) {
                     for (var i = 0; i < mutations.length; i++) {
                         for (var j = 0; j < mutations[i].addedNodes.length; j++) {
@@ -158,10 +182,12 @@ define([
                 drilldownData['label'] = self._resolvedLabel || '';
                 drilldownData['color'] = self._resolvedColor || '';
                 event.preventDefault();
-                self.drilldown({
-                    action: SplunkVisualizationBase.FIELD_VALUE_DRILLDOWN,
-                    data: drilldownData
-                }, event);
+                try {
+                    self.drilldown({
+                        action: SplunkVisualizationBase.FIELD_VALUE_DRILLDOWN,
+                        data: drilldownData
+                    }, event);
+                } catch (e) { /* harness or missing handler */ }
             });
         },
 
@@ -180,12 +206,11 @@ define([
             this._lastConfig = config;
             this._lastData = data;
             var self = this;
-            if (!_fontReady) {
-                ensureFontLoaded(function() {
-                    self._fontRendered = false;
+            if (!this._fontDone) {
+                loadFont(function() {
+                    self._fontDone = true;
                     self._render(data, config);
                 });
-                this._render(data, config);
             } else {
                 this._render(data, config);
             }
@@ -202,8 +227,10 @@ define([
         },
 
         _render: function(data, config) {
-            var ns = this.getPropertyNamespaceInfo().propertyNamespace;
+            if (!config) config = {};
+            var ns = getNS(this);
             var el = this.el;
+            if (!el) return;
             var w = el.offsetWidth;
             var h = el.offsetHeight;
             if (w <= 0 || h <= 0) return;
@@ -292,7 +319,6 @@ define([
             this._resolvedLabel = labelText;
             this._resolvedColor = iconColor;
 
-            // Pointer cursor when drilldown is active
             el.style.cursor = this._drilldownEnabled ? 'pointer' : '';
             if (canvas) canvas.style.cursor = this._drilldownEnabled ? 'pointer' : '';
 
@@ -300,12 +326,10 @@ define([
             var hasLabel = (showLabel === 'yes' && labelText && labelText.trim() !== '');
             var pad = Math.max(8, Math.min(w, h) * 0.04);
 
-            // Extra room needed for effects (glow/shadow bleed)
             var effectPad = 0;
             if (glowOn === 'yes') effectPad = Math.max(effectPad, glowSize);
             if (shadowOn === 'yes') effectPad = Math.max(effectPad, shadowBlur + Math.abs(shadowX) + Math.abs(shadowY));
 
-            // Available space after padding and effect bleed
             var availW = w - (pad + effectPad) * 2;
             var availH = h - (pad + effectPad) * 2;
             if (availW < 16) availW = 16;
@@ -315,9 +339,6 @@ define([
             if (iconSize > 0) {
                 computedIconSize = iconSize;
             } else if (bgShape !== 'none') {
-                // When background is active, icon must fit INSIDE
-                // background which itself must fit inside the panel.
-                // For circle: diameter = iconSize + bgPadding*2, must fit in min(availW, availH)
                 var maxBgDim = Math.min(availW, availH);
                 var iconBudget = maxBgDim - bgPadding * 2;
                 if (hasLabel) {
@@ -450,8 +471,6 @@ define([
                 ctx.fillText(labelText, cx, labelY);
                 ctx.restore();
             }
-
-            this._fontRendered = true;
         }
     });
 });
