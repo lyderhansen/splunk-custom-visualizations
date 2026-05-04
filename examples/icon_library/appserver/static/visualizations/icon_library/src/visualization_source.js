@@ -37,11 +37,16 @@ define([
         return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
     }
 
-    // ── Material Symbols icon name → ligature text mapping ──────
-    // The font uses ligatures: ctx.fillText('home', x, y) renders the home icon.
-    // We just pass the icon name string directly.
+    // ── Icon name sanitiser ─────────────────────────────────────
+    // Material Symbols names are lowercase_with_underscores only.
 
-    // ── Font loading promise cache ──────────────────────────────
+    function sanitizeIconName(name) {
+        if (!name) return '';
+        var clean = name.toLowerCase().replace(/[^a-z0-9_]/g, '');
+        return clean;
+    }
+
+    // ── Font loading ────────────────────────────────────────────
 
     var _fontLoaded = false;
 
@@ -77,9 +82,9 @@ define([
         ctx.closePath();
     }
 
-    function drawSquareBg(ctx, x, y, size) {
+    function drawSquareBg(ctx, x, y, w, h) {
         ctx.beginPath();
-        ctx.rect(x, y, size, size);
+        ctx.rect(x, y, w, h);
         ctx.closePath();
     }
 
@@ -95,7 +100,6 @@ define([
         },
 
         _setupNoDataObserver: function() {
-            var self = this;
             if (typeof MutationObserver !== 'undefined') {
                 var observer = new MutationObserver(function(mutations) {
                     for (var i = 0; i < mutations.length; i++) {
@@ -155,7 +159,6 @@ define([
 
             var dpr = window.devicePixelRatio || 1;
 
-            // Get or create canvas
             var canvas = el.querySelector('canvas');
             if (!canvas) {
                 canvas = document.createElement('canvas');
@@ -174,6 +177,8 @@ define([
             var customIcon  = getOption(config, ns, 'customIcon', '');
             var iconColor   = getOption(config, ns, 'iconColor', '#06B6D4');
             var iconSize    = parseInt(getOption(config, ns, 'iconSize', '0'), 10);
+            var hAlign      = getOption(config, ns, 'hAlign', 'center');
+            var vAlign      = getOption(config, ns, 'vAlign', 'center');
             var bgShape     = getOption(config, ns, 'bgShape', 'none');
             var bgColor     = getOption(config, ns, 'bgColor', '#1E293B');
             var bgOpacity   = parseFloat(getOption(config, ns, 'bgOpacity', '1'));
@@ -193,8 +198,14 @@ define([
             var glowSize    = parseInt(getOption(config, ns, 'glowSize', '12'), 10);
             var rotation    = parseInt(getOption(config, ns, 'rotation', '0'), 10);
 
-            // Use custom icon name if provided, otherwise use dropdown selection
-            var resolvedIcon = (customIcon && customIcon.trim() !== '') ? customIcon.trim() : iconName;
+            // Sanitise and resolve icon name
+            var resolvedIcon;
+            var sanitized = sanitizeIconName(customIcon);
+            if (sanitized !== '') {
+                resolvedIcon = sanitized;
+            } else {
+                resolvedIcon = sanitizeIconName(iconName) || 'home';
+            }
 
             // ── Data-driven overrides ────────────────────────────
             if (data && data.rows && data.rows.length > 0 && data.fields) {
@@ -204,7 +215,7 @@ define([
                     var fname = fields[fi].name;
                     var fval = row[fi];
                     if (fval === null || fval === undefined) continue;
-                    if (fname === 'icon') resolvedIcon = String(fval);
+                    if (fname === 'icon') resolvedIcon = sanitizeIconName(String(fval)) || resolvedIcon;
                     if (fname === 'color') iconColor = String(fval);
                     if (fname === 'label') { labelText = String(fval); showLabel = 'yes'; }
                     if (fname === 'value') {
@@ -220,15 +231,18 @@ define([
 
             // ── Calculate sizes ──────────────────────────────────
             var hasLabel = (showLabel === 'yes' && labelText && labelText.trim() !== '');
-            var availH = hasLabel ? h * 0.75 : h;
-            var availW = w;
+            var pad = Math.max(8, Math.min(w, h) * 0.04);
 
-            // Auto-size icon if iconSize is 0
+            // Auto-size icon: fill most of the panel
             var computedIconSize;
             if (iconSize > 0) {
                 computedIconSize = iconSize;
             } else {
-                computedIconSize = Math.max(16, Math.min(availW, availH) * 0.55);
+                var sizeRef = Math.min(w, h) - pad * 2;
+                if (hasLabel) {
+                    sizeRef = Math.min(w, h * 0.78) - pad * 2;
+                }
+                computedIconSize = Math.max(16, sizeRef * 0.80);
             }
 
             // Auto-size label
@@ -239,23 +253,59 @@ define([
                 computedLabelSize = Math.max(8, Math.min(20, Math.min(w, h) * 0.09));
             }
 
-            // Center positions
-            var cx = w / 2;
-            var cy = hasLabel ? availH * 0.5 : h / 2;
+            // Label height for layout
+            var labelH = hasLabel ? (computedLabelSize + 6) : 0;
+
+            // Total content height = icon + gap + label
+            var contentH = computedIconSize + (hasLabel ? 8 + labelH : 0);
+            var contentW = computedIconSize;
+
+            // ── Alignment ────────────────────────────────────────
+            var cx, cy;
+
+            // Horizontal
+            if (hAlign === 'left') {
+                cx = pad + computedIconSize / 2;
+            } else if (hAlign === 'right') {
+                cx = w - pad - computedIconSize / 2;
+            } else {
+                cx = w / 2;
+            }
+
+            // Vertical — cy is the center of the ICON (not the full content block)
+            if (vAlign === 'top') {
+                cy = pad + computedIconSize / 2;
+            } else if (vAlign === 'bottom') {
+                cy = h - pad - labelH - (hasLabel ? 8 : 0) - computedIconSize / 2;
+            } else {
+                // center: center the entire content block (icon + gap + label)
+                var blockTop = (h - contentH) / 2;
+                cy = blockTop + computedIconSize / 2;
+            }
 
             // ── Clear ────────────────────────────────────────────
             ctx.clearRect(0, 0, w, h);
 
             // ── Draw background shape ────────────────────────────
+            // The background encompasses BOTH icon and label
             if (bgShape !== 'none') {
                 ctx.save();
+
+                // Background dimensions include icon + label + padding
+                var bgW = computedIconSize + bgPadding * 2;
+                var bgH = contentH + bgPadding * 2;
+                // For circle, use the larger dimension
+                var bgDiameter = Math.max(bgW, bgH);
+
+                var bgCx = cx;
+                var bgCy = cy + (contentH - computedIconSize) / 2;
+
                 if (rotation !== 0) {
-                    ctx.translate(cx, cy);
+                    ctx.translate(bgCx, bgCy);
                     ctx.rotate(rotation * Math.PI / 180);
-                    ctx.translate(-cx, -cy);
+                    ctx.translate(-bgCx, -bgCy);
                 }
 
-                var bgSizeDim = computedIconSize + bgPadding * 2;
                 ctx.globalAlpha = bgOpacity;
 
                 if (shadowOn === 'yes') {
@@ -268,13 +318,13 @@ define([
                 ctx.fillStyle = bgColor;
 
                 if (bgShape === 'circle') {
-                    drawCircleBg(ctx, cx, cy, bgSizeDim / 2);
+                    drawCircleBg(ctx, bgCx, bgCy, bgDiameter / 2);
                     ctx.fill();
                 } else if (bgShape === 'rounded_rect') {
-                    drawRoundedRectBg(ctx, cx - bgSizeDim / 2, cy - bgSizeDim / 2, bgSizeDim, bgSizeDim, bgRadius);
+                    drawRoundedRectBg(ctx, bgCx - bgW / 2, bgCy - bgH / 2, bgW, bgH, bgRadius);
                     ctx.fill();
                 } else if (bgShape === 'square') {
-                    drawSquareBg(ctx, cx - bgSizeDim / 2, cy - bgSizeDim / 2, bgSizeDim);
+                    drawSquareBg(ctx, bgCx - bgW / 2, bgCy - bgH / 2, bgW, bgH);
                     ctx.fill();
                 }
 
@@ -307,7 +357,6 @@ define([
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            // Material Symbols uses ligatures: the icon name IS the text
             ctx.fillText(resolvedIcon, cx, cy);
 
             ctx.restore();

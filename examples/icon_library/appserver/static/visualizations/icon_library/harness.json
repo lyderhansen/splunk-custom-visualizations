@@ -25,18 +25,14 @@
             { "label": "star", "value": "star" },
             { "label": "check_circle", "value": "check_circle" },
             { "label": "cancel", "value": "cancel" },
-            { "label": "delete", "value": "delete" },
             { "label": "info", "value": "info" },
             { "label": "warning", "value": "warning" },
             { "label": "error", "value": "error" },
-            { "label": "help", "value": "help" },
             { "label": "lock", "value": "lock" },
             { "label": "person", "value": "person" },
             { "label": "group", "value": "group" },
             { "label": "security", "value": "security" },
             { "label": "shield", "value": "shield" },
-            { "label": "vpn_key", "value": "vpn_key" },
-            { "label": "fingerprint", "value": "fingerprint" },
             { "label": "notifications", "value": "notifications" },
             { "label": "email", "value": "email" },
             { "label": "cloud", "value": "cloud" },
@@ -46,7 +42,6 @@
             { "label": "dashboard", "value": "dashboard" },
             { "label": "analytics", "value": "analytics" },
             { "label": "trending_up", "value": "trending_up" },
-            { "label": "bar_chart", "value": "bar_chart" },
             { "label": "speed", "value": "speed" },
             { "label": "bolt", "value": "bolt" },
             { "label": "memory", "value": "memory" },
@@ -83,6 +78,28 @@
           "type": "text",
           "key": "iconSize",
           "default": "0"
+        },
+        {
+          "label": "Horizontal Align",
+          "type": "radio",
+          "key": "hAlign",
+          "default": "center",
+          "options": [
+            { "label": "Left", "value": "left" },
+            { "label": "Center", "value": "center" },
+            { "label": "Right", "value": "right" }
+          ]
+        },
+        {
+          "label": "Vertical Align",
+          "type": "radio",
+          "key": "vAlign",
+          "default": "center",
+          "options": [
+            { "label": "Top", "value": "top" },
+            { "label": "Center", "value": "center" },
+            { "label": "Bottom", "value": "bottom" }
+          ]
         },
         {
           "label": "Rotation",

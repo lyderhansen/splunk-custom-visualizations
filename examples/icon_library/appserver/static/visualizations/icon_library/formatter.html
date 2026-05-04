@@ -1,5 +1,5 @@
 <form class="splunk-formatter-section" section-label="Data configurations">
-    <splunk-control-group label="Icon (Popular)" help="Pick a popular Material Symbols icon from the list">
+    <splunk-control-group label="Icon (Popular)" help="Pick a popular Material Symbols icon from the list. Overridden by Custom Icon Name if set.">
         <splunk-select name="{{VIZ_NAMESPACE}}.iconName" value="home">
             <option value="home">home</option>
             <option value="search">search</option>
@@ -185,16 +185,32 @@
         </splunk-select>
     </splunk-control-group>
 
-    <splunk-control-group label="Custom Icon Name" help="Type any Material Symbols icon name (overrides dropdown). Browse all icons at fonts.google.com/icons">
+    <splunk-control-group label="Custom Icon Name" help="Syntax: lowercase_with_underscores only (e.g. mode_heat_off, nest_thermostat). Browse all names at fonts.google.com/icons. Only a-z, 0-9, _ allowed. Overrides dropdown above.">
         <splunk-text-input name="{{VIZ_NAMESPACE}}.customIcon" value="">
         </splunk-text-input>
     </splunk-control-group>
 </form>
 
 <form class="splunk-formatter-section" section-label="Data display">
-    <splunk-control-group label="Icon Size" help="Icon size in pixels (0 = auto-scale to panel)">
+    <splunk-control-group label="Icon Size" help="Icon size in pixels. 0 = auto-scale to fill the panel.">
         <splunk-text-input name="{{VIZ_NAMESPACE}}.iconSize" value="0">
         </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Horizontal Align" help="Horizontal position of icon within the panel">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.hAlign" value="center">
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Vertical Align" help="Vertical position of icon within the panel">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.vAlign" value="center">
+            <option value="top">Top</option>
+            <option value="center">Center</option>
+            <option value="bottom">Bottom</option>
+        </splunk-radio-input>
     </splunk-control-group>
 
     <splunk-control-group label="Rotation" help="Rotation angle in degrees (0-360)">
@@ -202,7 +218,7 @@
         </splunk-text-input>
     </splunk-control-group>
 
-    <splunk-control-group label="Show Label" help="Display a text label below the icon">
+    <splunk-control-group label="Show Label" help="Display a text label below the icon (inside background shape if enabled)">
         <splunk-radio-input name="{{VIZ_NAMESPACE}}.showLabel" value="no">
             <option value="yes">Yes</option>
             <option value="no">No</option>
@@ -247,7 +263,7 @@
         </splunk-color-picker>
     </splunk-control-group>
 
-    <splunk-control-group label="Background Shape" help="Shape rendered behind the icon">
+    <splunk-control-group label="Background Shape" help="Shape rendered behind the icon and label">
         <splunk-select name="{{VIZ_NAMESPACE}}.bgShape" value="none">
             <option value="none">None</option>
             <option value="circle">Circle</option>
