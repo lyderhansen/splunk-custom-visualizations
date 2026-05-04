@@ -1,0 +1,227 @@
+{
+  "fields": [
+    { "name": "icon", "type": "string" },
+    { "name": "color", "type": "string" },
+    { "name": "label", "type": "string" },
+    { "name": "value", "type": "number" }
+  ],
+  "rows": [
+    ["security", "#06B6D4", "Security", 95]
+  ],
+  "formatter": [
+    {
+      "section": "Data configurations",
+      "controls": [
+        {
+          "label": "Icon (Popular)",
+          "type": "select",
+          "key": "iconName",
+          "default": "home",
+          "options": [
+            { "label": "home", "value": "home" },
+            { "label": "search", "value": "search" },
+            { "label": "settings", "value": "settings" },
+            { "label": "favorite", "value": "favorite" },
+            { "label": "star", "value": "star" },
+            { "label": "check_circle", "value": "check_circle" },
+            { "label": "cancel", "value": "cancel" },
+            { "label": "delete", "value": "delete" },
+            { "label": "info", "value": "info" },
+            { "label": "warning", "value": "warning" },
+            { "label": "error", "value": "error" },
+            { "label": "help", "value": "help" },
+            { "label": "lock", "value": "lock" },
+            { "label": "person", "value": "person" },
+            { "label": "group", "value": "group" },
+            { "label": "security", "value": "security" },
+            { "label": "shield", "value": "shield" },
+            { "label": "vpn_key", "value": "vpn_key" },
+            { "label": "fingerprint", "value": "fingerprint" },
+            { "label": "notifications", "value": "notifications" },
+            { "label": "email", "value": "email" },
+            { "label": "cloud", "value": "cloud" },
+            { "label": "storage", "value": "storage" },
+            { "label": "database", "value": "database" },
+            { "label": "dns", "value": "dns" },
+            { "label": "dashboard", "value": "dashboard" },
+            { "label": "analytics", "value": "analytics" },
+            { "label": "trending_up", "value": "trending_up" },
+            { "label": "bar_chart", "value": "bar_chart" },
+            { "label": "speed", "value": "speed" },
+            { "label": "bolt", "value": "bolt" },
+            { "label": "memory", "value": "memory" },
+            { "label": "terminal", "value": "terminal" },
+            { "label": "code", "value": "code" },
+            { "label": "bug_report", "value": "bug_report" },
+            { "label": "hub", "value": "hub" },
+            { "label": "router", "value": "router" },
+            { "label": "wifi", "value": "wifi" },
+            { "label": "lan", "value": "lan" },
+            { "label": "devices", "value": "devices" },
+            { "label": "computer", "value": "computer" },
+            { "label": "smartphone", "value": "smartphone" },
+            { "label": "location_on", "value": "location_on" },
+            { "label": "rocket_launch", "value": "rocket_launch" },
+            { "label": "task_alt", "value": "task_alt" },
+            { "label": "flag", "value": "flag" },
+            { "label": "emergency", "value": "emergency" }
+          ]
+        },
+        {
+          "label": "Custom Icon Name",
+          "type": "text",
+          "key": "customIcon",
+          "default": ""
+        }
+      ]
+    },
+    {
+      "section": "Data display",
+      "controls": [
+        {
+          "label": "Icon Size",
+          "type": "text",
+          "key": "iconSize",
+          "default": "0"
+        },
+        {
+          "label": "Rotation",
+          "type": "text",
+          "key": "rotation",
+          "default": "0"
+        },
+        {
+          "label": "Show Label",
+          "type": "radio",
+          "key": "showLabel",
+          "default": "no",
+          "options": [
+            { "label": "Yes", "value": "yes" },
+            { "label": "No", "value": "no" }
+          ]
+        },
+        {
+          "label": "Label Text",
+          "type": "text",
+          "key": "labelText",
+          "default": ""
+        },
+        {
+          "label": "Label Size",
+          "type": "text",
+          "key": "labelSize",
+          "default": "0"
+        },
+        {
+          "label": "Label Color",
+          "type": "color",
+          "key": "labelColor",
+          "default": "#94A3B8"
+        }
+      ]
+    },
+    {
+      "section": "Color and style",
+      "controls": [
+        {
+          "label": "Icon Color",
+          "type": "color",
+          "key": "iconColor",
+          "default": "#06B6D4"
+        },
+        {
+          "label": "Background Shape",
+          "type": "select",
+          "key": "bgShape",
+          "default": "none",
+          "options": [
+            { "label": "None", "value": "none" },
+            { "label": "Circle", "value": "circle" },
+            { "label": "Rounded Rectangle", "value": "rounded_rect" },
+            { "label": "Square", "value": "square" }
+          ]
+        },
+        {
+          "label": "Background Color",
+          "type": "color",
+          "key": "bgColor",
+          "default": "#1E293B"
+        },
+        {
+          "label": "Background Opacity",
+          "type": "text",
+          "key": "bgOpacity",
+          "default": "1"
+        },
+        {
+          "label": "Background Padding",
+          "type": "text",
+          "key": "bgPadding",
+          "default": "16"
+        },
+        {
+          "label": "Background Corner Radius",
+          "type": "text",
+          "key": "bgRadius",
+          "default": "12"
+        },
+        {
+          "label": "Shadow",
+          "type": "radio",
+          "key": "shadow",
+          "default": "no",
+          "options": [
+            { "label": "Yes", "value": "yes" },
+            { "label": "No", "value": "no" }
+          ]
+        },
+        {
+          "label": "Shadow Color",
+          "type": "color",
+          "key": "shadowColor",
+          "default": "#000000"
+        },
+        {
+          "label": "Shadow Blur",
+          "type": "text",
+          "key": "shadowBlur",
+          "default": "8"
+        },
+        {
+          "label": "Shadow Offset X",
+          "type": "text",
+          "key": "shadowOffsetX",
+          "default": "0"
+        },
+        {
+          "label": "Shadow Offset Y",
+          "type": "text",
+          "key": "shadowOffsetY",
+          "default": "4"
+        },
+        {
+          "label": "Glow",
+          "type": "radio",
+          "key": "glow",
+          "default": "no",
+          "options": [
+            { "label": "Yes", "value": "yes" },
+            { "label": "No", "value": "no" }
+          ]
+        },
+        {
+          "label": "Glow Color",
+          "type": "color",
+          "key": "glowColor",
+          "default": "#06B6D4"
+        },
+        {
+          "label": "Glow Size",
+          "type": "text",
+          "key": "glowSize",
+          "default": "12"
+        }
+      ]
+    }
+  ]
+}

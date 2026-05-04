@@ -71,7 +71,8 @@
       "live_ticker",
       "network_topology",
       "arcade_leaderboard",
-      "infographic_shapes"
+      "infographic_shapes",
+      "icon_library"
     ]
   },
   "vizs": [
@@ -222,6 +223,7 @@
     "scheduler_health",
     "search_activity",
     "index_storage",
-    "infographic_shapes"
+    "infographic_shapes",
+    "icon_library"
   ]
 }

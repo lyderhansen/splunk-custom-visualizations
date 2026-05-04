@@ -1,0 +1,356 @@
+<dashboard version="2" theme="dark">
+<label>Icon Library Showcase</label>
+<description>Material Symbols icon library - 2500+ icons with color, size, background, and effects</description>
+<definition><![CDATA[
+{
+    "title": "Icon Library Showcase",
+    "description": "Material Symbols icon library - 2500+ icons with color, size, background, and effects",
+    "inputs": {
+        "input_global_time": {
+            "type": "input.timerange",
+            "title": "Time Range",
+            "options": { "token": "global_time", "defaultValue": "-24h@h,now" }
+        }
+    },
+    "defaults": {
+        "dataSources": {
+            "ds.search": {
+                "options": {
+                    "queryParameters": {
+                        "earliest": "$global_time.earliest$",
+                        "latest": "$global_time.latest$"
+                    }
+                }
+            }
+        }
+    },
+    "dataSources": {
+        "ds_stub": {
+            "type": "ds.test",
+            "options": {
+                "data": {
+                    "fields": [{"name": "_stub"}],
+                    "rows": [["1"]]
+                }
+            },
+            "name": "Stub data for config-only panels"
+        }
+    },
+    "visualizations": {
+        "viz_title": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "# Icon Library Showcase\nMaterial Symbols Outlined - 2500+ icons with configurable color, size, background shape, and effects",
+                "fontColor": "#F8FAFC",
+                "backgroundColor": "transparent"
+            }
+        },
+
+        "viz_sec_basic": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "## Basic Icons",
+                "fontColor": "#94A3B8",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_icon_home": {
+            "type": "icon_library.icon_library",
+            "title": "Home",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "home",
+                "icon_library.icon_library.iconColor": "#06B6D4",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Home"
+            }
+        },
+        "viz_icon_security": {
+            "type": "icon_library.icon_library",
+            "title": "Security",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "security",
+                "icon_library.icon_library.iconColor": "#22C55E",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Security"
+            }
+        },
+        "viz_icon_warning": {
+            "type": "icon_library.icon_library",
+            "title": "Warning",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "warning",
+                "icon_library.icon_library.iconColor": "#F59E0B",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Warning"
+            }
+        },
+        "viz_icon_error": {
+            "type": "icon_library.icon_library",
+            "title": "Error",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "error",
+                "icon_library.icon_library.iconColor": "#EF4444",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Error"
+            }
+        },
+        "viz_icon_cloud": {
+            "type": "icon_library.icon_library",
+            "title": "Cloud",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "cloud",
+                "icon_library.icon_library.iconColor": "#3B82F6",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Cloud"
+            }
+        },
+        "viz_icon_rocket": {
+            "type": "icon_library.icon_library",
+            "title": "Rocket",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "rocket_launch",
+                "icon_library.icon_library.iconColor": "#8B5CF6",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Deploy"
+            }
+        },
+
+        "viz_sec_bg": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "## Background Shapes",
+                "fontColor": "#94A3B8",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_bg_circle": {
+            "type": "icon_library.icon_library",
+            "title": "Circle Background",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "shield",
+                "icon_library.icon_library.iconColor": "#F8FAFC",
+                "icon_library.icon_library.bgShape": "circle",
+                "icon_library.icon_library.bgColor": "#164E63",
+                "icon_library.icon_library.bgPadding": "20",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Protected"
+            }
+        },
+        "viz_bg_rounded": {
+            "type": "icon_library.icon_library",
+            "title": "Rounded Rect Background",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "database",
+                "icon_library.icon_library.iconColor": "#F8FAFC",
+                "icon_library.icon_library.bgShape": "rounded_rect",
+                "icon_library.icon_library.bgColor": "#312E81",
+                "icon_library.icon_library.bgPadding": "20",
+                "icon_library.icon_library.bgRadius": "16",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Database"
+            }
+        },
+        "viz_bg_square": {
+            "type": "icon_library.icon_library",
+            "title": "Square Background",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "monitoring",
+                "icon_library.icon_library.iconColor": "#F8FAFC",
+                "icon_library.icon_library.bgShape": "square",
+                "icon_library.icon_library.bgColor": "#1E3A5F",
+                "icon_library.icon_library.bgPadding": "18",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Monitoring"
+            }
+        },
+
+        "viz_sec_effects": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "## Effects",
+                "fontColor": "#94A3B8",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_fx_glow": {
+            "type": "icon_library.icon_library",
+            "title": "Glow Effect",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "electric_bolt",
+                "icon_library.icon_library.iconColor": "#06B6D4",
+                "icon_library.icon_library.glow": "yes",
+                "icon_library.icon_library.glowColor": "#06B6D4",
+                "icon_library.icon_library.glowSize": "20",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Glow"
+            }
+        },
+        "viz_fx_shadow": {
+            "type": "icon_library.icon_library",
+            "title": "Shadow Effect",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "layers",
+                "icon_library.icon_library.iconColor": "#F8FAFC",
+                "icon_library.icon_library.shadow": "yes",
+                "icon_library.icon_library.shadowBlur": "12",
+                "icon_library.icon_library.shadowOffsetY": "6",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Shadow"
+            }
+        },
+        "viz_fx_glow_bg": {
+            "type": "icon_library.icon_library",
+            "title": "Glow + Background",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "emergency",
+                "icon_library.icon_library.iconColor": "#EF4444",
+                "icon_library.icon_library.bgShape": "circle",
+                "icon_library.icon_library.bgColor": "#1A1A2E",
+                "icon_library.icon_library.bgPadding": "20",
+                "icon_library.icon_library.glow": "yes",
+                "icon_library.icon_library.glowColor": "#EF4444",
+                "icon_library.icon_library.glowSize": "16",
+                "icon_library.icon_library.shadow": "yes",
+                "icon_library.icon_library.shadowBlur": "10",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Critical"
+            }
+        },
+
+        "viz_sec_network": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "## Network and Infrastructure Icons",
+                "fontColor": "#94A3B8",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_net_router": {
+            "type": "icon_library.icon_library",
+            "title": "Router",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "router",
+                "icon_library.icon_library.iconColor": "#06B6D4",
+                "icon_library.icon_library.bgShape": "rounded_rect",
+                "icon_library.icon_library.bgColor": "#1E293B",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Router"
+            }
+        },
+        "viz_net_wifi": {
+            "type": "icon_library.icon_library",
+            "title": "WiFi",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "wifi",
+                "icon_library.icon_library.iconColor": "#22C55E",
+                "icon_library.icon_library.bgShape": "rounded_rect",
+                "icon_library.icon_library.bgColor": "#1E293B",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "WiFi"
+            }
+        },
+        "viz_net_lan": {
+            "type": "icon_library.icon_library",
+            "title": "LAN",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "lan",
+                "icon_library.icon_library.iconColor": "#3B82F6",
+                "icon_library.icon_library.bgShape": "rounded_rect",
+                "icon_library.icon_library.bgColor": "#1E293B",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "LAN"
+            }
+        },
+        "viz_net_dns": {
+            "type": "icon_library.icon_library",
+            "title": "DNS",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "dns",
+                "icon_library.icon_library.iconColor": "#F59E0B",
+                "icon_library.icon_library.bgShape": "rounded_rect",
+                "icon_library.icon_library.bgColor": "#1E293B",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "DNS"
+            }
+        },
+        "viz_net_server": {
+            "type": "icon_library.icon_library",
+            "title": "Server",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "storage",
+                "icon_library.icon_library.iconColor": "#8B5CF6",
+                "icon_library.icon_library.bgShape": "rounded_rect",
+                "icon_library.icon_library.bgColor": "#1E293B",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Server"
+            }
+        },
+        "viz_net_hub": {
+            "type": "icon_library.icon_library",
+            "title": "Hub",
+            "dataSources": { "primary": "ds_stub" },
+            "options": {
+                "icon_library.icon_library.iconName": "hub",
+                "icon_library.icon_library.iconColor": "#EC4899",
+                "icon_library.icon_library.bgShape": "rounded_rect",
+                "icon_library.icon_library.bgColor": "#1E293B",
+                "icon_library.icon_library.showLabel": "yes",
+                "icon_library.icon_library.labelText": "Hub"
+            }
+        }
+    },
+    "layout": {
+        "type": "absolute",
+        "options": { "width": 1440, "height": 1200, "display": "auto-scale", "backgroundColor": "#101014" },
+        "globalInputs": ["input_global_time"],
+        "structure": [
+            { "item": "viz_title",       "type": "block", "position": { "x": 20, "y": 10, "w": 1400, "h": 60 } },
+
+            { "item": "viz_sec_basic",   "type": "block", "position": { "x": 20, "y": 70, "w": 1400, "h": 30 } },
+            { "item": "viz_icon_home",     "type": "block", "position": { "x": 20,  "y": 100, "w": 220, "h": 180 } },
+            { "item": "viz_icon_security", "type": "block", "position": { "x": 250, "y": 100, "w": 220, "h": 180 } },
+            { "item": "viz_icon_warning",  "type": "block", "position": { "x": 480, "y": 100, "w": 220, "h": 180 } },
+            { "item": "viz_icon_error",    "type": "block", "position": { "x": 710, "y": 100, "w": 220, "h": 180 } },
+            { "item": "viz_icon_cloud",    "type": "block", "position": { "x": 940, "y": 100, "w": 220, "h": 180 } },
+            { "item": "viz_icon_rocket",   "type": "block", "position": { "x": 1170,"y": 100, "w": 220, "h": 180 } },
+
+            { "item": "viz_sec_bg",      "type": "block", "position": { "x": 20, "y": 300, "w": 1400, "h": 30 } },
+            { "item": "viz_bg_circle",   "type": "block", "position": { "x": 20,  "y": 330, "w": 440, "h": 200 } },
+            { "item": "viz_bg_rounded",  "type": "block", "position": { "x": 480, "y": 330, "w": 440, "h": 200 } },
+            { "item": "viz_bg_square",   "type": "block", "position": { "x": 940, "y": 330, "w": 440, "h": 200 } },
+
+            { "item": "viz_sec_effects", "type": "block", "position": { "x": 20, "y": 550, "w": 1400, "h": 30 } },
+            { "item": "viz_fx_glow",     "type": "block", "position": { "x": 20,  "y": 580, "w": 440, "h": 200 } },
+            { "item": "viz_fx_shadow",   "type": "block", "position": { "x": 480, "y": 580, "w": 440, "h": 200 } },
+            { "item": "viz_fx_glow_bg",  "type": "block", "position": { "x": 940, "y": 580, "w": 440, "h": 200 } },
+
+            { "item": "viz_sec_network",  "type": "block", "position": { "x": 20, "y": 800, "w": 1400, "h": 30 } },
+            { "item": "viz_net_router",   "type": "block", "position": { "x": 20,  "y": 830, "w": 220, "h": 180 } },
+            { "item": "viz_net_wifi",     "type": "block", "position": { "x": 250, "y": 830, "w": 220, "h": 180 } },
+            { "item": "viz_net_lan",      "type": "block", "position": { "x": 480, "y": 830, "w": 220, "h": 180 } },
+            { "item": "viz_net_dns",      "type": "block", "position": { "x": 710, "y": 830, "w": 220, "h": 180 } },
+            { "item": "viz_net_server",   "type": "block", "position": { "x": 940, "y": 830, "w": 220, "h": 180 } },
+            { "item": "viz_net_hub",      "type": "block", "position": { "x": 1170,"y": 830, "w": 220, "h": 180 } }
+        ]
+    },
+    "applicationProperties": { "theme": "dark" }
+}
+]]></definition>
+</dashboard>

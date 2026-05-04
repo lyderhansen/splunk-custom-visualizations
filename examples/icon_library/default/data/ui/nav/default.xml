@@ -1,0 +1,6 @@
+<nav>
+  <default>
+    <view name="showcase" />
+  </default>
+  <view name="showcase" label="Icon Showcase" />
+</nav>
