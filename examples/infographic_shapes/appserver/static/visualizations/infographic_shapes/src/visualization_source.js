@@ -757,6 +757,7 @@ define([
             this._lastGoodData = null;
             this._animPhase = 0;
             this._animTimer = null;
+            this._reflowTimer = null;
             this._currentFont = '';
             this._fontWaitDone = false;
             this._hasDataRender = false;
@@ -1164,16 +1165,16 @@ define([
             if (fontFamily) {
                 fontStr = '"' + fontFamily + '", sans-serif';
 
-                // Ensure the custom font is loaded before drawing on canvas.
-                // Canvas doesn't auto-swap like HTML — if the font isn't ready,
-                // it silently falls back to the generic family.
                 if (document.fonts && document.fonts.check) {
                     var testStr = '16px "' + fontFamily + '"';
                     if (!document.fonts.check(testStr)) {
-                        var self3 = this;
-                        document.fonts.load(testStr).then(function() {
-                            self3.invalidateUpdateView();
-                        });
+                        if (this._currentFont !== fontFamily) {
+                            this._currentFont = fontFamily;
+                            var self3 = this;
+                            document.fonts.load(testStr).then(function() {
+                                self3.invalidateUpdateView();
+                            });
+                        }
                     }
                 }
             }
@@ -1189,11 +1190,19 @@ define([
             if (animType !== 'none') {
                 if (!this._animTimer) {
                     var self2 = this;
-                    this._animTimer = setInterval(function() {
-                        var step = self2._animPhaseIncrement || 0.02;
-                        self2._animPhase = (self2._animPhase + step) % 1;
+                    var lastFrameTime = 0;
+                    var tick = function(timestamp) {
+                        if (!self2._animTimer) return;
+                        if (lastFrameTime > 0) {
+                            var dt = (timestamp - lastFrameTime) / 1000;
+                            var step = self2._animPhaseIncrement || 0.02;
+                            self2._animPhase = (self2._animPhase + step * dt * 30) % 1;
+                        }
+                        lastFrameTime = timestamp;
                         self2.invalidateUpdateView();
-                    }, 33);
+                        self2._animTimer = requestAnimationFrame(tick);
+                    };
+                    this._animTimer = requestAnimationFrame(tick);
                 }
                 var phase = this._animPhase;
                 var wave = (Math.sin(phase * Math.PI * 2) + 1) / 2;
@@ -1208,7 +1217,7 @@ define([
                     animRotation = phase * 360;
                 }
             } else if (this._animTimer) {
-                clearInterval(this._animTimer);
+                cancelAnimationFrame(this._animTimer);
                 this._animTimer = null;
                 this._animPhase = 0;
             }
@@ -1625,13 +1634,22 @@ define([
         },
 
         reflow: function() {
-            this.invalidateUpdateView();
+            if (this._reflowTimer) return;
+            var self = this;
+            this._reflowTimer = setTimeout(function() {
+                self._reflowTimer = null;
+                self.invalidateUpdateView();
+            }, 16);
         },
 
         destroy: function() {
             if (this._animTimer) {
-                clearInterval(this._animTimer);
+                cancelAnimationFrame(this._animTimer);
                 this._animTimer = null;
+            }
+            if (this._reflowTimer) {
+                clearTimeout(this._reflowTimer);
+                this._reflowTimer = null;
             }
             if (this._setupTimer) {
                 clearTimeout(this._setupTimer);

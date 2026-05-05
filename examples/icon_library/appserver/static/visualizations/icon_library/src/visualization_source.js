@@ -56,31 +56,32 @@ define([
 
     var _fontReady = false;
     var _fontPending = false;
+    var _fontCallbacks = [];
 
     function loadFont(onReady) {
         if (_fontReady) { onReady(); return; }
+        _fontCallbacks.push(onReady);
+        if (_fontPending) return;
+        _fontPending = true;
+
+        function notifyAll() {
+            _fontReady = true;
+            var cbs = _fontCallbacks;
+            _fontCallbacks = [];
+            for (var i = 0; i < cbs.length; i++) cbs[i]();
+        }
+
         if (typeof document === 'undefined' || !document.fonts || !document.fonts.load) {
-            setTimeout(onReady, 200);
+            setTimeout(notifyAll, 200);
             return;
         }
-        if (!_fontPending) {
-            _fontPending = true;
-            document.fonts.load('400 48px "Material Symbols Outlined"').then(function() {
-                _fontReady = true;
-            });
-        }
-        // Poll until font is ready (handles both promise and CSS @font-face race)
-        var attempts = 0;
-        var poll = function() {
-            attempts++;
-            if (_fontReady || attempts > 30) {
-                _fontReady = true;
-                onReady();
-                return;
-            }
-            setTimeout(poll, 100);
-        };
-        poll();
+
+        document.fonts.load('400 48px "Material Symbols Outlined"').then(notifyAll);
+
+        // Safety timeout — render after 2s even if promise stalls
+        setTimeout(function() {
+            if (!_fontReady) notifyAll();
+        }, 2000);
     }
 
     // ── Background shape helpers ────────────────────────────────
@@ -121,6 +122,8 @@ define([
             if (this.el) this.el.classList.add('icon-library-viz');
             this._lastConfig = null;
             this._lastData = null;
+            this._canvas = null;
+            this._reflowTimer = null;
             this._drilldownEnabled = false;
             this._drilldownUrl = '';
             this._drilldownNewTab = true;
@@ -129,6 +132,11 @@ define([
             this._resolvedColor = '#06B6D4';
             this._fontDone = false;
             if (this.el) {
+                this._canvas = document.createElement('canvas');
+                this._canvas.style.width = '100%';
+                this._canvas.style.height = '100%';
+                this._canvas.style.display = 'block';
+                this.el.appendChild(this._canvas);
                 this._setupNoDataObserver();
                 this._setupClickHandler();
             }
@@ -136,7 +144,7 @@ define([
 
         _setupNoDataObserver: function() {
             if (typeof MutationObserver !== 'undefined' && this.el) {
-                var observer = new MutationObserver(function(mutations) {
+                this._placeholderObs = new MutationObserver(function(mutations) {
                     for (var i = 0; i < mutations.length; i++) {
                         for (var j = 0; j < mutations[i].addedNodes.length; j++) {
                             var node = mutations[i].addedNodes[j];
@@ -154,7 +162,7 @@ define([
                         }
                     }
                 });
-                observer.observe(this.el, { childList: true, subtree: true });
+                this._placeholderObs.observe(this.el, { childList: true, subtree: true });
             }
         },
 
@@ -216,9 +224,28 @@ define([
         },
 
         reflow: function() {
-            if (this._lastConfig) {
-                this._render(this._lastData, this._lastConfig);
+            if (!this._lastConfig) return;
+            var self = this;
+            if (this._reflowTimer) return;
+            this._reflowTimer = setTimeout(function() {
+                self._reflowTimer = null;
+                self._render(self._lastData, self._lastConfig);
+            }, 16);
+        },
+
+        destroy: function() {
+            if (this._reflowTimer) {
+                clearTimeout(this._reflowTimer);
+                this._reflowTimer = null;
             }
+            if (this._placeholderObs) {
+                this._placeholderObs.disconnect();
+                this._placeholderObs = null;
+            }
+            this._canvas = null;
+            this._lastConfig = null;
+            this._lastData = null;
+            SplunkVisualizationBase.prototype.destroy.apply(this, arguments);
         },
 
         _render: function(data, config) {
@@ -231,18 +258,12 @@ define([
             if (w <= 0 || h <= 0) return;
 
             var dpr = window.devicePixelRatio || 1;
-
-            var canvas = el.querySelector('canvas');
-            if (!canvas) {
-                canvas = document.createElement('canvas');
-                canvas.style.width = '100%';
-                canvas.style.height = '100%';
-                canvas.style.display = 'block';
-                el.appendChild(canvas);
-            }
+            var canvas = this._canvas;
+            if (!canvas) return;
             canvas.width = w * dpr;
             canvas.height = h * dpr;
             var ctx = canvas.getContext('2d');
+            if (!ctx) return;
             ctx.scale(dpr, dpr);
 
             // ── Read config ──────────────────────────────────────
@@ -314,8 +335,9 @@ define([
             this._resolvedLabel = labelText;
             this._resolvedColor = iconColor;
 
-            el.style.cursor = this._drilldownEnabled ? 'pointer' : '';
-            if (canvas) canvas.style.cursor = this._drilldownEnabled ? 'pointer' : '';
+            var cursorStyle = this._drilldownEnabled ? 'pointer' : '';
+            el.style.cursor = cursorStyle;
+            canvas.style.cursor = cursorStyle;
 
             // ── Calculate sizes ──────────────────────────────────
             var hasLabel = (showLabel === 'yes' && labelText && labelText.trim() !== '');
