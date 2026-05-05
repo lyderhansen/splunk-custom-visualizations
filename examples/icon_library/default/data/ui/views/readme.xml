@@ -1,5 +1,5 @@
 <dashboard version="2" theme="dark">
-  <label>Icon Library — README</label>
+  <label>Icon Library &mdash; README</label>
   <description>Complete guide to configuring the Icon Library visualization</description>
   <definition><![CDATA[
 {
@@ -30,7 +30,8 @@
       "options": {
         "markdown": "# Icon Library for Splunk Dashboard Studio\n\nA custom visualization that renders **2,500+ Material Symbols** icons with configurable color, size, background, glow, shadow, labels, alignment, rotation, and click drilldown.\n\n**Font:** [Material Symbols Outlined](https://fonts.google.com/icons) — base64-embedded, no external requests.",
         "fontColor": "#E2E8F0",
-        "backgroundColor": "transparent"
+        "backgroundColor": "transparent",
+        "fontSize": "default"
       }
     },
 
@@ -101,7 +102,7 @@
     "viz_sec1_hdr": {
       "type": "splunk.markdown",
       "options": {
-        "markdown": "## 1. Quick Start\n\n1. Add an **Icon Library** visualization to your Dashboard Studio panel\n2. Pick an icon from the **Icon (Popular)** dropdown — or type a custom name\n3. Adjust color, background, glow, and label in the formatter\n\nThe visualization works **with or without** an attached search. Without a search, it renders purely from config.",
+        "markdown": "## 1. Quick Start\n\n1. Add an **Icon Library** visualization to your Dashboard Studio panel\n2. Pick an icon from the **Icon (Popular)** dropdown — or type a custom name\n3. Adjust color, background, glow, and label in the formatter sidebar\n\nThe visualization works **with or without** an attached search. Without a search, it renders purely from config.",
         "fontColor": "#E2E8F0",
         "backgroundColor": "transparent"
       }
@@ -110,7 +111,7 @@
     "viz_sec2_hdr": {
       "type": "splunk.markdown",
       "options": {
-        "markdown": "## 2. Finding Icon Names\n\nBrowse all 2,500+ icons at **[fonts.google.com/icons](https://fonts.google.com/icons)**\n\n### Syntax Rules\n- Use **lowercase_with_underscores** only\n- Examples: `home`, `rocket_launch`, `mode_heat_off`, `nest_thermostat`\n- Invalid characters are stripped automatically\n- Set via the **Custom Icon Name** field (overrides the dropdown)\n\n### In Dashboard Studio JSON\n```json\n\"options\": {\n  \"icon_library.icon_library.customIcon\": \"mode_heat_off\",\n  \"icon_library.icon_library.iconColor\": \"#EF4444\"\n}\n```\n\n### Via SPL (data-driven)\n```spl\n| makeresults\n| eval icon=\"security\", color=\"#22C55E\", label=\"Healthy\"\n```\nThe `icon`, `color`, and `label` fields override config when present.",
+        "markdown": "## 2. Finding Icon Names\n\nBrowse all 2,500+ icons at **[fonts.google.com/icons](https://fonts.google.com/icons)**\n\n### Syntax Rules\n\n- Use **lowercase_with_underscores** only\n- Examples: `home`, `rocket_launch`, `mode_heat_off`, `nest_thermostat`\n- Invalid characters are stripped automatically\n- Set via the **Custom Icon Name** field (overrides the dropdown)\n\n### In Dashboard Studio JSON\n\n```json\n\"options\": {\n  \"icon_library.icon_library.customIcon\": \"mode_heat_off\",\n  \"icon_library.icon_library.iconColor\": \"#EF4444\"\n}\n```\n\n### Via SPL (data-driven)\n\n```spl\n| makeresults\n| eval icon=\"security\", color=\"#22C55E\", label=\"Healthy\"\n```\n\nThe `icon`, `color`, and `label` fields override config when present.",
         "fontColor": "#E2E8F0",
         "backgroundColor": "transparent"
       }
@@ -119,7 +120,7 @@
     "viz_sec3_hdr": {
       "type": "splunk.markdown",
       "options": {
-        "markdown": "## 3. All Configuration Options\n\n### Data configurations\n| Option | Key | Default | Description |\n|---|---|---|---|\n| Icon (Popular) | `iconName` | `home` | Select from 150+ popular icons |\n| Custom Icon Name | `customIcon` | (empty) | Any Material Symbols name — overrides dropdown |\n\n### Data display\n| Option | Key | Default | Description |\n|---|---|---|---|\n| Icon Size | `iconSize` | `0` (auto) | Fixed pixel size, or 0 to auto-scale to panel |\n| Horizontal Align | `hAlign` | `center` | `left`, `center`, `right` |\n| Vertical Align | `vAlign` | `center` | `top`, `center`, `bottom` |\n| Rotation | `rotation` | `0` | Degrees (0–360) |\n| Show Label | `showLabel` | `no` | `yes` / `no` |\n| Label Text | `labelText` | (empty) | Text below the icon |\n| Label Size | `labelSize` | `0` (auto) | Fixed pixel size, or 0 to auto-scale |\n| Label Color | `labelColor` | `#94A3B8` | Hex color |\n| Enable Drilldown | `drilldown` | `no` | `yes` / `no` — enables click events |\n| Drilldown URL | `drilldownUrl` | (empty) | URL with `$icon$`, `$label$`, `$color$` tokens |\n| Drilldown New Tab | `drilldownNewTab` | `yes` | `yes` / `no` |",
+        "markdown": "## 3. All Configuration Options\n\n### Data configurations\n\n- **`iconName`** (default: `home`) — Select from 150+ popular icons via dropdown\n- **`customIcon`** (default: empty) — Any Material Symbols name. Overrides dropdown.\n\n### Data display\n\n- **`iconSize`** (default: `0` = auto) — Fixed pixel size, or `0` to auto-scale to panel\n- **`hAlign`** (default: `center`) — Horizontal position: `left`, `center`, `right`\n- **`vAlign`** (default: `center`) — Vertical position: `top`, `center`, `bottom`\n- **`rotation`** (default: `0`) — Rotation angle in degrees (0–360)\n- **`showLabel`** (default: `no`) — Show text label below icon: `yes` / `no`\n- **`labelText`** (default: empty) — The label text to display\n- **`labelSize`** (default: `0` = auto) — Label font size in pixels, `0` for auto\n- **`labelColor`** (default: `#94A3B8`) — Label text hex color\n- **`drilldown`** (default: `no`) — Enable click events: `yes` / `no`\n- **`drilldownUrl`** (default: empty) — URL with `$icon$`, `$label$`, `$color$` tokens\n- **`drilldownNewTab`** (default: `yes`) — Open URL in new tab: `yes` / `no`",
         "fontColor": "#E2E8F0",
         "backgroundColor": "transparent"
       }
@@ -128,7 +129,7 @@
     "viz_sec3b_hdr": {
       "type": "splunk.markdown",
       "options": {
-        "markdown": "### Color and style\n| Option | Key | Default | Description |\n|---|---|---|---|\n| Icon Color | `iconColor` | `#06B6D4` | Hex color of the icon |\n| Background Shape | `bgShape` | `none` | `none`, `circle`, `rounded_rect`, `square` |\n| Background Color | `bgColor` | `#1E293B` | Hex fill color |\n| Background Opacity | `bgOpacity` | `1` | 0 (transparent) to 1 (opaque) |\n| Background Padding | `bgPadding` | `16` | Space between icon and shape edge (px) |\n| Corner Radius | `bgRadius` | `12` | For `rounded_rect` only (px) |\n| Shadow | `shadow` | `no` | `yes` / `no` |\n| Shadow Color | `shadowColor` | `#000000` | Hex color |\n| Shadow Blur | `shadowBlur` | `8` | Blur radius (px) |\n| Shadow Offset X | `shadowOffsetX` | `0` | Horizontal offset (px) |\n| Shadow Offset Y | `shadowOffsetY` | `4` | Vertical offset (px) |\n| Glow | `glow` | `no` | `yes` / `no` |\n| Glow Color | `glowColor` | `#06B6D4` | Hex color |\n| Glow Size | `glowSize` | `12` | Glow radius (px) |",
+        "markdown": "### Color and style\n\n- **`iconColor`** (default: `#06B6D4`) — Hex color of the icon\n- **`bgShape`** (default: `none`) — Background shape: `none`, `circle`, `rounded_rect`, `square`\n- **`bgColor`** (default: `#1E293B`) — Background fill color (hex)\n- **`bgOpacity`** (default: `1`) — Background opacity, 0 (transparent) to 1 (opaque)\n- **`bgPadding`** (default: `16`) — Space between icon and background edge (px)\n- **`bgRadius`** (default: `12`) — Corner radius for `rounded_rect` only (px)\n- **`shadow`** (default: `no`) — Drop shadow: `yes` / `no`\n- **`shadowColor`** (default: `#000000`) — Shadow hex color\n- **`shadowBlur`** (default: `8`) — Shadow blur radius (px)\n- **`shadowOffsetX`** (default: `0`) — Shadow horizontal offset (px)\n- **`shadowOffsetY`** (default: `4`) — Shadow vertical offset (px)\n- **`glow`** (default: `no`) — Glow effect: `yes` / `no`\n- **`glowColor`** (default: `#06B6D4`) — Glow hex color\n- **`glowSize`** (default: `12`) — Glow radius (px)\n\n> **Key prefix:** All options use `icon_library.icon_library.` in Dashboard Studio JSON.",
         "fontColor": "#E2E8F0",
         "backgroundColor": "transparent"
       }
@@ -137,7 +138,7 @@
     "viz_sec4_hdr": {
       "type": "splunk.markdown",
       "options": {
-        "markdown": "## 4. Drilldown / Click Interactions\n\nTwo drilldown modes:\n\n### A) Dashboard Studio eventHandlers (recommended)\nSet **Enable Drilldown = Yes** and leave **Drilldown URL** empty. Then use `eventHandlers` in the Dashboard Studio JSON:\n\n```json\n\"viz_my_icon\": {\n  \"type\": \"icon_library.icon_library\",\n  \"dataSources\": { \"primary\": \"ds_search\" },\n  \"options\": { ... },\n  \"eventHandlers\": [{\n    \"type\": \"drilldown.setToken\",\n    \"options\": {\n      \"tokens\": [{\n        \"token\": \"selected_icon\",\n        \"value\": \"$row.icon.value$\"\n      }]\n    }\n  }]\n}\n```\n\n### B) Direct URL navigation\nSet **Drilldown URL** to any URL with token placeholders:\n\n```\nhttps://mysplunk.com/app/search/search?q=index%3Dmain%20icon%3D$icon$\n```\n\nAvailable tokens: `$icon$`, `$label$`, `$color$` (URL-encoded).",
+        "markdown": "## 4. Drilldown / Click Interactions\n\nTwo drilldown modes:\n\n### A) Dashboard Studio eventHandlers (recommended)\n\nSet **Enable Drilldown = Yes** and leave **Drilldown URL** empty. Then add `eventHandlers` in the JSON:\n\n```json\n\"viz_my_icon\": {\n  \"type\": \"icon_library.icon_library\",\n  \"options\": { ... },\n  \"eventHandlers\": [{\n    \"type\": \"drilldown.setToken\",\n    \"options\": {\n      \"tokens\": [{\n        \"token\": \"selected_icon\",\n        \"value\": \"$row.icon.value$\"\n      }]\n    }\n  }]\n}\n```\n\n### B) Direct URL navigation\n\nSet **Drilldown URL** to a URL with token placeholders:\n\n```\nhttps://mysplunk.com/app/search/search?q=index%3Dmain%20icon%3D$icon$\n```\n\nAvailable tokens: `$icon$`, `$label$`, `$color$` (URL-encoded).",
         "fontColor": "#E2E8F0",
         "backgroundColor": "transparent"
       }
@@ -146,7 +147,7 @@
     "viz_sec5_hdr": {
       "type": "splunk.markdown",
       "options": {
-        "markdown": "## 5. Data-Driven Icons\n\nAttach a search that returns columns named `icon`, `color`, `label`, or `value`.\n\n```spl\n| stats count AS value BY src_ip\n| eval icon=if(value>100, \"warning\", \"check_circle\"),\n       color=if(value>100, \"#EF4444\", \"#22C55E\"),\n       label=src_ip\n| head 1\n```\n\n| SPL Column | Effect |\n|---|---|\n| `icon` | Overrides the icon name (sanitized to lowercase_underscores) |\n| `color` | Overrides icon color (hex) |\n| `label` | Sets label text and auto-enables label display |\n| `value` | Threshold coloring: ≥90 green, ≥50 amber, <50 red |",
+        "markdown": "## 5. Data-Driven Icons\n\nAttach a search that returns columns named `icon`, `color`, `label`, or `value`.\n\n```spl\n| stats count AS value BY src_ip\n| eval icon=if(value>100, \"warning\", \"check_circle\"),\n       color=if(value>100, \"#EF4444\", \"#22C55E\"),\n       label=src_ip\n| head 1\n```\n\n**SPL column effects:**\n\n- **`icon`** — Overrides the icon name (sanitized to `lowercase_underscores`)\n- **`color`** — Overrides icon color (hex value)\n- **`label`** — Sets label text and auto-enables label display\n- **`value`** — Threshold coloring: >=90 green, >=50 amber, <50 red",
         "fontColor": "#E2E8F0",
         "backgroundColor": "transparent"
       }
@@ -155,7 +156,7 @@
     "viz_sec6_hdr": {
       "type": "splunk.markdown",
       "options": {
-        "markdown": "## 6. Dashboard Studio JSON Example\n\nFull panel with all features:\n\n```json\n\"viz_status_icon\": {\n  \"type\": \"icon_library.icon_library\",\n  \"dataSources\": { \"primary\": \"ds_health\" },\n  \"options\": {\n    \"icon_library.icon_library.customIcon\": \"monitor_heart\",\n    \"icon_library.icon_library.iconColor\": \"#22C55E\",\n    \"icon_library.icon_library.iconSize\": \"0\",\n    \"icon_library.icon_library.showLabel\": \"yes\",\n    \"icon_library.icon_library.labelText\": \"Healthy\",\n    \"icon_library.icon_library.labelColor\": \"#94A3B8\",\n    \"icon_library.icon_library.bgShape\": \"circle\",\n    \"icon_library.icon_library.bgColor\": \"#0F172A\",\n    \"icon_library.icon_library.bgPadding\": \"20\",\n    \"icon_library.icon_library.glow\": \"yes\",\n    \"icon_library.icon_library.glowColor\": \"#22C55E\",\n    \"icon_library.icon_library.glowSize\": \"12\",\n    \"icon_library.icon_library.shadow\": \"yes\",\n    \"icon_library.icon_library.shadowBlur\": \"8\",\n    \"icon_library.icon_library.shadowOffsetY\": \"4\",\n    \"icon_library.icon_library.drilldown\": \"yes\"\n  }\n}\n```\n\n**Key:** All option keys use the prefix `icon_library.icon_library.` in Dashboard Studio JSON.",
+        "markdown": "## 6. Dashboard Studio JSON Example\n\nFull panel with all features:\n\n```json\n\"viz_status_icon\": {\n  \"type\": \"icon_library.icon_library\",\n  \"dataSources\": { \"primary\": \"ds_health\" },\n  \"options\": {\n    \"icon_library.icon_library.customIcon\": \"monitor_heart\",\n    \"icon_library.icon_library.iconColor\": \"#22C55E\",\n    \"icon_library.icon_library.iconSize\": \"0\",\n    \"icon_library.icon_library.showLabel\": \"yes\",\n    \"icon_library.icon_library.labelText\": \"Healthy\",\n    \"icon_library.icon_library.labelColor\": \"#94A3B8\",\n    \"icon_library.icon_library.bgShape\": \"circle\",\n    \"icon_library.icon_library.bgColor\": \"#0F172A\",\n    \"icon_library.icon_library.bgPadding\": \"20\",\n    \"icon_library.icon_library.glow\": \"yes\",\n    \"icon_library.icon_library.glowColor\": \"#22C55E\",\n    \"icon_library.icon_library.glowSize\": \"12\",\n    \"icon_library.icon_library.shadow\": \"yes\",\n    \"icon_library.icon_library.shadowBlur\": \"8\",\n    \"icon_library.icon_library.shadowOffsetY\": \"4\",\n    \"icon_library.icon_library.drilldown\": \"yes\"\n  }\n}\n```\n\n> **Key prefix:** All option keys use `icon_library.icon_library.` in Dashboard Studio JSON.",
         "fontColor": "#E2E8F0",
         "backgroundColor": "transparent"
       }
@@ -164,7 +165,7 @@
     "viz_sec7_hdr": {
       "type": "splunk.markdown",
       "options": {
-        "markdown": "## 7. Tips\n\n- **Auto-scaling:** Set `iconSize` and `labelSize` to `0` — the icon scales to fill the panel\n- **No search required:** The icon renders from config alone; attach a search only for data-driven overrides\n- **Background shapes** automatically encompass the icon and label\n- **Glow + Shadow** can be combined for depth effects\n- **Rotation** applies to the icon (and background if present)\n- **Alignment** lets you anchor icons in corners for layout compositions\n- **Custom icons:** Any name from fonts.google.com/icons works — just use `lowercase_with_underscores`\n\n---\n*Version 1.3.0 — Icon Library for Splunk Dashboard Studio*",
+        "markdown": "## 7. Tips\n\n- **Auto-scaling:** Set `iconSize` and `labelSize` to `0` — the icon scales to fill the panel\n- **No search required:** The icon renders from config alone; attach a search only for data-driven overrides\n- **Background shapes** automatically encompass the icon and label\n- **Glow + Shadow** can be combined for depth effects\n- **Rotation** applies to the icon (and background if present)\n- **Alignment** lets you anchor icons in corners for layout compositions\n- **Custom icons:** Any name from [fonts.google.com/icons](https://fonts.google.com/icons) works — just use `lowercase_with_underscores`\n\n---\n\n*Version 1.3.0 — Icon Library for Splunk Dashboard Studio*",
         "fontColor": "#E2E8F0",
         "backgroundColor": "transparent"
       }
@@ -175,35 +176,26 @@
     "type": "absolute",
     "options": {
       "width": 1440,
-      "height": 3620,
+      "height": 3500,
       "display": "auto-scale",
       "backgroundColor": "#101014"
     },
     "globalInputs": [],
     "structure": [
-      { "item": "viz_title", "type": "block", "position": { "x": 40, "y": 20, "w": 900, "h": 120 } },
-
-      { "item": "viz_demo_basic",   "type": "block", "position": { "x": 960, "y": 20,  "w": 100, "h": 100 } },
-      { "item": "viz_demo_labeled", "type": "block", "position": { "x": 1070, "y": 20,  "w": 100, "h": 100 } },
-      { "item": "viz_demo_glow",    "type": "block", "position": { "x": 1180, "y": 20,  "w": 100, "h": 100 } },
-      { "item": "viz_demo_combo",   "type": "block", "position": { "x": 1290, "y": 20,  "w": 120, "h": 120 } },
-
-      { "item": "viz_sec1_hdr",  "type": "block", "position": { "x": 40, "y": 160,  "w": 1360, "h": 180 } },
-
-      { "item": "viz_sec2_hdr",  "type": "block", "position": { "x": 40, "y": 360,  "w": 1360, "h": 500 } },
-
-      { "item": "viz_sec3_hdr",  "type": "block", "position": { "x": 40, "y": 880,  "w": 1360, "h": 480 } },
-      { "item": "viz_sec3b_hdr", "type": "block", "position": { "x": 40, "y": 1380, "w": 1360, "h": 500 } },
-
-      { "item": "viz_demo_data", "type": "block", "position": { "x": 1290, "y": 160, "w": 110, "h": 110 } },
-
-      { "item": "viz_sec4_hdr",  "type": "block", "position": { "x": 40, "y": 1900, "w": 1360, "h": 520 } },
-
-      { "item": "viz_sec5_hdr",  "type": "block", "position": { "x": 40, "y": 2440, "w": 1360, "h": 340 } },
-
-      { "item": "viz_sec6_hdr",  "type": "block", "position": { "x": 40, "y": 2800, "w": 1360, "h": 560 } },
-
-      { "item": "viz_sec7_hdr",  "type": "block", "position": { "x": 40, "y": 3380, "w": 1360, "h": 200 } }
+      { "item": "viz_title",        "type": "block", "position": { "x": 40, "y": 20,   "w": 900,  "h": 120 } },
+      { "item": "viz_demo_basic",   "type": "block", "position": { "x": 960, "y": 20,  "w": 100,  "h": 100 } },
+      { "item": "viz_demo_labeled", "type": "block", "position": { "x": 1070, "y": 20, "w": 100,  "h": 100 } },
+      { "item": "viz_demo_glow",    "type": "block", "position": { "x": 1180, "y": 20, "w": 100,  "h": 100 } },
+      { "item": "viz_demo_combo",   "type": "block", "position": { "x": 1290, "y": 20, "w": 120,  "h": 120 } },
+      { "item": "viz_sec1_hdr",     "type": "block", "position": { "x": 40, "y": 160,  "w": 1360, "h": 170 } },
+      { "item": "viz_demo_data",    "type": "block", "position": { "x": 1290, "y": 160, "w": 110, "h": 110 } },
+      { "item": "viz_sec2_hdr",     "type": "block", "position": { "x": 40, "y": 350,  "w": 1360, "h": 480 } },
+      { "item": "viz_sec3_hdr",     "type": "block", "position": { "x": 40, "y": 850,  "w": 1360, "h": 460 } },
+      { "item": "viz_sec3b_hdr",    "type": "block", "position": { "x": 40, "y": 1330, "w": 1360, "h": 480 } },
+      { "item": "viz_sec4_hdr",     "type": "block", "position": { "x": 40, "y": 1830, "w": 1360, "h": 480 } },
+      { "item": "viz_sec5_hdr",     "type": "block", "position": { "x": 40, "y": 2330, "w": 1360, "h": 340 } },
+      { "item": "viz_sec6_hdr",     "type": "block", "position": { "x": 40, "y": 2690, "w": 1360, "h": 560 } },
+      { "item": "viz_sec7_hdr",     "type": "block", "position": { "x": 40, "y": 3270, "w": 1360, "h": 200 } }
     ]
   },
   "applicationProperties": { "theme": "dark" }
