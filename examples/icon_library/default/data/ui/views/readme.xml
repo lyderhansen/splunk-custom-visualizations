@@ -39,6 +39,7 @@
       "type": "icon_library.icon_library",
       "dataSources": { "primary": "ds_stub" },
       "options": {
+        "backgroundColor": "transparent",
         "icon_library.icon_library.iconName": "rocket_launch",
         "icon_library.icon_library.iconColor": "#06B6D4"
       }
@@ -47,6 +48,7 @@
       "type": "icon_library.icon_library",
       "dataSources": { "primary": "ds_stub" },
       "options": {
+        "backgroundColor": "transparent",
         "icon_library.icon_library.iconName": "security",
         "icon_library.icon_library.iconColor": "#22C55E",
         "icon_library.icon_library.showLabel": "yes",
@@ -61,6 +63,7 @@
       "type": "icon_library.icon_library",
       "dataSources": { "primary": "ds_stub" },
       "options": {
+        "backgroundColor": "transparent",
         "icon_library.icon_library.iconName": "electric_bolt",
         "icon_library.icon_library.iconColor": "#F59E0B",
         "icon_library.icon_library.glow": "yes",
@@ -72,6 +75,7 @@
       "type": "icon_library.icon_library",
       "dataSources": { "primary": "ds_stub" },
       "options": {
+        "backgroundColor": "transparent",
         "icon_library.icon_library.iconName": "shield",
         "icon_library.icon_library.iconColor": "#8B5CF6",
         "icon_library.icon_library.glow": "yes",
@@ -93,6 +97,7 @@
       "type": "icon_library.icon_library",
       "dataSources": { "primary": "ds_data_driven" },
       "options": {
+        "backgroundColor": "transparent",
         "icon_library.icon_library.bgShape": "circle",
         "icon_library.icon_library.bgColor": "#164E63",
         "icon_library.icon_library.bgPadding": "18"
@@ -102,7 +107,7 @@
     "viz_sec1_hdr": {
       "type": "splunk.markdown",
       "options": {
-        "markdown": "## 1. Quick Start\n\n1. Add an **Icon Library** visualization to your Dashboard Studio panel\n2. Pick an icon from the **Icon (Popular)** dropdown — or type a custom name\n3. Adjust color, background, glow, and label in the formatter sidebar\n\nThe visualization works **with or without** an attached search. Without a search, it renders purely from config.",
+        "markdown": "## 1. Quick Start\n\n1. Add an **Icon Library** visualization to your Dashboard Studio panel\n2. Set **`\"backgroundColor\": \"transparent\"`** in the panel options (Dashboard Studio defaults to a dark panel background for custom vizs)\n3. Pick an icon from the **Icon (Popular)** dropdown — or type a custom name\n4. Adjust color, background, glow, and label in the formatter sidebar\n\nThe visualization works **with or without** an attached search. Without a search, it renders purely from config.\n\n> **Important:** Always add `\"backgroundColor\": \"transparent\"` to the panel `options` — otherwise the panel renders with a black/dark background.",
         "fontColor": "#E2E8F0",
         "backgroundColor": "transparent"
       }
@@ -156,7 +161,7 @@
     "viz_sec6_hdr": {
       "type": "splunk.markdown",
       "options": {
-        "markdown": "## 6. Dashboard Studio JSON Example\n\nFull panel with all features:\n\n```json\n\"viz_status_icon\": {\n  \"type\": \"icon_library.icon_library\",\n  \"dataSources\": { \"primary\": \"ds_health\" },\n  \"options\": {\n    \"icon_library.icon_library.customIcon\": \"monitor_heart\",\n    \"icon_library.icon_library.iconColor\": \"#22C55E\",\n    \"icon_library.icon_library.iconSize\": \"0\",\n    \"icon_library.icon_library.showLabel\": \"yes\",\n    \"icon_library.icon_library.labelText\": \"Healthy\",\n    \"icon_library.icon_library.labelColor\": \"#94A3B8\",\n    \"icon_library.icon_library.bgShape\": \"circle\",\n    \"icon_library.icon_library.bgColor\": \"#0F172A\",\n    \"icon_library.icon_library.bgPadding\": \"20\",\n    \"icon_library.icon_library.glow\": \"yes\",\n    \"icon_library.icon_library.glowColor\": \"#22C55E\",\n    \"icon_library.icon_library.glowSize\": \"12\",\n    \"icon_library.icon_library.shadow\": \"yes\",\n    \"icon_library.icon_library.shadowBlur\": \"8\",\n    \"icon_library.icon_library.shadowOffsetY\": \"4\",\n    \"icon_library.icon_library.drilldown\": \"yes\"\n  }\n}\n```\n\n> **Key prefix:** All option keys use `icon_library.icon_library.` in Dashboard Studio JSON.",
+        "markdown": "## 6. Dashboard Studio JSON Example\n\nFull panel with all features:\n\n```json\n\"viz_status_icon\": {\n  \"type\": \"icon_library.icon_library\",\n  \"dataSources\": { \"primary\": \"ds_health\" },\n  \"options\": {\n    \"backgroundColor\": \"transparent\",\n    \"icon_library.icon_library.customIcon\": \"monitor_heart\",\n    \"icon_library.icon_library.iconColor\": \"#22C55E\",\n    \"icon_library.icon_library.iconSize\": \"0\",\n    \"icon_library.icon_library.showLabel\": \"yes\",\n    \"icon_library.icon_library.labelText\": \"Healthy\",\n    \"icon_library.icon_library.labelColor\": \"#94A3B8\",\n    \"icon_library.icon_library.bgShape\": \"circle\",\n    \"icon_library.icon_library.bgColor\": \"#0F172A\",\n    \"icon_library.icon_library.bgPadding\": \"20\",\n    \"icon_library.icon_library.glow\": \"yes\",\n    \"icon_library.icon_library.glowColor\": \"#22C55E\",\n    \"icon_library.icon_library.glowSize\": \"12\",\n    \"icon_library.icon_library.shadow\": \"yes\",\n    \"icon_library.icon_library.shadowBlur\": \"8\",\n    \"icon_library.icon_library.shadowOffsetY\": \"4\",\n    \"icon_library.icon_library.drilldown\": \"yes\"\n  }\n}\n```\n\n> **Important:** Always include `\"backgroundColor\": \"transparent\"` — this is a Dashboard Studio panel option (not namespaced). Without it, the panel shows a dark/black background.\n\n> **Key prefix:** All other option keys use `icon_library.icon_library.` in Dashboard Studio JSON.",
         "fontColor": "#E2E8F0",
         "backgroundColor": "transparent"
       }
@@ -178,7 +183,7 @@
       "width": 1440,
       "height": 3500,
       "display": "auto-scale",
-      "backgroundColor": "#101014"
+      "backgroundColor": "transparent"
     },
     "globalInputs": [],
     "structure": [

@@ -1,4 +1,3 @@
-
 # Icon Library visualization settings
 
 display.visualizations.custom.icon_library.icon_library.iconName = <string>

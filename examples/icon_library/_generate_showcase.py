@@ -398,7 +398,7 @@ for sec_idx, (title, desc, icons) in enumerate(SECTIONS):
 
         vid = f"viz_s{sec_idx}_{i}"
 
-        viz_options = {NS + "iconName": icon_name}
+        viz_options = {"backgroundColor": "transparent", NS + "iconName": icon_name}
         for k, v in opts.items():
             viz_options[NS + k] = v
 

@@ -18,10 +18,20 @@ For Splunk Cloud: submit the package through the Cloud vetting process.
 
 1. Open **Dashboard Studio** and create or edit a dashboard
 2. Add a panel and set the visualization type to **Icon Library** (`icon_library.icon_library`)
-3. Pick an icon from the **Icon (Popular)** dropdown — or type any [Material Symbols](https://fonts.google.com/icons) name in the **Custom Icon Name** field
-4. Adjust color, background, glow, shadow, and label in the formatter sidebar
+3. **Set `"backgroundColor": "transparent"` in the panel options** (see note below)
+4. Pick an icon from the **Icon (Popular)** dropdown — or type any [Material Symbols](https://fonts.google.com/icons) name in the **Custom Icon Name** field
+5. Adjust color, background, glow, shadow, and label in the formatter sidebar
 
 The visualization works **with or without** an attached search.
+
+> **Transparent background:** Dashboard Studio defaults custom visualization panels to a dark/black background. Always add `"backgroundColor": "transparent"` to the panel `options` so the icon blends with the dashboard canvas:
+>
+> ```json
+> "options": {
+>     "backgroundColor": "transparent",
+>     "icon_library.icon_library.iconName": "security"
+> }
+> ```
 
 ## Finding Icon Names
 
@@ -133,13 +143,14 @@ Available tokens: `$icon$`, `$label$`, `$color$` (URL-encoded).
 
 ## Dashboard Studio JSON Example
 
-All option keys use the prefix `icon_library.icon_library.` in Dashboard Studio JSON:
+All custom option keys use the prefix `icon_library.icon_library.` in Dashboard Studio JSON. Always include the bare `"backgroundColor": "transparent"` to avoid the default dark panel background:
 
 ```json
 "viz_status_icon": {
   "type": "icon_library.icon_library",
   "dataSources": { "primary": "ds_health" },
   "options": {
+    "backgroundColor": "transparent",
     "icon_library.icon_library.customIcon": "monitor_heart",
     "icon_library.icon_library.iconColor": "#22C55E",
     "icon_library.icon_library.iconSize": "0",
@@ -193,6 +204,7 @@ icon_library/
 
 | Version | Changes |
 |---|---|
+| 1.3.1 | Code cleanup, remove unused import, transparent background docs |
 | 1.3.0 | README dashboard, AppInspect fixes, icon name corrections |
 | 1.2.0 | Drilldown support, 256-icon showcase dashboard |
 | 1.1.0 | Alignment controls, label-inside-background, icon name sanitization |

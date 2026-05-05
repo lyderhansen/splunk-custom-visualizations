@@ -12,9 +12,8 @@
  *   value  — numeric value for threshold-based colouring
  */
 define([
-    'api/SplunkVisualizationBase',
-    'api/SplunkVisualizationUtils'
-], function(SplunkVisualizationBase, SplunkVisualizationUtils) {
+    'api/SplunkVisualizationBase'
+], function(SplunkVisualizationBase) {
 
     // ── Config helper ───────────────────────────────────────────
 
@@ -220,10 +219,6 @@ define([
             if (this._lastConfig) {
                 this._render(this._lastData, this._lastConfig);
             }
-        },
-
-        _renderDefault: function(config) {
-            this._render(null, config || this._lastConfig || {});
         },
 
         _render: function(data, config) {
