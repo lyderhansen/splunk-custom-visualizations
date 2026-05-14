@@ -1,0 +1,90 @@
+{
+  "label": "Dashboard Frame",
+  "defaultSize": {
+    "width": 1200,
+    "height": 800
+  },
+  "fields": [],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "appName",
+      "label": "App Name",
+      "type": "text",
+      "default": "Enterprise Security"
+    },
+    {
+      "name": "breadcrumb",
+      "label": "Breadcrumb",
+      "type": "text",
+      "default": "Home > Dashboards"
+    },
+    {
+      "name": "title",
+      "label": "Title",
+      "type": "text",
+      "default": "Security Operations"
+    },
+    {
+      "name": "subtitle",
+      "label": "Subtitle",
+      "type": "text",
+      "default": "Real-time monitoring and response"
+    },
+    {
+      "name": "statusPills",
+      "label": "Status Pills",
+      "type": "text",
+      "default": "Notables:1247;Critical:23;Open:847"
+    },
+    {
+      "name": "showFilters",
+      "label": "Show Filters",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    },
+    {
+      "name": "filters",
+      "label": "Filters",
+      "type": "text",
+      "default": "Time range:Last 24 hours;Environment:Production"
+    },
+    {
+      "name": "footerLeft",
+      "label": "Footer Left",
+      "type": "text",
+      "default": "index=notable | stats count by source"
+    },
+    {
+      "name": "footerRight",
+      "label": "Footer Right",
+      "type": "text",
+      "default": "SUPER CO v1.0"
+    }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": [
+      "title"
+    ],
+    "sampleRows": [
+      [
+        "Security Operations"
+      ]
+    ]
+  },
+  "entry": "visualization.js"
+}

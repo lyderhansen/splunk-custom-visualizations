@@ -1,0 +1,49 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Value field" help="SPL column bound to the gauge magnitude (last row wins)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.field" value="value">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Max value" help="Denominator for the arc fill; value divided by this renders the sweep">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxValue" value="100">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Label" help="Serif caption rendered beneath the center readout">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.label" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Unit" help="Optional suffix such as percent sign (leave blank to omit)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.unit" value="%">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Decimals" help="-1 uses compact grouping; zero or more fixes decimal digits">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.decimals" value="-1">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show glow" help="Adds Netflix red bloom on the filled arc and hero numerals">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showGlow" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Chooses dark neon or light variation of the pack palette">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Accent color" help="Neon cap color at the high end of the crimson sweep">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.accentColor" type="custom" value="#E50914">
+            <splunk-color>#E50914</splunk-color>
+            <splunk-color>#831010</splunk-color>
+            <splunk-color>#FF6B6B</splunk-color>
+            <splunk-color>#F5A623</splunk-color>
+            <splunk-color>#46D369</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

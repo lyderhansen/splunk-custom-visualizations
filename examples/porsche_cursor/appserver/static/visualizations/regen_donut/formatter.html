@@ -1,0 +1,27 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Category Field" help="SPL column name for category label">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.categoryField" value="category"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Value Field" help="SPL column name for category value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueField" value="value"></splunk-text-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Title" help="Display title for the donut chart">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.title" value="Energy Distribution"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Value Font Size" help="Font size for center value (0 = auto-scale)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueFontSize" value="0"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Label Font Size" help="Font size for legend text (0 = auto-scale)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelFontSize" value="0"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Accent Intensity" help="Glow effect strength (0 to 1)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.accentIntensity" value="0.7"></splunk-text-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Segment Colors" help="Comma-separated hex colors for donut segments">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.colors" value="#EF4444,#00C9A7,#3B82F6,#A78BFA,#C8A96E"></splunk-text-input>
+    </splunk-control-group>
+</form>

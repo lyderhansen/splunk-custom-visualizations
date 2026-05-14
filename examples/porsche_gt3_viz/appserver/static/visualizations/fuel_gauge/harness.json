@@ -1,0 +1,22 @@
+{
+    "data": {
+        "fields": [
+            { "name": "level" },
+            { "name": "laps_remaining" },
+            { "name": "consumption" },
+            { "name": "target" }
+        ],
+        "rows": [
+            ["82", "18", "2.65", "30"],
+            ["74", "15", "2.71", "30"],
+            ["67", "12", "2.84", "30"]
+        ]
+    },
+    "config": {
+        "display.visualizations.custom.porsche_gt3_viz.fuel_gauge.theme": "dark",
+        "display.visualizations.custom.porsche_gt3_viz.fuel_gauge.warningThreshold": "15",
+        "display.visualizations.custom.porsche_gt3_viz.fuel_gauge.criticalThreshold": "5",
+        "display.visualizations.custom.porsche_gt3_viz.fuel_gauge.showLapsEstimate": "true",
+        "display.visualizations.custom.porsche_gt3_viz.fuel_gauge.showTarget": "true"
+    }
+}

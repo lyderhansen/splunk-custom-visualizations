@@ -1,0 +1,249 @@
+<dashboard version="2" theme="dark">
+    <label>Porsche Taycan EV Telemetry</label>
+    <description>Electric Vehicle telemetry dashboard with custom Canvas 2D visualizations</description>
+    <definition><![CDATA[
+{
+    "title": "Porsche Taycan EV Telemetry",
+    "description": "Real-time battery, charging, thermal, and energy telemetry for the Porsche Taycan",
+    "inputs": {
+        "input_global_time": {
+            "type": "input.timerange",
+            "title": "Time Range",
+            "options": {
+                "token": "global_time",
+                "defaultValue": "-24h@h,now"
+            }
+        }
+    },
+    "defaults": {
+        "dataSources": {
+            "ds.search": {
+                "options": {
+                    "queryParameters": {
+                        "earliest": "$global_time.earliest$",
+                        "latest": "$global_time.latest$"
+                    }
+                }
+            }
+        }
+    },
+    "dataSources": {
+        "ds_battery": {
+            "type": "ds.search",
+            "options": {
+                "query": "| inputlookup porsche_battery.csv",
+                "refresh": "60s",
+                "refreshType": "delay"
+            },
+            "name": "Battery Level"
+        },
+        "ds_range": {
+            "type": "ds.search",
+            "options": {
+                "query": "| inputlookup porsche_range.csv",
+                "refresh": "60s",
+                "refreshType": "delay"
+            },
+            "name": "Estimated Range"
+        },
+        "ds_charging": {
+            "type": "ds.search",
+            "options": {
+                "query": "| inputlookup porsche_charging.csv",
+                "refresh": "60s",
+                "refreshType": "delay"
+            },
+            "name": "Charging Power"
+        },
+        "ds_sensors": {
+            "type": "ds.search",
+            "options": {
+                "query": "| inputlookup porsche_sensors.csv",
+                "refresh": "30s",
+                "refreshType": "delay"
+            },
+            "name": "Sensor Temperatures"
+        },
+        "ds_energy": {
+            "type": "ds.search",
+            "options": {
+                "query": "| inputlookup porsche_energy.csv",
+                "refresh": "60s",
+                "refreshType": "delay"
+            },
+            "name": "Energy Consumption"
+        },
+        "ds_regen": {
+            "type": "ds.search",
+            "options": {
+                "query": "| inputlookup porsche_regen.csv",
+                "refresh": "60s",
+                "refreshType": "delay"
+            },
+            "name": "Regeneration Distribution"
+        }
+    },
+    "visualizations": {
+        "viz_hero_bg": {
+            "type": "splunk.image",
+            "options": {
+                "src": "/static/app/porsche_cursor/images/hero_taycan.jpg",
+                "preserveAspectRatio": true
+            }
+        },
+        "viz_hero_overlay": {
+            "type": "splunk.rectangle",
+            "options": {
+                "fillColor": "rgba(10,10,15,0.75)",
+                "strokeColor": "transparent"
+            }
+        },
+        "viz_title_md": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "# PORSCHE TAYCAN\n## Electric Vehicle Telemetry",
+                "fontColor": "#E8E6E3",
+                "fontSize": "extraLarge",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_bg_row1": {
+            "type": "splunk.rectangle",
+            "options": {
+                "fillColor": "rgba(20,20,25,0.55)",
+                "strokeColor": "rgba(255,255,255,0.06)",
+                "strokeWidth": 1,
+                "rx": 12
+            }
+        },
+        "viz_bg_row2_left": {
+            "type": "splunk.rectangle",
+            "options": {
+                "fillColor": "rgba(20,20,25,0.55)",
+                "strokeColor": "rgba(255,255,255,0.06)",
+                "strokeWidth": 1,
+                "rx": 12
+            }
+        },
+        "viz_bg_row2_right": {
+            "type": "splunk.rectangle",
+            "options": {
+                "fillColor": "rgba(20,20,25,0.55)",
+                "strokeColor": "rgba(255,255,255,0.06)",
+                "strokeWidth": 1,
+                "rx": 12
+            }
+        },
+        "viz_battery": {
+            "type": "porsche_cursor.battery_gauge",
+            "title": "Battery Level",
+            "dataSources": { "primary": "ds_battery" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "labelField": "label",
+                "unit": "%",
+                "maxValue": "100",
+                "accentIntensity": "0.7"
+            }
+        },
+        "viz_range": {
+            "type": "porsche_cursor.range_kpi",
+            "title": "Estimated Range",
+            "dataSources": { "primary": "ds_range" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "labelField": "label",
+                "deltaField": "delta",
+                "unitField": "unit",
+                "sparklineField": "sparkline",
+                "accentIntensity": "0.7"
+            }
+        },
+        "viz_charging": {
+            "type": "porsche_cursor.charge_gauge",
+            "title": "Charging Power",
+            "dataSources": { "primary": "ds_charging" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "labelField": "label",
+                "targetField": "target",
+                "unit": "kW",
+                "maxValue": "350",
+                "accentIntensity": "0.7"
+            }
+        },
+        "viz_sensors": {
+            "type": "porsche_cursor.sensor_table",
+            "title": "Sensor Temperatures",
+            "dataSources": { "primary": "ds_sensors" },
+            "options": {
+                "backgroundColor": "transparent",
+                "sensorField": "sensor",
+                "tempField": "temperature",
+                "statusField": "status",
+                "trendField": "trend",
+                "accentIntensity": "0.7"
+            }
+        },
+        "viz_energy": {
+            "type": "porsche_cursor.energy_area",
+            "title": "Energy Consumption",
+            "dataSources": { "primary": "ds_energy" },
+            "options": {
+                "backgroundColor": "transparent",
+                "valueField": "value",
+                "timeField": "_time",
+                "unit": "kWh/100km",
+                "fillColor": "#00C9A7",
+                "lineColor": "#00C9A7",
+                "accentIntensity": "0.7"
+            }
+        },
+        "viz_regen": {
+            "type": "porsche_cursor.regen_donut",
+            "title": "Energy Distribution",
+            "dataSources": { "primary": "ds_regen" },
+            "options": {
+                "backgroundColor": "transparent",
+                "categoryField": "category",
+                "valueField": "value",
+                "colors": "#EF4444,#00C9A7,#3B82F6",
+                "accentIntensity": "0.7"
+            }
+        }
+    },
+    "layout": {
+        "type": "absolute",
+        "options": {
+            "width": 1440,
+            "height": 1200,
+            "display": "auto-scale",
+            "backgroundColor": "#0A0A0F"
+        },
+        "globalInputs": ["input_global_time"],
+        "structure": [
+            { "item": "viz_hero_bg",        "type": "block", "position": { "x": 0,   "y": 0,   "w": 1440, "h": 260 } },
+            { "item": "viz_hero_overlay",   "type": "block", "position": { "x": 0,   "y": 0,   "w": 1440, "h": 260 } },
+            { "item": "viz_title_md",       "type": "block", "position": { "x": 40,  "y": 60,  "w": 600,  "h": 120 } },
+
+            { "item": "viz_bg_row1",        "type": "block", "position": { "x": 20,  "y": 280, "w": 1400, "h": 380 } },
+            { "item": "viz_battery",        "type": "block", "position": { "x": 30,  "y": 290, "w": 440,  "h": 360 } },
+            { "item": "viz_range",          "type": "block", "position": { "x": 490, "y": 290, "w": 440,  "h": 170 } },
+            { "item": "viz_charging",       "type": "block", "position": { "x": 490, "y": 470, "w": 440,  "h": 180 } },
+            { "item": "viz_regen",          "type": "block", "position": { "x": 950, "y": 290, "w": 460,  "h": 360 } },
+
+            { "item": "viz_bg_row2_left",   "type": "block", "position": { "x": 20,  "y": 680, "w": 980,  "h": 490 } },
+            { "item": "viz_bg_row2_right",  "type": "block", "position": { "x": 1010,"y": 680, "w": 410,  "h": 490 } },
+            { "item": "viz_energy",         "type": "block", "position": { "x": 30,  "y": 690, "w": 960,  "h": 470 } },
+            { "item": "viz_sensors",        "type": "block", "position": { "x": 1020,"y": 690, "w": 390,  "h": 470 } }
+        ]
+    },
+    "applicationProperties": {
+        "theme": "dark"
+    }
+}
+]]></definition>
+</dashboard>

@@ -1,0 +1,317 @@
+<dashboard version="2" theme="dark">
+    <label>HBO Max Streaming Analytics</label>
+    <description>Premium streaming analytics dashboard with subscriber metrics, content performance, and engagement insights</description>
+    <definition><![CDATA[
+{
+    "title": "HBO Max Streaming Analytics",
+    "description": "Premium streaming analytics dashboard with subscriber metrics, content performance, and engagement insights",
+    "inputs": {
+        "input_global_time": {
+            "type": "input.timerange",
+            "title": "Time Range",
+            "options": {
+                "token": "global_time",
+                "defaultValue": "-24h@h,now"
+            }
+        }
+    },
+    "defaults": {
+        "dataSources": {
+            "ds.search": {
+                "options": {
+                    "queryParameters": {
+                        "earliest": "$global_time.earliest$",
+                        "latest": "$global_time.latest$"
+                    }
+                }
+            }
+        }
+    },
+    "dataSources": {
+        "ds_subscriber_count": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults count=1 | eval value=96400000, delta=2300000",
+                "refresh": "60s",
+                "refreshType": "delay"
+            },
+            "name": "Total Subscriber Count"
+        },
+        "ds_avg_viewing": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults count=1 | eval value=3.7, delta=0.4",
+                "refresh": "60s",
+                "refreshType": "delay"
+            },
+            "name": "Average Viewing Hours Per User"
+        },
+        "ds_churn_rate": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults count=1 | eval value=4.7",
+                "refresh": "60s",
+                "refreshType": "delay"
+            },
+            "name": "Customer Churn Rate"
+        },
+        "ds_monthly_revenue": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults count=1 | eval value=1870000000, delta=142000000",
+                "refresh": "60s",
+                "refreshType": "delay"
+            },
+            "name": "Monthly Revenue"
+        },
+        "ds_content_mix": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults count=6 | streamstats count as i | eval category=case(i==1,\"Drama\",i==2,\"Comedy\",i==3,\"Documentary\",i==4,\"Action\",i==5,\"Sci-Fi\",i==6,\"Horror\"), count=case(i==1,340,i==2,280,i==3,190,i==4,150,i==5,120,i==6,95) | table category count",
+                "refresh": "300s",
+                "refreshType": "delay"
+            },
+            "name": "Content Category Mix"
+        },
+        "ds_top_content": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults count=10 | streamstats count as i | eval title=case(i==1,\"The Last of Us\",i==2,\"House of the Dragon\",i==3,\"Succession\",i==4,\"The White Lotus\",i==5,\"Euphoria\",i==6,\"True Detective\",i==7,\"The Penguin\",i==8,\"Hacks\",i==9,\"Industry\",i==10,\"Curb Your Enthusiasm\"), views=case(i==1,42000000,i==2,38500000,i==3,31200000,i==4,27800000,i==5,24100000,i==6,21500000,i==7,19800000,i==8,16400000,i==9,14700000,i==10,12900000) | table title views",
+                "refresh": "300s",
+                "refreshType": "delay"
+            },
+            "name": "Top Shows and Movies by Views"
+        },
+        "ds_viewing_trend": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults count=24 | streamstats count as i | eval _time=relative_time(now(), \"-\".i.\"h\"), viewing_hours=round(2.8 + 1.2*sin(i/3.8) + 0.4*sin(i/7.2), 2) | sort _time | table _time viewing_hours",
+                "refresh": "300s",
+                "refreshType": "delay"
+            },
+            "name": "Viewing Hours Trend Over Time"
+        },
+        "ds_engagement": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults count=20 | streamstats count as i | eval _time=relative_time(now(), \"-\".i.\"m\"), user=case(i%7==0,\"sarah_k\",i%7==1,\"mike_j\",i%7==2,\"alex_w\",i%7==3,\"lisa_m\",i%7==4,\"tom_r\",i%7==5,\"emma_d\",i%7==6,\"chris_p\"), action=case(i%5==0,\"started watching\",i%5==1,\"completed\",i%5==2,\"added to list\",i%5==3,\"rated 5 stars\",i%5==4,\"shared\"), title=case(i%6==0,\"The Last of Us\",i%6==1,\"House of the Dragon\",i%6==2,\"Succession\",i%6==3,\"The White Lotus\",i%6==4,\"Euphoria\",i%6==5,\"True Detective\") | table _time user action title",
+                "refresh": "30s",
+                "refreshType": "delay"
+            },
+            "name": "Live Engagement Feed"
+        }
+    },
+    "visualizations": {
+        "viz_bg_header": {
+            "type": "splunk.rectangle",
+            "options": {
+                "fillColor": "#0E0E18",
+                "strokeColor": "transparent",
+                "rx": 0
+            }
+        },
+        "viz_header": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "# HBO Max\n### Streaming Analytics",
+                "fontColor": "#E8E8F0",
+                "fontSize": "default",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_bg_kpis": {
+            "type": "splunk.rectangle",
+            "options": {
+                "fillColor": "#111118",
+                "strokeColor": "rgba(255,255,255,0.04)",
+                "strokeWidth": 1,
+                "rx": 8
+            }
+        },
+        "viz_kpi_subscribers": {
+            "type": "hbo_max_viz.kpi_tile",
+            "title": "Total Subscribers",
+            "dataSources": { "primary": "ds_subscriber_count" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "label": "Total Subscribers",
+                "unit": "",
+                "decimals": "-1",
+                "valueColor": "#7B61FF",
+                "showSparkline": "false",
+                "showDelta": "true",
+                "deltaField": "delta",
+                "showGlow": "true",
+                "theme": "dark"
+            }
+        },
+        "viz_kpi_viewing": {
+            "type": "hbo_max_viz.kpi_tile",
+            "title": "Avg Viewing Hours",
+            "dataSources": { "primary": "ds_avg_viewing" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "label": "Avg Hours / User",
+                "unit": "hrs",
+                "unitPosition": "after",
+                "decimals": "1",
+                "valueColor": "#8298AB",
+                "showSparkline": "false",
+                "showDelta": "true",
+                "deltaField": "delta",
+                "showGlow": "false",
+                "theme": "dark"
+            }
+        },
+        "viz_kpi_revenue": {
+            "type": "hbo_max_viz.kpi_tile",
+            "title": "Monthly Revenue",
+            "dataSources": { "primary": "ds_monthly_revenue" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "label": "Monthly Revenue",
+                "unit": "$",
+                "unitPosition": "before",
+                "decimals": "-1",
+                "valueColor": "#A78BFA",
+                "showSparkline": "false",
+                "showDelta": "true",
+                "deltaField": "delta",
+                "showGlow": "false",
+                "theme": "dark"
+            }
+        },
+        "viz_churn": {
+            "type": "hbo_max_viz.churn_gauge",
+            "title": "Customer Churn Rate",
+            "dataSources": { "primary": "ds_churn_rate" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "maxValue": "15",
+                "unit": "%",
+                "label": "Monthly Churn",
+                "decimals": "1",
+                "showGlow": "true",
+                "theme": "dark"
+            }
+        },
+        "viz_content_mix": {
+            "type": "hbo_max_viz.content_donut",
+            "title": "Content Mix",
+            "dataSources": { "primary": "ds_content_mix" },
+            "options": {
+                "backgroundColor": "transparent",
+                "categoryField": "category",
+                "valueField": "count",
+                "showLegend": "true",
+                "showTotal": "true",
+                "theme": "dark"
+            }
+        },
+        "viz_top_shows": {
+            "type": "hbo_max_viz.top_content_board",
+            "title": "Top Shows & Movies",
+            "dataSources": { "primary": "ds_top_content" },
+            "options": {
+                "backgroundColor": "transparent",
+                "nameField": "title",
+                "valueField": "views",
+                "maxRows": "10",
+                "valueColor": "#7B61FF",
+                "theme": "dark"
+            }
+        },
+        "viz_viewing_trend": {
+            "type": "hbo_max_viz.viewing_area",
+            "title": "Viewing Hours Trend",
+            "dataSources": { "primary": "ds_viewing_trend" },
+            "options": {
+                "backgroundColor": "transparent",
+                "valueField": "viewing_hours",
+                "areaColor": "#7B61FF",
+                "showDots": "false",
+                "showGrid": "true",
+                "theme": "dark"
+            }
+        },
+        "viz_ticker": {
+            "type": "hbo_max_viz.engagement_ticker",
+            "title": "Live Engagement",
+            "dataSources": { "primary": "ds_engagement" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field1": "user",
+                "field2": "action",
+                "scrollSpeed": "medium",
+                "accentColor": "#7B61FF",
+                "theme": "dark"
+            }
+        },
+        "viz_label_kpis": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "SUBSCRIBER METRICS",
+                "fontColor": "rgba(232,232,240,0.30)",
+                "fontSize": "extraSmall",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_label_content": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "CONTENT PERFORMANCE",
+                "fontColor": "rgba(232,232,240,0.30)",
+                "fontSize": "extraSmall",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_label_trends": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "VIEWING TRENDS",
+                "fontColor": "rgba(232,232,240,0.30)",
+                "fontSize": "extraSmall",
+                "backgroundColor": "transparent"
+            }
+        }
+    },
+    "layout": {
+        "type": "absolute",
+        "options": {
+            "width": 1440,
+            "height": 1020,
+            "display": "auto-scale",
+            "backgroundColor": "#0A0A0F"
+        },
+        "globalInputs": ["input_global_time"],
+        "structure": [
+            { "item": "viz_bg_header",      "type": "block", "position": { "x": 0,   "y": 0,   "w": 1440, "h": 60  }},
+            { "item": "viz_header",          "type": "block", "position": { "x": 24,  "y": 8,   "w": 400,  "h": 50  }},
+
+            { "item": "viz_ticker",          "type": "block", "position": { "x": 20,  "y": 70,  "w": 1400, "h": 50  }},
+
+            { "item": "viz_label_kpis",      "type": "block", "position": { "x": 24,  "y": 130, "w": 200,  "h": 20  }},
+            { "item": "viz_bg_kpis",         "type": "block", "position": { "x": 20,  "y": 152, "w": 1400, "h": 180 }},
+            { "item": "viz_kpi_subscribers",  "type": "block", "position": { "x": 30,  "y": 162, "w": 330,  "h": 160 }},
+            { "item": "viz_kpi_viewing",      "type": "block", "position": { "x": 380, "y": 162, "w": 330,  "h": 160 }},
+            { "item": "viz_kpi_revenue",      "type": "block", "position": { "x": 730, "y": 162, "w": 330,  "h": 160 }},
+            { "item": "viz_churn",            "type": "block", "position": { "x": 1080,"y": 155, "w": 330,  "h": 175 }},
+
+            { "item": "viz_label_content",   "type": "block", "position": { "x": 24,  "y": 345, "w": 200,  "h": 20  }},
+            { "item": "viz_content_mix",     "type": "block", "position": { "x": 20,  "y": 368, "w": 500,  "h": 320 }},
+            { "item": "viz_top_shows",       "type": "block", "position": { "x": 540, "y": 368, "w": 880,  "h": 320 }},
+
+            { "item": "viz_label_trends",    "type": "block", "position": { "x": 24,  "y": 700, "w": 200,  "h": 20  }},
+            { "item": "viz_viewing_trend",   "type": "block", "position": { "x": 20,  "y": 722, "w": 1400, "h": 280 }}
+        ]
+    },
+    "applicationProperties": {
+        "theme": "dark"
+    }
+}
+    ]]></definition>
+</dashboard>

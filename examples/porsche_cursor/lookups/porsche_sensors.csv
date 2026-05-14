@@ -1,0 +1,13 @@
+sensor,temperature,status,trend
+Battery Cell 1,32.4,normal,0.3
+Battery Cell 2,33.1,normal,0.5
+Battery Cell 3,34.8,normal,-0.2
+Battery Cell 4,31.9,normal,0.1
+Front Motor,48.2,warning,1.2
+Rear Motor,52.7,warning,0.8
+Inverter,44.6,normal,-0.4
+Coolant In,28.3,normal,0.0
+Coolant Out,36.1,normal,0.2
+DC Charger,41.5,normal,-0.6
+Cabin HVAC,22.0,normal,0.0
+12V Battery,29.4,normal,0.1

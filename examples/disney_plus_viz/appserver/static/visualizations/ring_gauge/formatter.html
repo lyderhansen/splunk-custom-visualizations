@@ -1,0 +1,45 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Value field" help="SPL field name for the gauge value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.field" value="value">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Max value" help="Maximum value for the gauge scale">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxValue" value="100">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Label" help="Text shown below the gauge">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.label" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Unit" help="Unit suffix (%, M, $)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.unit" value="%">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show glow" help="Glow effect behind the arc">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showGlow" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark or light color scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Accent color" help="Arc gradient start color">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.accentColor" type="custom" value="#0063E5">
+            <splunk-color>#0063E5</splunk-color>
+            <splunk-color>#0080FF</splunk-color>
+            <splunk-color>#4DA3FF</splunk-color>
+            <splunk-color>#A78BFA</splunk-color>
+            <splunk-color>#2BBFB8</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

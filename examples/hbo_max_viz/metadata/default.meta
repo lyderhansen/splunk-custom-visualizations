@@ -1,0 +1,21 @@
+[]
+access = read : [ * ], write : [ admin, sc_admin ]
+export = system
+
+[visualizations/kpi_tile]
+export = system
+
+[visualizations/churn_gauge]
+export = system
+
+[visualizations/content_donut]
+export = system
+
+[visualizations/top_content_board]
+export = system
+
+[visualizations/viewing_area]
+export = system
+
+[visualizations/engagement_ticker]
+export = system

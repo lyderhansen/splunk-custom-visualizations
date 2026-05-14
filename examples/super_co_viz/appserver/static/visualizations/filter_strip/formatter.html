@@ -1,0 +1,18 @@
+<form class="splunk-formatter-section" section-label="Style">
+    <splunk-control-group label="Theme" help="Light or dark colour scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Filters" help="Semicolon-separated label:value pairs, e.g. Time range:Last 24 hours;Severity:All">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.filters" value="Time range:Last 24 hours;Environment:Production;Severity:All">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="CTA Label" help="Text for the right-aligned action button">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.ctaLabel" value="Run search">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>

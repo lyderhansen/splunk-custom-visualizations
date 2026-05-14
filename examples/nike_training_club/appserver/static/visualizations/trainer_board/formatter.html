@@ -1,0 +1,39 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Rank field" help="SPL field for trainer rank">
+        <splunk-text-input name="nike_training_club.trainer_board.rankField" default="rank"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Name field" help="SPL field for trainer name">
+        <splunk-text-input name="nike_training_club.trainer_board.nameField" default="name"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Score field" help="SPL field for trainer score">
+        <splunk-text-input name="nike_training_club.trainer_board.scoreField" default="score"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Sessions field" help="SPL field for session count">
+        <splunk-text-input name="nike_training_club.trainer_board.sessionsField" default="sessions"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Trend field" help="SPL field for trend delta">
+        <splunk-text-input name="nike_training_club.trainer_board.trendField" default="trend"></splunk-text-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Decimals" help="Score decimal places">
+        <splunk-text-input name="nike_training_club.trainer_board.decimals" default="1"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Max value" help="Maximum score value">
+        <splunk-text-input name="nike_training_club.trainer_board.maxValue" default="5.0"></splunk-text-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Light or dark theme">
+        <splunk-radio-input name="nike_training_club.trainer_board.theme" default="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Accent color" help="Primary accent color">
+        <splunk-color-picker name="nike_training_club.trainer_board.accentColor" default="#CDFF00"></splunk-color-picker>
+    </splunk-control-group>
+    <splunk-control-group label="Accent intensity" help="Glow effect strength (0-100)">
+        <splunk-text-input name="nike_training_club.trainer_board.accentIntensity" default="50"></splunk-text-input>
+    </splunk-control-group>
+</form>

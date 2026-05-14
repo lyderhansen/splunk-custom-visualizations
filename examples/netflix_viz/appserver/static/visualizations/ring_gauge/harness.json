@@ -1,0 +1,23 @@
+{
+  "label": "Netflix Ring Gauge",
+  "defaultSize": { "width": 380, "height": 280 },
+  "noDataMessage": "Awaiting data — Netflix Ring Gauge",
+  "fields": [
+    { "name": "value", "label": "Value", "type": "slider", "min": 0, "max": 100, "step": 0.5, "default": 72.5 }
+  ],
+  "formatter": [
+    { "name": "field", "label": "Value field", "type": "text", "default": "value" },
+    { "name": "maxValue", "label": "Max value", "type": "text", "default": "100" },
+    { "name": "label", "label": "Label", "type": "text", "default": "Audience satisfaction" },
+    { "name": "unit", "label": "Unit", "type": "text", "default": "%" },
+    { "name": "decimals", "label": "Decimals", "type": "text", "default": "-1" },
+    { "name": "showGlow", "label": "Show glow", "type": "radio", "options": ["true", "false"], "default": "true" },
+    { "name": "theme", "label": "Theme", "type": "select", "options": ["dark", "light"], "default": "dark" },
+    { "name": "accentColor", "label": "Accent", "type": "color", "default": "#E50914" }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": ["value"],
+    "dynamicColumnName": { "column": "value", "configKey": "field" }
+  }
+}

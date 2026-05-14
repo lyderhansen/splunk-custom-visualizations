@@ -1,0 +1,52 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="S1 time field" help="SPL field for sector 1 time">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.s1TimeField" value="s1_time">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="S1 status field" help="SPL field for sector 1 status (pb/best/slower)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.s1StatusField" value="s1_status">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="S2 time field" help="SPL field for sector 2 time">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.s2TimeField" value="s2_time">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="S2 status field" help="SPL field for sector 2 status">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.s2StatusField" value="s2_status">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="S3 time field" help="SPL field for sector 3 time">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.s3TimeField" value="s3_time">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="S3 status field" help="SPL field for sector 3 status">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.s3StatusField" value="s3_status">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Total field" help="SPL field for total lap time">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.totalField" value="total">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Show comparison" help="Show comparison coloring by status">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showComparison" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Sector count" help="Number of sectors (default 3)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.sectorCount" value="3">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark or light color scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>

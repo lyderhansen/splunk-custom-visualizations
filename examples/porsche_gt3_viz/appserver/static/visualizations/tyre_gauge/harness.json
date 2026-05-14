@@ -1,0 +1,29 @@
+{
+    "data": {
+        "fields": [
+            { "name": "fl_temp" },
+            { "name": "fr_temp" },
+            { "name": "rl_temp" },
+            { "name": "rr_temp" },
+            { "name": "compound" },
+            { "name": "wear_fl" },
+            { "name": "wear_fr" },
+            { "name": "wear_rl" },
+            { "name": "wear_rr" }
+        ],
+        "rows": [
+            ["95", "97", "88", "86", "soft", "8", "10", "5", "6"],
+            ["102", "105", "91", "93", "soft", "12", "15", "9", "11"],
+            ["98", "101", "94", "92", "soft", "18", "22", "14", "16"]
+        ]
+    },
+    "config": {
+        "display.visualizations.custom.porsche_gt3_viz.tyre_gauge.theme": "dark",
+        "display.visualizations.custom.porsche_gt3_viz.tyre_gauge.minTemp": "60",
+        "display.visualizations.custom.porsche_gt3_viz.tyre_gauge.maxTemp": "140",
+        "display.visualizations.custom.porsche_gt3_viz.tyre_gauge.optimalMin": "85",
+        "display.visualizations.custom.porsche_gt3_viz.tyre_gauge.optimalMax": "110",
+        "display.visualizations.custom.porsche_gt3_viz.tyre_gauge.unit": "°C",
+        "display.visualizations.custom.porsche_gt3_viz.tyre_gauge.showWear": "true"
+    }
+}

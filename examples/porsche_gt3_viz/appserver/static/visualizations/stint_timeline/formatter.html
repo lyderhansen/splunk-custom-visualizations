@@ -1,0 +1,56 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Start lap field" help="SPL field for stint start lap number">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.startLapField" value="start_lap">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="End lap field" help="SPL field for stint end lap number">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.endLapField" value="end_lap">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Compound field" help="SPL field for tyre compound (soft/medium/hard/wet)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.compoundField" value="compound">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Driver field" help="SPL field for driver code">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.driverField" value="driver">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Total laps field" help="SPL field for total race distance in laps">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.totalLapsField" value="total_laps">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Current lap field" help="SPL field for current lap position marker">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.currentLapField" value="current_lap">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Show compound" help="Display compound labels inside stint blocks">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showCompound" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show pit stops" help="Display pit stop markers between stints">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showPitStops" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show current lap" help="Display current lap position marker">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showCurrentLap" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark or light color scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>

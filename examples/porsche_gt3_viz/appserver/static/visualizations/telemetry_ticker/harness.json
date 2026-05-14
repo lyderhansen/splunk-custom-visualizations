@@ -1,0 +1,24 @@
+{
+    "fields": [
+        {"name": "_time", "type": "string"},
+        {"name": "message", "type": "string"},
+        {"name": "severity", "type": "string"},
+        {"name": "category", "type": "string"}
+    ],
+    "rows": [
+        ["2024-01-15T14:32:15", "Box box box — pit window open", "warning", "pit"],
+        ["2024-01-15T14:31:45", "Yellow flag sector 2", "critical", "flag"],
+        ["2024-01-15T14:31:10", "Tyre temps optimal all corners", "info", "strategy"],
+        ["2024-01-15T14:30:30", "Gap to P2 increasing +0.8s", "info", "strategy"],
+        ["2024-01-15T14:30:00", "DRS enabled lap 4", "info", "flag"],
+        ["2024-01-15T14:29:20", "Safety car deployed", "critical", "flag"],
+        ["2024-01-15T14:28:45", "Fuel target adjusted -2 laps", "warning", "strategy"],
+        ["2024-01-15T14:28:00", "Radio: push now, clear air ahead", "info", "radio"]
+    ],
+    "formatter": {
+        "theme": "dark",
+        "maxEvents": "50",
+        "showTimestamp": "true",
+        "showCategory": "true"
+    }
+}

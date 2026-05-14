@@ -1,0 +1,37 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Status field" help="SPL column that carries severity text (for example critical or ok)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.statusField" value="status">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Label field" help="SPL column for the human-readable label centered inside the pill">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelField" value="label">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Title" help="Optional caption rendered above the chip when non-empty">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.title" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Title alignment" help="Horizontal alignment for the optional caption">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.titleAlign" value="center">
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Chip font size" help="Use 0 for automatic sizing based on panel height">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.fontSize" value="0">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark Stranger Things palette or light alternate">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>

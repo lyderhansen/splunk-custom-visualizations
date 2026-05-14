@@ -1,0 +1,20 @@
+.netflix-viz-trend-spark,
+.netflix-viz-trend-spark canvas {
+    background-color: transparent;
+}
+
+.netflix-trend-spark-tooltip {
+    position: absolute;
+    z-index: 40;
+    max-width: 260px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(229, 9, 20, 0.35);
+    background: rgba(20, 20, 24, 0.94);
+    color: #F5E6D3;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.35;
+    box-shadow: 0 0 14px rgba(229, 9, 20, 0.25);
+    pointer-events: none;
+}

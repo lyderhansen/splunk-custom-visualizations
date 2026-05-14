@@ -1,0 +1,55 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Value field" help="SPL field name for the primary value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.field" value="value">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Delta field" help="SPL field name for the trend delta (percentage)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.deltaField" value="delta">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Label" help="Text shown above the value (uppercase)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.label" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Unit" help="Unit suffix or prefix ($, %, ms)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.unit" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Unit position" help="Show unit before or after the value">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.unitPosition" value="after">
+            <option value="before">Before</option>
+            <option value="after">After</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Decimals" help="Fixed decimal places (-1 = auto compact)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.decimals" value="-1">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show delta" help="Show trend arrow and percentage change">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showDelta" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark or light color scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Accent color" help="Left stripe color">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.accentColor" type="custom" value="#DC0000">
+            <splunk-color>#DC0000</splunk-color>
+            <splunk-color>#1E3A6E</splunk-color>
+            <splunk-color>#FFC906</splunk-color>
+            <splunk-color>#46D369</splunk-color>
+            <splunk-color>#FF6B35</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

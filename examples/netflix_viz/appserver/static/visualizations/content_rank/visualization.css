@@ -1,0 +1,8 @@
+.splunk-visualization-view .netflix-content-rank-tooltip,
+div[data-cid] .netflix-content-rank-tooltip {
+    box-sizing: border-box;
+}
+
+.splunk-visualization-body {
+    background-color: transparent;
+}

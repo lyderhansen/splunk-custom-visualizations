@@ -1712,7 +1712,7 @@ function harness() {
                 this.dataValues[def.harness.fields[j].name] = def.harness.fields[j].default;
             }
 
-            var fontsReady = this.loadFontCSS();
+            var fontsReady = Promise.all([this.loadFontCSS(), this.loadVizCSS(def.path)]);
             this.setStatus('nodata', 'Loading ' + name + '...');
 
             self.loadDependencies(def, function() {
@@ -1771,13 +1771,38 @@ function harness() {
             }
             return cssReady.then(function() {
                 if (!document.fonts || !document.fonts.forEach) return;
-                // @font-face rules register in 'unloaded' status — force activation,
-                // otherwise the first canvas draw falls back until the font is used once.
                 var loaders = [];
                 document.fonts.forEach(function(ff) {
                     loaders.push(ff.load().catch(function() {}));
                 });
                 return Promise.all(loaders).then(function() { return document.fonts.ready; });
+            });
+        },
+
+        loadVizCSS: function(vizPath) {
+            var existing = document.getElementById('harness-viz-css');
+            if (existing) existing.remove();
+            var cssUrl = vizPath + '/visualization.css';
+            return new Promise(function(resolve) {
+                var link = document.createElement('link');
+                link.id = 'harness-viz-css';
+                link.rel = 'stylesheet';
+                link.href = cssUrl;
+                link.onload = function() {
+                    if (!document.fonts || !document.fonts.forEach) { resolve(); return; }
+                    var loaders = [];
+                    document.fonts.forEach(function(ff) {
+                        if (ff.status === 'unloaded') {
+                            loaders.push(ff.load().catch(function() {}));
+                        }
+                    });
+                    if (loaders.length === 0) { resolve(); return; }
+                    Promise.all(loaders).then(function() {
+                        return document.fonts.ready;
+                    }).then(resolve);
+                };
+                link.onerror = function() { resolve(); };
+                document.head.appendChild(link);
             });
         },
 

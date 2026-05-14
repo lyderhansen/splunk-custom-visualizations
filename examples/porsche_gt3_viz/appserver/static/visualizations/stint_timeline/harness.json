@@ -1,0 +1,22 @@
+{
+    "fields": [
+        {"name": "start_lap", "type": "number"},
+        {"name": "end_lap", "type": "number"},
+        {"name": "compound", "type": "string"},
+        {"name": "driver", "type": "string"},
+        {"name": "total_laps", "type": "number"},
+        {"name": "current_lap", "type": "number"}
+    ],
+    "rows": [
+        [1, 14, "soft", "LEC", 60, 38],
+        [15, 29, "medium", "LEC", 60, 38],
+        [30, 44, "hard", "LEC", 60, 38],
+        [45, 60, "medium", "LEC", 60, 38]
+    ],
+    "formatter": {
+        "theme": "dark",
+        "showCompound": "true",
+        "showPitStops": "true",
+        "showCurrentLap": "true"
+    }
+}

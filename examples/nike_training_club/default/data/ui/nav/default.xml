@@ -1,0 +1,4 @@
+<nav search_view="search" color="#CDFF00">
+  <view name="nike_training_dashboard" default="true" />
+  <view name="search" />
+</nav>

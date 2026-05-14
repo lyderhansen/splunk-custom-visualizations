@@ -1,0 +1,5 @@
+{
+  "title": "Charging Power Gauge",
+  "description": "Arc gauge with target marker for charging power",
+  "search": "| inputlookup porsche_charging.csv"
+}

@@ -1,0 +1,55 @@
+<form class="splunk-formatter-section" section-label="Style">
+    <splunk-control-group label="Theme" help="Light or dark colour scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="App Name" help="Application name shown in the app bar">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.appName" value="Enterprise Security">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Breadcrumb" help="Breadcrumb trail shown above the title">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.breadcrumb" value="Home > Dashboards">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Title" help="Dashboard title text">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.title" value="Security Operations">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Subtitle" help="Subtitle text below the title">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.subtitle" value="Real-time monitoring and response">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Status Pills" help="Semicolon-separated label:value pairs for status pills">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.statusPills" value="Notables:1247;Critical:23;Open:847">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show Filters" help="Display the filter strip below the title">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showFilters" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Filters" help="Semicolon-separated label:value pairs for filter chips">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.filters" value="Time range:Last 24 hours;Environment:Production">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Footer Left" help="SPL hint text in the footer left side">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.footerLeft" value="index=notable | stats count by source">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Footer Right" help="Build/version text in the footer right side">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.footerRight" value="SUPER CO v1.0">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>

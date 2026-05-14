@@ -1,0 +1,36 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Field 1" help="Primary SPL column shown before the separator (for example user)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.field1" value="user"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Field 2" help="Secondary SPL column shown after the separator (for example action)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.field2" value="action"></splunk-text-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Scroll speed" help="Pixels advanced per animation frame (~30 fps)">
+        <splunk-select name="{{VIZ_NAMESPACE}}.scrollSpeed" value="medium">
+            <option value="slow">Slow</option>
+            <option value="medium">Medium</option>
+            <option value="fast">Fast</option>
+        </splunk-select>
+    </splunk-control-group>
+    <splunk-control-group label="Theme" help="Light or dark background preset for the ticker band">
+        <splunk-select name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-select>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Accent color" help="Icon dot and LIVE indicator accent">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.accentColor" type="custom" value="#7B61FF">
+            <splunk-color>#7B61FF</splunk-color>
+            <splunk-color>#A78BFA</splunk-color>
+            <splunk-color>#06B6D4</splunk-color>
+            <splunk-color>#22C55E</splunk-color>
+            <splunk-color>#F59E0B</splunk-color>
+            <splunk-color>#EF4444</splunk-color>
+            <splunk-color>#E8E8F0</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

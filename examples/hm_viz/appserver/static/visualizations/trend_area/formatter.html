@@ -1,0 +1,74 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Time field" help="SPL column holding epoch or temporal values for horizontal axis ordering">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.timeField" value="_time">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Value field" help="SPL column mapped to vertical metric values">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueField" value="value">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Series field" help="Optional SPL column separating multiple colored series">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.seriesField" value="series">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Fill opacity" help="Opacity of the area band under the stroke from 0 through 1">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.fillOpacity" value="0.12">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show axis" help="Display axis rulers and ticks for reading scale">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showAxis" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show grid" help="Display muted grid guides behind the curves">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showGrid" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Decimals" help="-1 compact grouping for labels; fixed count when zero or greater">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.decimals" value="-1">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark or light chart scaffold and typography">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="light">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Line color" help="Stroke color for trend lines atop the colored fill">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.lineColor" type="custom" value="#0F4B7D">
+            <splunk-color>#CC071E</splunk-color>
+            <splunk-color>#0F4B7D</splunk-color>
+            <splunk-color>#587E1F</splunk-color>
+            <splunk-color>#2E7D32</splunk-color>
+            <splunk-color>#ED6C02</splunk-color>
+            <splunk-color>#C62828</splunk-color>
+            <splunk-color>#9A9A96</splunk-color>
+            <splunk-color>#1A1A1A</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+    <splunk-control-group label="Accent color" help="Supporting accent tint for overlays and badges">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.accentColor" type="custom" value="#0F4B7D">
+            <splunk-color>#CC071E</splunk-color>
+            <splunk-color>#0F4B7D</splunk-color>
+            <splunk-color>#587E1F</splunk-color>
+            <splunk-color>#2E7D32</splunk-color>
+            <splunk-color>#ED6C02</splunk-color>
+            <splunk-color>#C62828</splunk-color>
+            <splunk-color>#9A9A96</splunk-color>
+            <splunk-color>#1A1A1A</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+    <splunk-control-group label="Accent intensity" help="Strength of accent usage from 0 to 100 percent">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.accentIntensity" value="50">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>

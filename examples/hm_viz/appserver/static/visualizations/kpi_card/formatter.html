@@ -1,0 +1,78 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Value field" help="SPL column name for the primary KPI numeric value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.field" value="value">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Label field" help="SPL column name for the row or series label beneath the KPI">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelField" value="label">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Delta field" help="SPL column name for the change or variance shown next to the value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.deltaField" value="delta">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Unit field" help="SPL column name supplying unit text such as currency or percent">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.unitField" value="unit">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Sparkline field" help="SPL column name holding sparkline numeric series values">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.sparklineField" value="sparkline">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Decimals" help="-1 compact grouping; zero or greater fixes decimal places">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.decimals" value="-1">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Compact number" help="Abbreviate large numbers with K, M, B style grouping">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.compactNumber" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Unit position" help="Render the unit token before or after the numeric body">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.unitPosition" value="before">
+            <option value="before">Before</option>
+            <option value="after">After</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show delta" help="Display delta column as change indication when numeric">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showDelta" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show sparkline" help="Plot inline sparkline from the configured sparkline field">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showSparkline" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark or light H&amp;M surface and typography colors">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="light">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Accent color" help="Brand accent applied to KPI bars, sparks, and highlights">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.accentColor" type="custom" value="#CC071E">
+            <splunk-color>#CC071E</splunk-color>
+            <splunk-color>#0F4B7D</splunk-color>
+            <splunk-color>#587E1F</splunk-color>
+            <splunk-color>#2E7D32</splunk-color>
+            <splunk-color>#ED6C02</splunk-color>
+            <splunk-color>#C62828</splunk-color>
+            <splunk-color>#9A9A96</splunk-color>
+            <splunk-color>#1A1A1A</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+    <splunk-control-group label="Accent intensity" help="Strength of accent usage from 0 to 100 percent">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.accentIntensity" value="50">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>

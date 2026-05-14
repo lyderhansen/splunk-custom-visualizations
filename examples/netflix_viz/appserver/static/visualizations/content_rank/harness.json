@@ -1,0 +1,34 @@
+{
+  "label": "Netflix Content Rank",
+  "defaultSize": { "width": 520, "height": 360 },
+  "noDataMessage": "Awaiting data — Netflix Content Rank",
+  "fields": [
+    { "name": "_rowCount", "label": "Rows shown", "type": "slider", "min": 3, "max": 10, "step": 1, "default": 5 }
+  ],
+  "formatter": [
+    { "name": "titleField", "label": "Title field", "type": "text", "default": "title" },
+    { "name": "valueField", "label": "Value field", "type": "text", "default": "views" },
+    { "name": "maxRows", "label": "Max rows", "type": "text", "default": "10" },
+    { "name": "unit", "label": "Unit", "type": "text", "default": "" },
+    { "name": "decimals", "label": "Decimals", "type": "text", "default": "-1" },
+    { "name": "theme", "label": "Theme", "type": "radio", "options": ["dark", "light"], "default": "dark" },
+    { "name": "accentColor", "label": "Accent", "type": "color", "default": "#E50914" }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "columns": ["title", "views"],
+    "rowCountField": "_rowCount",
+    "sampleRows": [
+      ["Stranger Things S4", "42000000"],
+      ["Wednesday", "38000000"],
+      ["Bridgerton S2", "31000000"],
+      ["Squid Game", "28000000"],
+      ["The Crown S5", "19000000"],
+      ["Ozark S4", "16500000"],
+      ["Money Heist P5", "14200000"],
+      ["Dark", "12100000"],
+      ["You S4", "9800000"],
+      ["Narcos", "7600000"]
+    ]
+  }
+}

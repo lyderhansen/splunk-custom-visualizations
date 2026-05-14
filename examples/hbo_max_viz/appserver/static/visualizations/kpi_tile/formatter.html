@@ -1,0 +1,65 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+  <splunk-control-group label="Field" help="SPL column for the primary KPI value">
+    <splunk-text-input name="{{VIZ_NAMESPACE}}.field" value="value"></splunk-text-input>
+  </splunk-control-group>
+  <splunk-control-group label="Sparkline field" help="Column with comma-separated numbers or one row per sparkline sample">
+    <splunk-text-input name="{{VIZ_NAMESPACE}}.sparklineField" value="sparkline"></splunk-text-input>
+  </splunk-control-group>
+  <splunk-control-group label="Delta field" help="Numeric delta column; positive shows green up arrow, negative red down arrow">
+    <splunk-text-input name="{{VIZ_NAMESPACE}}.deltaField" value="delta"></splunk-text-input>
+  </splunk-control-group>
+  <splunk-control-group label="Decimals" help="-1 for automatic precision, 0-6 for fixed decimal places">
+    <splunk-text-input name="{{VIZ_NAMESPACE}}.decimals" value="-1"></splunk-text-input>
+  </splunk-control-group>
+  <splunk-control-group label="Show sparkline" help="Enable the area sparkline when enough points exist">
+    <splunk-select name="{{VIZ_NAMESPACE}}.showSparkline" value="false">
+      <option value="true">true</option>
+      <option value="false">false</option>
+    </splunk-select>
+  </splunk-control-group>
+  <splunk-control-group label="Show delta" help="Show delta arrow when the delta field is present">
+    <splunk-select name="{{VIZ_NAMESPACE}}.showDelta" value="false">
+      <option value="true">true</option>
+      <option value="false">false</option>
+    </splunk-select>
+  </splunk-control-group>
+  <splunk-control-group label="Theme" help="Dark or light token set from the shared HBO Max theme">
+    <splunk-select name="{{VIZ_NAMESPACE}}.theme" value="dark">
+      <option value="dark">dark</option>
+      <option value="light">light</option>
+    </splunk-select>
+  </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Data display">
+  <splunk-control-group label="Label" help="Descriptive caption shown under the value in Outfit">
+    <splunk-text-input name="{{VIZ_NAMESPACE}}.label" value=""></splunk-text-input>
+  </splunk-control-group>
+  <splunk-control-group label="Unit" help="Suffix or prefix text such as %, hrs, or USD">
+    <splunk-text-input name="{{VIZ_NAMESPACE}}.unit" value=""></splunk-text-input>
+  </splunk-control-group>
+  <splunk-control-group label="Unit position" help="Place the unit before or after the numeric value">
+    <splunk-select name="{{VIZ_NAMESPACE}}.unitPosition" value="after">
+      <option value="before">before</option>
+      <option value="after">after</option>
+    </splunk-select>
+  </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Color and style">
+  <splunk-control-group label="Value color" help="Color for the large KPI value in JetBrains Mono">
+    <splunk-color-picker name="{{VIZ_NAMESPACE}}.valueColor" type="custom" value="#7B61FF">
+      <splunk-color>#7B61FF</splunk-color>
+      <splunk-color>#4F6984</splunk-color>
+      <splunk-color>#A78BFA</splunk-color>
+      <splunk-color>#8298AB</splunk-color>
+      <splunk-color>#E8E8F0</splunk-color>
+      <splunk-color>#22C55E</splunk-color>
+      <splunk-color>#EF4444</splunk-color>
+    </splunk-color-picker>
+  </splunk-control-group>
+  <splunk-control-group label="Show glow" help="Purple radial spotlight behind the hero value">
+    <splunk-select name="{{VIZ_NAMESPACE}}.showGlow" value="true">
+      <option value="true">true</option>
+      <option value="false">false</option>
+    </splunk-select>
+  </splunk-control-group>
+</form>

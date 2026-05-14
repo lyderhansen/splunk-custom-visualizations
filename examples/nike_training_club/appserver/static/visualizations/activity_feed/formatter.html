@@ -1,0 +1,30 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Time field" help="SPL field for event timestamps">
+        <splunk-text-input name="nike_training_club.activity_feed.timeField" default="_time"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Event field" help="SPL field for event description">
+        <splunk-text-input name="nike_training_club.activity_feed.eventField" default="event"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Type field" help="SPL field for event type (completion, join, milestone)">
+        <splunk-text-input name="nike_training_club.activity_feed.typeField" default="type"></splunk-text-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Max rows" help="Maximum number of events to display">
+        <splunk-text-input name="nike_training_club.activity_feed.maxRows" default="15"></splunk-text-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Light or dark theme">
+        <splunk-radio-input name="nike_training_club.activity_feed.theme" default="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Accent color" help="Primary accent color">
+        <splunk-color-picker name="nike_training_club.activity_feed.accentColor" default="#CDFF00"></splunk-color-picker>
+    </splunk-control-group>
+    <splunk-control-group label="Accent intensity" help="Glow effect strength (0-100)">
+        <splunk-text-input name="nike_training_club.activity_feed.accentIntensity" default="50"></splunk-text-input>
+    </splunk-control-group>
+</form>

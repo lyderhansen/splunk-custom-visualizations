@@ -1,0 +1,5 @@
+{
+  "title": "Sensor Temperature Table",
+  "description": "Glass-panel table with status dots and drilldown",
+  "search": "| inputlookup porsche_sensors.csv"
+}

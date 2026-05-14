@@ -1,0 +1,23 @@
+.splunk-viz-container,
+.splunk-viz-container > div {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden;
+}
+
+.netflix-kpi-tooltip {
+    position: absolute;
+    z-index: 50;
+    max-width: 280px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.35;
+    white-space: pre-line;
+    pointer-events: none;
+    color: #F5E6D3;
+    background: rgba(10, 10, 15, 0.92);
+    border: 1px solid rgba(229, 9, 20, 0.45);
+    box-shadow: 0 0 12px rgba(229, 9, 20, 0.35);
+    font-family: Georgia, "Times New Roman", serif;
+}

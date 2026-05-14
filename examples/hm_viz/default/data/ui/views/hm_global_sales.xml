@@ -1,0 +1,437 @@
+<dashboard version="2" theme="light">
+<label>H&amp;M Global Sales</label>
+<description>Executive overview of H&amp;M worldwide sales performance, channel mix, and regional growth</description>
+<definition><![CDATA[
+{
+  "title": "H&M Global Sales",
+  "description": "Executive overview of worldwide sales performance",
+  "inputs": {
+    "input_global_time": {
+      "type": "input.timerange",
+      "title": "Time Range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_kpi_revenue": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup hm_kpi_summary.csv | search metric=\"Total Revenue\" | table metric value delta unit sparkline",
+        "refresh": "300s",
+        "refreshType": "delay"
+      },
+      "name": "KPI – Total Revenue"
+    },
+    "ds_kpi_growth": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup hm_kpi_summary.csv | search metric=\"YoY Growth\" | table metric value delta unit sparkline",
+        "refresh": "300s",
+        "refreshType": "delay"
+      },
+      "name": "KPI – YoY Growth"
+    },
+    "ds_kpi_stores": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup hm_kpi_summary.csv | search metric=\"Store Count\" | table metric value delta unit sparkline",
+        "refresh": "300s",
+        "refreshType": "delay"
+      },
+      "name": "KPI – Store Count"
+    },
+    "ds_kpi_online": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup hm_kpi_summary.csv | search metric=\"Online Share\" | table metric value delta unit sparkline",
+        "refresh": "300s",
+        "refreshType": "delay"
+      },
+      "name": "KPI – Online Share"
+    },
+    "ds_kpi_aov": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup hm_kpi_summary.csv | search metric=\"Avg Order Value\" | table metric value delta unit sparkline",
+        "refresh": "300s",
+        "refreshType": "delay"
+      },
+      "name": "KPI – Avg Order Value"
+    },
+    "ds_kpi_conversion": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup hm_kpi_summary.csv | search metric=\"Conversion Rate\" | table metric value delta unit sparkline",
+        "refresh": "300s",
+        "refreshType": "delay"
+      },
+      "name": "KPI – Conversion Rate"
+    },
+    "ds_ring_budget": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup hm_kpi_summary.csv | search metric=\"Total Revenue\" | eval plan=27900000000, value=round(100*value/plan,1), label=\"Budget Attainment\", target=100 | table value label target",
+        "refresh": "300s",
+        "refreshType": "delay"
+      },
+      "name": "Ring – Budget Attainment"
+    },
+    "ds_ring_online_target": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup hm_kpi_summary.csv | search metric=\"Online Share\" | eval target=40, label=\"Online Target\" | table value label target",
+        "refresh": "300s",
+        "refreshType": "delay"
+      },
+      "name": "Ring – Online Target"
+    },
+    "ds_trend_revenue": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup hm_revenue_trend.csv | eval _time=_time | table _time value",
+        "refresh": "300s",
+        "refreshType": "delay"
+      },
+      "name": "Trend – Monthly Revenue"
+    },
+    "ds_region_rank": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup hm_regional_sales.csv | sort -value | table region value trend",
+        "refresh": "300s",
+        "refreshType": "delay"
+      },
+      "name": "Ranking – Top Markets"
+    },
+    "ds_channel_donut": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup hm_channel_split.csv | table channel value",
+        "refresh": "300s",
+        "refreshType": "delay"
+      },
+      "name": "Donut – Channel Mix"
+    },
+    "ds_market_status": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup hm_market_status.csv | table market status value",
+        "refresh": "300s",
+        "refreshType": "delay"
+      },
+      "name": "Pills – Market Status"
+    }
+  },
+  "visualizations": {
+    "viz_header_bg": {
+      "type": "splunk.rectangle",
+      "options": {
+        "fillColor": "#CC071E",
+        "strokeColor": "transparent",
+        "rx": 0
+      }
+    },
+    "viz_header_title": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "# H&M Global Sales",
+        "fontColor": "#FFFFFF",
+        "fontSize": "extraLarge",
+        "backgroundColor": "transparent",
+        "fontFamily": "IBM Plex Sans, sans-serif"
+      }
+    },
+    "viz_header_subtitle": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "Executive overview — worldwide sales performance, channel mix & regional growth",
+        "fontColor": "rgba(255,255,255,0.85)",
+        "fontSize": "small",
+        "backgroundColor": "transparent",
+        "fontFamily": "IBM Plex Sans, sans-serif"
+      }
+    },
+    "viz_section_kpi": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Key Performance Indicators**",
+        "fontColor": "#1A1A1A",
+        "fontSize": "default",
+        "backgroundColor": "transparent"
+      }
+    },
+    "viz_kpi_revenue": {
+      "type": "hm_viz.kpi_card",
+      "title": "Total Revenue",
+      "dataSources": { "primary": "ds_kpi_revenue" },
+      "options": {
+        "field": "value",
+        "labelField": "metric",
+        "deltaField": "delta",
+        "unitField": "unit",
+        "sparklineField": "sparkline",
+        "theme": "light",
+        "accentColor": "#CC071E",
+        "compactNumber": "true",
+        "unitPosition": "before"
+      }
+    },
+    "viz_kpi_growth": {
+      "type": "hm_viz.kpi_card",
+      "title": "YoY Growth",
+      "dataSources": { "primary": "ds_kpi_growth" },
+      "options": {
+        "field": "value",
+        "labelField": "metric",
+        "deltaField": "delta",
+        "unitField": "unit",
+        "sparklineField": "sparkline",
+        "theme": "light",
+        "accentColor": "#2E7D32",
+        "compactNumber": "false"
+      }
+    },
+    "viz_kpi_stores": {
+      "type": "hm_viz.kpi_card",
+      "title": "Store Count",
+      "dataSources": { "primary": "ds_kpi_stores" },
+      "options": {
+        "field": "value",
+        "labelField": "metric",
+        "deltaField": "delta",
+        "sparklineField": "sparkline",
+        "theme": "light",
+        "accentColor": "#0F4B7D",
+        "compactNumber": "true",
+        "showDelta": "true"
+      }
+    },
+    "viz_kpi_online": {
+      "type": "hm_viz.kpi_card",
+      "title": "Online Share",
+      "dataSources": { "primary": "ds_kpi_online" },
+      "options": {
+        "field": "value",
+        "labelField": "metric",
+        "deltaField": "delta",
+        "unitField": "unit",
+        "sparklineField": "sparkline",
+        "theme": "light",
+        "accentColor": "#0F4B7D",
+        "compactNumber": "false"
+      }
+    },
+    "viz_kpi_aov": {
+      "type": "hm_viz.kpi_card",
+      "title": "Avg Order Value",
+      "dataSources": { "primary": "ds_kpi_aov" },
+      "options": {
+        "field": "value",
+        "labelField": "metric",
+        "deltaField": "delta",
+        "unitField": "unit",
+        "sparklineField": "sparkline",
+        "theme": "light",
+        "accentColor": "#CC071E",
+        "compactNumber": "false",
+        "unitPosition": "before"
+      }
+    },
+    "viz_kpi_conversion": {
+      "type": "hm_viz.kpi_card",
+      "title": "Conversion Rate",
+      "dataSources": { "primary": "ds_kpi_conversion" },
+      "options": {
+        "field": "value",
+        "labelField": "metric",
+        "deltaField": "delta",
+        "unitField": "unit",
+        "sparklineField": "sparkline",
+        "theme": "light",
+        "accentColor": "#2E7D32",
+        "compactNumber": "false"
+      }
+    },
+    "viz_section_gauges": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Target Attainment**",
+        "fontColor": "#1A1A1A",
+        "fontSize": "default",
+        "backgroundColor": "transparent"
+      }
+    },
+    "viz_ring_budget": {
+      "type": "hm_viz.ring_gauge",
+      "title": "Budget Attainment",
+      "dataSources": { "primary": "ds_ring_budget" },
+      "options": {
+        "field": "value",
+        "labelField": "label",
+        "targetField": "target",
+        "maxValue": "100",
+        "decimals": "1",
+        "theme": "light",
+        "accentColor": "#0F4B7D"
+      }
+    },
+    "viz_ring_online": {
+      "type": "hm_viz.ring_gauge",
+      "title": "Online Target",
+      "dataSources": { "primary": "ds_ring_online_target" },
+      "options": {
+        "field": "value",
+        "labelField": "label",
+        "targetField": "target",
+        "maxValue": "100",
+        "decimals": "1",
+        "theme": "light",
+        "accentColor": "#CC071E"
+      }
+    },
+    "viz_section_trend": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Revenue Trend**",
+        "fontColor": "#1A1A1A",
+        "fontSize": "default",
+        "backgroundColor": "transparent"
+      }
+    },
+    "viz_trend_revenue": {
+      "type": "hm_viz.trend_area",
+      "title": "Monthly Revenue (SEK)",
+      "dataSources": { "primary": "ds_trend_revenue" },
+      "options": {
+        "timeField": "_time",
+        "valueField": "value",
+        "lineColor": "#0F4B7D",
+        "fillOpacity": "0.12",
+        "showAxis": "true",
+        "showGrid": "true",
+        "theme": "light",
+        "accentColor": "#0F4B7D"
+      }
+    },
+    "viz_section_markets": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Markets & Channels**",
+        "fontColor": "#1A1A1A",
+        "fontSize": "default",
+        "backgroundColor": "transparent"
+      }
+    },
+    "viz_region_rank": {
+      "type": "hm_viz.region_rank",
+      "title": "Top Markets by Revenue",
+      "dataSources": { "primary": "ds_region_rank" },
+      "options": {
+        "regionField": "region",
+        "valueField": "value",
+        "trendField": "trend",
+        "maxBars": "10",
+        "barColor": "#0F4B7D",
+        "showTrend": "true",
+        "compactNumber": "true",
+        "theme": "light"
+      }
+    },
+    "viz_channel_donut": {
+      "type": "hm_viz.channel_donut",
+      "title": "Channel Mix",
+      "dataSources": { "primary": "ds_channel_donut" },
+      "options": {
+        "labelField": "channel",
+        "valueField": "value",
+        "colors": "#CC071E,#0F4B7D,#587E1F",
+        "innerRadius": "0.65",
+        "showLegend": "true",
+        "showTotal": "true",
+        "compactTotal": "true",
+        "theme": "light"
+      }
+    },
+    "viz_section_status": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Market Status**",
+        "fontColor": "#1A1A1A",
+        "fontSize": "default",
+        "backgroundColor": "transparent"
+      }
+    },
+    "viz_market_status": {
+      "type": "hm_viz.status_pill",
+      "title": "Market Growth Status",
+      "dataSources": { "primary": "ds_market_status" },
+      "options": {
+        "labelField": "market",
+        "statusField": "status",
+        "valueField": "value",
+        "growingColor": "#2E7D32",
+        "stableColor": "#0F4B7D",
+        "decliningColor": "#C62828",
+        "maxRows": "15",
+        "theme": "light"
+      }
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1920,
+      "height": 1440,
+      "display": "auto-scale",
+      "backgroundColor": "#F5F3EF"
+    },
+    "globalInputs": ["input_global_time"],
+    "structure": [
+      { "item": "viz_header_bg",       "type": "block", "position": { "x": 0,    "y": 0,    "w": 1920, "h": 100 } },
+      { "item": "viz_header_title",    "type": "block", "position": { "x": 40,   "y": 12,   "w": 600,  "h": 48  } },
+      { "item": "viz_header_subtitle", "type": "block", "position": { "x": 40,   "y": 56,   "w": 800,  "h": 32  } },
+
+      { "item": "viz_section_kpi",     "type": "block", "position": { "x": 40,   "y": 120,  "w": 400,  "h": 32  } },
+      { "item": "viz_kpi_revenue",     "type": "block", "position": { "x": 40,   "y": 160,  "w": 290,  "h": 160 } },
+      { "item": "viz_kpi_growth",      "type": "block", "position": { "x": 350,  "y": 160,  "w": 290,  "h": 160 } },
+      { "item": "viz_kpi_stores",      "type": "block", "position": { "x": 660,  "y": 160,  "w": 290,  "h": 160 } },
+      { "item": "viz_kpi_online",      "type": "block", "position": { "x": 970,  "y": 160,  "w": 290,  "h": 160 } },
+      { "item": "viz_kpi_aov",         "type": "block", "position": { "x": 1280, "y": 160,  "w": 290,  "h": 160 } },
+      { "item": "viz_kpi_conversion",  "type": "block", "position": { "x": 1590, "y": 160,  "w": 290,  "h": 160 } },
+
+      { "item": "viz_section_gauges",  "type": "block", "position": { "x": 40,   "y": 340,  "w": 400,  "h": 32  } },
+      { "item": "viz_ring_budget",     "type": "block", "position": { "x": 40,   "y": 380,  "w": 280,  "h": 260 } },
+      { "item": "viz_ring_online",     "type": "block", "position": { "x": 340,  "y": 380,  "w": 280,  "h": 260 } },
+
+      { "item": "viz_section_trend",   "type": "block", "position": { "x": 660,  "y": 340,  "w": 400,  "h": 32  } },
+      { "item": "viz_trend_revenue",   "type": "block", "position": { "x": 660,  "y": 380,  "w": 1220, "h": 260 } },
+
+      { "item": "viz_section_markets", "type": "block", "position": { "x": 40,   "y": 660,  "w": 400,  "h": 32  } },
+      { "item": "viz_region_rank",     "type": "block", "position": { "x": 40,   "y": 700,  "w": 620,  "h": 380 } },
+      { "item": "viz_channel_donut",   "type": "block", "position": { "x": 680,  "y": 700,  "w": 500,  "h": 380 } },
+
+      { "item": "viz_section_status",  "type": "block", "position": { "x": 1200, "y": 660,  "w": 400,  "h": 32  } },
+      { "item": "viz_market_status",   "type": "block", "position": { "x": 1200, "y": 700,  "w": 680,  "h": 380 } }
+    ]
+  },
+  "applicationProperties": {
+    "theme": "light"
+  }
+}
+]]></definition>
+</dashboard>

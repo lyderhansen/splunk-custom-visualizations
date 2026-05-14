@@ -1,0 +1,66 @@
+{
+  "label": "App Bar",
+  "defaultSize": {
+    "width": 1200,
+    "height": 48
+  },
+  "fields": [],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "appName",
+      "label": "App Name",
+      "type": "text",
+      "default": "Enterprise Security"
+    },
+    {
+      "name": "navItems",
+      "label": "Nav Items",
+      "type": "text",
+      "default": "Apps,Search & Reporting,Dashboards,Alerts,Datasets"
+    },
+    {
+      "name": "activeNavIndex",
+      "label": "Active Nav",
+      "type": "text",
+      "default": "2"
+    },
+    {
+      "name": "userInitials",
+      "label": "User Initials",
+      "type": "text",
+      "default": "SC"
+    },
+    {
+      "name": "showTimestamp",
+      "label": "Show Timestamp",
+      "type": "radio",
+      "options": [
+        "true",
+        "false"
+      ],
+      "default": "true"
+    }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": [
+      "app"
+    ],
+    "sampleRows": [
+      [
+        "Enterprise Security"
+      ]
+    ]
+  },
+  "entry": "visualization.js"
+}

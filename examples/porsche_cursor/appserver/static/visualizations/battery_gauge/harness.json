@@ -1,0 +1,5 @@
+{
+  "title": "Battery Level Gauge",
+  "description": "Arc gauge with ambient glow for battery SOC",
+  "search": "| inputlookup porsche_battery.csv"
+}

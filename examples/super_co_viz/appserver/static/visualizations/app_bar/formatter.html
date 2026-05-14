@@ -1,0 +1,35 @@
+<form class="splunk-formatter-section" section-label="Style">
+    <splunk-control-group label="Theme" help="Light or dark colour scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="App Name" help="Application name shown after the wordmark">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.appName" value="Enterprise Security">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Nav Items" help="Comma-separated list of navigation labels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.navItems" value="Apps,Search & Reporting,Dashboards,Alerts,Datasets">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Active Nav Index" help="Zero-based index of the active nav item">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.activeNavIndex" value="2">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="User Initials" help="Initials shown in the avatar circle">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.userInitials" value="SC">
+        </splunk-text-input>
+    </splunk-control-group>
+
+    <splunk-control-group label="Show Timestamp" help="Display the current time in the right cluster">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showTimestamp" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>

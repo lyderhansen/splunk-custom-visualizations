@@ -1,0 +1,50 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Value field" help="SPL field containing the gauge value (0-100)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueField" value="value">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Target field" help="SPL field containing the target value (0-100)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.targetField" value="target">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Label field" help="SPL field for the label shown below the gauge">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelField" value="label">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Max value" help="Maximum gauge value (arc represents 0 to this number)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxValue" value="100">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Show target" help="Display target marker on the arc">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showTarget" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Accent color" help="Primary arc and highlight color">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.accentColor" type="custom" value="#CDFF00">
+            <splunk-color>#CDFF00</splunk-color>
+            <splunk-color>#FF6B00</splunk-color>
+            <splunk-color>#FF2D55</splunk-color>
+            <splunk-color>#00D4AA</splunk-color>
+            <splunk-color>#FFFFFF</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+    <splunk-control-group label="Theme" help="Auto detects page theme. Override for testing.">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.themeMode" value="auto">
+            <option value="auto">Auto</option>
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Accent intensity" help="Glow and highlight strength (0 = off, 100 = max)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.accentIntensity" value="70">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>

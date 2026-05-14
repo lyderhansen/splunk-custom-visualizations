@@ -1,0 +1,44 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Title field" help="SPL column for each content title or label">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.titleField" value="title">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Value field" help="SPL column for numeric values that drive bar length">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueField" value="views">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Max rows" help="Maximum leaderboard rows to render from the result set">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxRows" value="10">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Unit" help="Optional suffix appended to numeric values (e.g. M, k, or % )">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.unit" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Decimals" help="Fixed decimal places (-1 = compact automatic formatting)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.decimals" value="-1">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark Stranger Things palette or light variant">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Accent color" help="Neon bar highlight and leader row glow color">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.accentColor" type="custom" value="#E50914">
+            <splunk-color>#E50914</splunk-color>
+            <splunk-color>#B81D24</splunk-color>
+            <splunk-color>#831010</splunk-color>
+            <splunk-color>#FF6B6B</splunk-color>
+            <splunk-color>#46D369</splunk-color>
+            <splunk-color>#F5A623</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

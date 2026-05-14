@@ -1,0 +1,44 @@
+{
+  "label": "Filter Strip",
+  "defaultSize": {
+    "width": 1200,
+    "height": 48
+  },
+  "fields": [],
+  "formatter": [
+    {
+      "name": "theme",
+      "label": "Theme",
+      "type": "radio",
+      "options": [
+        "dark",
+        "light"
+      ],
+      "default": "dark"
+    },
+    {
+      "name": "filters",
+      "label": "Filters",
+      "type": "text",
+      "default": "Time range:Last 24 hours;Environment:Production;Severity:All"
+    },
+    {
+      "name": "ctaLabel",
+      "label": "CTA Label",
+      "type": "text",
+      "default": "Run search"
+    }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": [
+      "filter"
+    ],
+    "sampleRows": [
+      [
+        "demo"
+      ]
+    ]
+  },
+  "entry": "visualization.js"
+}

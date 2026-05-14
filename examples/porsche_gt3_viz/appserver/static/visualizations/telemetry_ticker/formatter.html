@@ -1,0 +1,46 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Timestamp field" help="SPL field for event timestamp">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.timestampField" value="_time">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Message field" help="SPL field for event message text">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.messageField" value="message">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Severity field" help="SPL field for event severity (info/warning/critical)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.severityField" value="severity">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Category field" help="SPL field for event category (pit/flag/incident/strategy/radio)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.categoryField" value="category">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Max events" help="Maximum number of events to display">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxEvents" value="50">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show timestamp" help="Display event timestamps">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showTimestamp" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show category" help="Display category indicator dot">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showCategory" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark or light color scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>

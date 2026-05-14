@@ -1,0 +1,61 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Value field" help="SPL column name for the primary KPI value (last row)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.field" value="value">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Delta field" help="SPL column name for the change value shown as arrow and percent">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.deltaField" value="delta">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Label" help="Title caption above the value in warm serif type">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.label" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Unit" help="Suffix or prefix such as percent, milliseconds, or currency">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.unit" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Unit position" help="Render the unit token before or after the numeric body">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.unitPosition" value="after">
+            <option value="before">Before</option>
+            <option value="after">After</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Decimals" help="-1 uses compact grouping; zero or positive fixes decimal places">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.decimals" value="-1">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show delta" help="Shows green up / red down arrow with percent when delta column is numeric">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showDelta" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark Stranger Things palette or light variant">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Accent color" help="Neon accent for glow, top bar gradient start, and sparkline stroke">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.accentColor" type="custom" value="#E50914">
+            <splunk-color>#E50914</splunk-color>
+            <splunk-color>#831010</splunk-color>
+            <splunk-color>#FF6B6B</splunk-color>
+            <splunk-color>#F5A623</splunk-color>
+            <splunk-color>#46D369</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+    <splunk-control-group label="Show glow" help="Netflix red neon glow on the hero number using drawGlowText">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showGlow" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>

@@ -1,0 +1,7 @@
+<nav search_view="search" color="#CDFF00">
+  <view name="search" default="true" />
+  <view name="nike_engagement" />
+  <view name="reports" />
+  <view name="alerts" />
+  <view name="dashboards" />
+</nav>

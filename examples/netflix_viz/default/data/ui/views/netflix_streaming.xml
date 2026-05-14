@@ -1,0 +1,559 @@
+<dashboard version="2" theme="dark">
+    <label>Netflix Streaming Overview</label>
+    <description>Streaming KPIs, subscriber metrics, and content performance</description>
+    <definition><![CDATA[
+{
+    "title": "Netflix Streaming Overview",
+    "description": "Streaming KPIs, subscriber metrics, and content performance",
+    "inputs": {
+        "input_global_time": {
+            "type": "input.timerange",
+            "title": "Time Range",
+            "options": {
+                "token": "global_time",
+                "defaultValue": "-24h@h,now"
+            }
+        }
+    },
+    "defaults": {
+        "dataSources": {
+            "ds.search": {
+                "options": {
+                    "queryParameters": {
+                        "earliest": "$global_time.earliest$",
+                        "latest": "$global_time.latest$"
+                    }
+                }
+            }
+        }
+    },
+    "dataSources": {
+        "ds_total_subs": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults | eval value=244000000, delta=3.2, label=\"Total Subscribers\"",
+                "refresh": "300s",
+                "refreshType": "delay"
+            },
+            "name": "Total Subscribers"
+        },
+        "ds_monthly_revenue": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults | eval value=9.87, delta=5.1, label=\"Monthly Revenue\"",
+                "refresh": "300s",
+                "refreshType": "delay"
+            },
+            "name": "Monthly Revenue"
+        },
+        "ds_hours_streamed": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults | eval value=18300000000, delta=12.4, label=\"Hours Streamed\"",
+                "refresh": "300s",
+                "refreshType": "delay"
+            },
+            "name": "Hours Streamed"
+        },
+        "ds_arpu": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults | eval value=11.64, delta=-0.8, label=\"ARPU\"",
+                "refresh": "300s",
+                "refreshType": "delay"
+            },
+            "name": "Avg Revenue Per User"
+        },
+        "ds_churn_gauge": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults | eval value=2.3, label=\"Monthly Churn\"",
+                "refresh": "300s",
+                "refreshType": "delay"
+            },
+            "name": "Monthly Churn Rate"
+        },
+        "ds_growth_gauge": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults | eval value=78, label=\"Growth Target\"",
+                "refresh": "300s",
+                "refreshType": "delay"
+            },
+            "name": "Growth Target Progress"
+        },
+        "ds_top_content": {
+            "type": "ds.search",
+            "options": {
+                "query": "| inputlookup netflix_content_top10.csv | sort 0 -views_millions | head 10 | rename views_millions as views",
+                "refresh": "300s",
+                "refreshType": "delay"
+            },
+            "name": "Top 10 Content"
+        },
+        "ds_regions": {
+            "type": "ds.search",
+            "options": {
+                "query": "| inputlookup netflix_regions.csv | sort 0 -subscribers",
+                "refresh": "300s",
+                "refreshType": "delay"
+            },
+            "name": "Regional Subscribers"
+        },
+        "ds_sub_trend": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults count=30 | streamstats count as i | eval _time=relative_time(now(), \"-\" + tostring(30 - i) + \"d\"), value=round(230000000 + i * 467000 + (i * i * 1200), 0) | fields _time value",
+                "refresh": "300s",
+                "refreshType": "delay"
+            },
+            "name": "Subscriber Trend (30d)"
+        },
+        "ds_hours_trend": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults count=30 | streamstats count as i | eval _time=relative_time(now(), \"-\" + tostring(30 - i) + \"d\"), value=round(580000000 + i * 8500000 + (i * 3000000 * sin(i/4)), 0) | fields _time value",
+                "refresh": "300s",
+                "refreshType": "delay"
+            },
+            "name": "Daily Hours Trend (30d)"
+        },
+        "ds_concurrent_peak": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults | eval value=14200000, delta=7.8, label=\"Peak Concurrent\"",
+                "refresh": "300s",
+                "refreshType": "delay"
+            },
+            "name": "Peak Concurrent Viewers"
+        },
+        "ds_stream_status": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults | eval status=\"healthy\", label=\"Streaming\"",
+                "refresh": "60s",
+                "refreshType": "delay"
+            },
+            "name": "Streaming Service Status"
+        },
+        "ds_cdn_status": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults | eval status=\"healthy\", label=\"CDN\"",
+                "refresh": "60s",
+                "refreshType": "delay"
+            },
+            "name": "CDN Status"
+        },
+        "ds_auth_status": {
+            "type": "ds.search",
+            "options": {
+                "query": "| makeresults | eval status=\"warning\", label=\"Auth\"",
+                "refresh": "60s",
+                "refreshType": "delay"
+            },
+            "name": "Auth Service Status"
+        }
+    },
+    "visualizations": {
+
+        "viz_hero_bg": {
+            "type": "splunk.image",
+            "options": {
+                "src": "/static/app/netflix_viz/hero_cinema.jpg",
+                "preserveAspectRatio": false
+            }
+        },
+        "viz_hero_overlay": {
+            "type": "splunk.rectangle",
+            "options": {
+                "fillColor": "rgba(10,10,15,0.35)",
+                "strokeColor": "transparent"
+            }
+        },
+        "viz_hero_title": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "# NETFLIX",
+                "fontColor": "#E50914",
+                "fontSize": "extraLarge",
+                "fontFamily": "\"Helvetica Neue\", Arial, sans-serif",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_hero_subtitle": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "Streaming Command Center",
+                "fontColor": "rgba(245,230,211,0.50)",
+                "fontSize": "small",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_status_stream": {
+            "type": "netflix_viz.status_chip",
+            "title": "Streaming",
+            "dataSources": { "primary": "ds_stream_status" },
+            "options": {
+                "backgroundColor": "transparent",
+                "statusField": "status",
+                "labelField": "label",
+                "theme": "dark"
+            }
+        },
+        "viz_status_cdn": {
+            "type": "netflix_viz.status_chip",
+            "title": "CDN",
+            "dataSources": { "primary": "ds_cdn_status" },
+            "options": {
+                "backgroundColor": "transparent",
+                "statusField": "status",
+                "labelField": "label",
+                "theme": "dark"
+            }
+        },
+        "viz_status_auth": {
+            "type": "netflix_viz.status_chip",
+            "title": "Auth",
+            "dataSources": { "primary": "ds_auth_status" },
+            "options": {
+                "backgroundColor": "transparent",
+                "statusField": "status",
+                "labelField": "label",
+                "theme": "dark"
+            }
+        },
+
+        "viz_bg_kpis": {
+            "type": "splunk.rectangle",
+            "options": {
+                "fillColor": "#0D0D12",
+                "strokeColor": "rgba(229,9,20,0.10)",
+                "strokeWidth": 1,
+                "rx": 12
+            }
+        },
+        "viz_kpi_subs": {
+            "type": "netflix_viz.kpi_tile",
+            "title": "Total Subscribers",
+            "dataSources": { "primary": "ds_total_subs" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "label": "Total Subscribers",
+                "decimals": "-1",
+                "deltaField": "delta",
+                "showDelta": "true",
+                "showGlow": "true",
+                "accentColor": "#E50914",
+                "theme": "dark"
+            }
+        },
+        "viz_kpi_revenue": {
+            "type": "netflix_viz.kpi_tile",
+            "title": "Monthly Revenue",
+            "dataSources": { "primary": "ds_monthly_revenue" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "label": "Monthly Revenue",
+                "unit": "$",
+                "unitPosition": "before",
+                "decimals": "2",
+                "deltaField": "delta",
+                "showDelta": "true",
+                "showGlow": "false",
+                "accentColor": "#FFB347",
+                "theme": "dark"
+            }
+        },
+        "viz_kpi_hours": {
+            "type": "netflix_viz.kpi_tile",
+            "title": "Hours Streamed",
+            "dataSources": { "primary": "ds_hours_streamed" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "label": "Hours Streamed",
+                "decimals": "-1",
+                "deltaField": "delta",
+                "showDelta": "true",
+                "showGlow": "false",
+                "accentColor": "#F5E6D3",
+                "theme": "dark"
+            }
+        },
+
+        "viz_bg_content": {
+            "type": "splunk.rectangle",
+            "options": {
+                "fillColor": "#0D0D12",
+                "strokeColor": "rgba(255,255,255,0.04)",
+                "strokeWidth": 1,
+                "rx": 12
+            }
+        },
+        "viz_label_content": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "TOP CONTENT",
+                "fontColor": "rgba(245,230,211,0.30)",
+                "fontSize": "extraSmall",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_content_rank": {
+            "type": "netflix_viz.content_rank",
+            "title": "Top 10 Content",
+            "dataSources": { "primary": "ds_top_content" },
+            "options": {
+                "backgroundColor": "transparent",
+                "titleField": "title",
+                "valueField": "views",
+                "maxRows": "10",
+                "unit": "M",
+                "decimals": "1",
+                "accentColor": "#FFB347",
+                "theme": "dark"
+            }
+        },
+
+        "viz_bg_gauges": {
+            "type": "splunk.rectangle",
+            "options": {
+                "fillColor": "#0D0D12",
+                "strokeColor": "rgba(255,255,255,0.04)",
+                "strokeWidth": 1,
+                "rx": 12
+            }
+        },
+        "viz_label_gauges": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "HEALTH",
+                "fontColor": "rgba(245,230,211,0.30)",
+                "fontSize": "extraSmall",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_gauge_churn": {
+            "type": "netflix_viz.ring_gauge",
+            "title": "Churn Rate",
+            "dataSources": { "primary": "ds_churn_gauge" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "label": "Monthly Churn",
+                "unit": "%",
+                "maxValue": "10",
+                "decimals": "1",
+                "showGlow": "false",
+                "accentColor": "#E50914",
+                "theme": "dark"
+            }
+        },
+        "viz_gauge_growth": {
+            "type": "netflix_viz.ring_gauge",
+            "title": "Growth Target",
+            "dataSources": { "primary": "ds_growth_gauge" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "label": "Growth Target",
+                "unit": "%",
+                "maxValue": "100",
+                "decimals": "0",
+                "showGlow": "false",
+                "accentColor": "#46D369",
+                "theme": "dark"
+            }
+        },
+
+        "viz_bg_trends": {
+            "type": "splunk.rectangle",
+            "options": {
+                "fillColor": "#0D0D12",
+                "strokeColor": "rgba(255,255,255,0.04)",
+                "strokeWidth": 1,
+                "rx": 12
+            }
+        },
+        "viz_label_trends": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "30-DAY TRENDS",
+                "fontColor": "rgba(245,230,211,0.30)",
+                "fontSize": "extraSmall",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_trend_subs": {
+            "type": "netflix_viz.trend_spark",
+            "title": "Subscriber Trend",
+            "dataSources": { "primary": "ds_sub_trend" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "label": "Subscribers",
+                "decimals": "-1",
+                "lineColor": "#E50914",
+                "showArea": "true",
+                "theme": "dark"
+            }
+        },
+        "viz_trend_hours": {
+            "type": "netflix_viz.trend_spark",
+            "title": "Hours Trend",
+            "dataSources": { "primary": "ds_hours_trend" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "label": "Streaming Hours",
+                "decimals": "-1",
+                "lineColor": "#FFB347",
+                "showArea": "true",
+                "theme": "dark"
+            }
+        },
+
+        "viz_bg_secondary": {
+            "type": "splunk.rectangle",
+            "options": {
+                "fillColor": "#0D0D12",
+                "strokeColor": "rgba(255,255,255,0.04)",
+                "strokeWidth": 1,
+                "rx": 12
+            }
+        },
+        "viz_label_secondary": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "METRICS",
+                "fontColor": "rgba(245,230,211,0.30)",
+                "fontSize": "extraSmall",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_kpi_arpu": {
+            "type": "netflix_viz.kpi_tile",
+            "title": "ARPU",
+            "dataSources": { "primary": "ds_arpu" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "label": "Avg Revenue / User",
+                "unit": "$",
+                "unitPosition": "before",
+                "decimals": "2",
+                "deltaField": "delta",
+                "showDelta": "true",
+                "showGlow": "false",
+                "accentColor": "#F5E6D3",
+                "theme": "dark"
+            }
+        },
+        "viz_kpi_concurrent": {
+            "type": "netflix_viz.kpi_tile",
+            "title": "Peak Concurrent",
+            "dataSources": { "primary": "ds_concurrent_peak" },
+            "options": {
+                "backgroundColor": "transparent",
+                "field": "value",
+                "label": "Peak Concurrent",
+                "decimals": "-1",
+                "deltaField": "delta",
+                "showDelta": "true",
+                "showGlow": "false",
+                "accentColor": "#F5E6D3",
+                "theme": "dark"
+            }
+        },
+
+        "viz_bg_regions": {
+            "type": "splunk.rectangle",
+            "options": {
+                "fillColor": "#0D0D12",
+                "strokeColor": "rgba(255,255,255,0.04)",
+                "strokeWidth": 1,
+                "rx": 12
+            }
+        },
+        "viz_label_regions": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "REGIONAL SUBSCRIBERS",
+                "fontColor": "rgba(245,230,211,0.30)",
+                "fontSize": "extraSmall",
+                "backgroundColor": "transparent"
+            }
+        },
+        "viz_regions": {
+            "type": "netflix_viz.region_card",
+            "title": "Regional Subscribers",
+            "dataSources": { "primary": "ds_regions" },
+            "options": {
+                "backgroundColor": "transparent",
+                "categoryField": "region",
+                "valueField": "subscribers",
+                "maxRows": "10",
+                "decimals": "-1",
+                "accentColor": "#E50914",
+                "theme": "dark"
+            }
+        }
+    },
+    "layout": {
+        "type": "absolute",
+        "options": {
+            "width": 1440,
+            "height": 1200,
+            "display": "auto-scale",
+            "backgroundColor": "#0A0A0F"
+        },
+        "globalInputs": ["input_global_time"],
+        "structure": [
+
+            { "item": "viz_hero_bg",       "type": "block", "position": { "x": 0,    "y": 0,   "w": 1440, "h": 260 } },
+            { "item": "viz_hero_overlay",   "type": "block", "position": { "x": 0,    "y": 0,   "w": 1440, "h": 260 } },
+            { "item": "viz_hero_title",     "type": "block", "position": { "x": 40,   "y": 30,  "w": 400,  "h": 50  } },
+            { "item": "viz_hero_subtitle",  "type": "block", "position": { "x": 40,   "y": 78,  "w": 400,  "h": 30  } },
+
+            { "item": "viz_status_stream",  "type": "block", "position": { "x": 1100, "y": 36,  "w": 100,  "h": 44  } },
+            { "item": "viz_status_cdn",     "type": "block", "position": { "x": 1210, "y": 36,  "w": 100,  "h": 44  } },
+            { "item": "viz_status_auth",    "type": "block", "position": { "x": 1320, "y": 36,  "w": 100,  "h": 44  } },
+
+            { "item": "viz_bg_kpis",        "type": "block", "position": { "x": 20,   "y": 140, "w": 1400, "h": 200 } },
+            { "item": "viz_kpi_subs",       "type": "block", "position": { "x": 40,   "y": 155, "w": 440,  "h": 170 } },
+            { "item": "viz_kpi_revenue",    "type": "block", "position": { "x": 500,  "y": 155, "w": 440,  "h": 170 } },
+            { "item": "viz_kpi_hours",      "type": "block", "position": { "x": 960,  "y": 155, "w": 440,  "h": 170 } },
+
+            { "item": "viz_bg_content",     "type": "block", "position": { "x": 20,   "y": 360, "w": 560,  "h": 480 } },
+            { "item": "viz_label_content",  "type": "block", "position": { "x": 36,   "y": 368, "w": 120,  "h": 20  } },
+            { "item": "viz_content_rank",   "type": "block", "position": { "x": 36,   "y": 392, "w": 530,  "h": 436 } },
+
+            { "item": "viz_bg_gauges",      "type": "block", "position": { "x": 600,  "y": 360, "w": 420,  "h": 230 } },
+            { "item": "viz_label_gauges",   "type": "block", "position": { "x": 616,  "y": 368, "w": 80,   "h": 20  } },
+            { "item": "viz_gauge_churn",    "type": "block", "position": { "x": 616,  "y": 392, "w": 190,  "h": 185 } },
+            { "item": "viz_gauge_growth",   "type": "block", "position": { "x": 816,  "y": 392, "w": 190,  "h": 185 } },
+
+            { "item": "viz_bg_trends",      "type": "block", "position": { "x": 600,  "y": 608, "w": 420,  "h": 232 } },
+            { "item": "viz_label_trends",   "type": "block", "position": { "x": 616,  "y": 616, "w": 120,  "h": 20  } },
+            { "item": "viz_trend_subs",     "type": "block", "position": { "x": 616,  "y": 640, "w": 190,  "h": 185 } },
+            { "item": "viz_trend_hours",    "type": "block", "position": { "x": 816,  "y": 640, "w": 190,  "h": 185 } },
+
+            { "item": "viz_bg_secondary",   "type": "block", "position": { "x": 1040, "y": 360, "w": 380,  "h": 230 } },
+            { "item": "viz_label_secondary", "type": "block", "position": { "x": 1056, "y": 368, "w": 80,  "h": 20  } },
+            { "item": "viz_kpi_arpu",       "type": "block", "position": { "x": 1056, "y": 392, "w": 170,  "h": 185 } },
+            { "item": "viz_kpi_concurrent", "type": "block", "position": { "x": 1236, "y": 392, "w": 170,  "h": 185 } },
+
+            { "item": "viz_bg_regions",     "type": "block", "position": { "x": 1040, "y": 608, "w": 380,  "h": 232 } },
+            { "item": "viz_label_regions",  "type": "block", "position": { "x": 1056, "y": 616, "w": 180,  "h": 20  } },
+            { "item": "viz_regions",        "type": "block", "position": { "x": 1056, "y": 640, "w": 350,  "h": 185 } }
+        ]
+    },
+    "applicationProperties": {
+        "theme": "dark"
+    }
+}
+    ]]></definition>
+</dashboard>

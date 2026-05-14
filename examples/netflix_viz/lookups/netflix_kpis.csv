@@ -1,0 +1,7 @@
+metric,value,unit,delta,label
+total_subscribers,244000000,,3.2,Total Subscribers
+monthly_revenue,9.87,B$,5.1,Monthly Revenue
+hours_streamed,18300000000,,12.4,Hours Streamed
+arpu,11.64,$,-0.8,Avg Revenue Per User
+churn_rate,2.3,%,-0.4,Monthly Churn
+concurrent_peak,14200000,,7.8,Peak Concurrent

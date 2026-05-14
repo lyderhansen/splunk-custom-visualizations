@@ -1,0 +1,25 @@
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Badge field" help="Column to render as tyre compound badges">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.badgeField" value="Compound">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Max rows" help="Maximum rows to display">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxRows" value="20">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show position" help="Show position number in left column">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showPosition" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark or light color scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>

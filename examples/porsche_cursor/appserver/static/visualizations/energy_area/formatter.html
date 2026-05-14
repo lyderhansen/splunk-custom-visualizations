@@ -1,0 +1,46 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Value Field" help="SPL column name for Y-axis value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueField" value="value"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Time Field" help="SPL column name for X-axis time (epoch)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.timeField" value="_time"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Grid Divisions" help="Number of horizontal grid lines">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.gridDivisions" value="4"></splunk-text-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Title" help="Display title for the area chart">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.title" value="Energy Consumption"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Unit" help="Unit label for Y-axis">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.unit" value="kWh/100km"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Value Font Size" help="Font size for axis labels (0 = auto-scale)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueFontSize" value="0"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Label Font Size" help="Font size for title text (0 = auto-scale)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelFontSize" value="0"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Accent Intensity" help="Glow and fill opacity strength (0 to 1)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.accentIntensity" value="0.7"></splunk-text-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Fill Color" help="Color for the area fill gradient">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.fillColor" type="custom" value="#00C9A7">
+            <splunk-color>#00C9A7</splunk-color>
+            <splunk-color>#3B82F6</splunk-color>
+            <splunk-color>#A78BFA</splunk-color>
+            <splunk-color>#C8A96E</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+    <splunk-control-group label="Line Color" help="Color for the area chart line">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.lineColor" type="custom" value="#00C9A7">
+            <splunk-color>#00C9A7</splunk-color>
+            <splunk-color>#3B82F6</splunk-color>
+            <splunk-color>#A78BFA</splunk-color>
+            <splunk-color>#C8A96E</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

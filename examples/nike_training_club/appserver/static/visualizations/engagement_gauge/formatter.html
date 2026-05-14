@@ -1,0 +1,42 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Value field" help="SPL field containing the gauge value">
+        <splunk-text-input name="nike_training_club.engagement_gauge.valueField" default="value"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Target field" help="SPL field for target value marker">
+        <splunk-text-input name="nike_training_club.engagement_gauge.targetField" default="target"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Label field" help="SPL field for gauge label">
+        <splunk-text-input name="nike_training_club.engagement_gauge.labelField" default="metric"></splunk-text-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Max value" help="Maximum gauge value">
+        <splunk-text-input name="nike_training_club.engagement_gauge.maxValue" default="100"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Decimals" help="Number of decimal places">
+        <splunk-text-input name="nike_training_club.engagement_gauge.decimals" default="0"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Unit" help="Display unit">
+        <splunk-text-input name="nike_training_club.engagement_gauge.unit" default="%"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Unit position" help="Position of unit relative to value">
+        <splunk-radio-input name="nike_training_club.engagement_gauge.unitPosition" default="after">
+            <option value="before">Before</option>
+            <option value="after">After</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Light or dark theme">
+        <splunk-radio-input name="nike_training_club.engagement_gauge.theme" default="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Accent color" help="Primary accent color">
+        <splunk-color-picker name="nike_training_club.engagement_gauge.accentColor" default="#CDFF00"></splunk-color-picker>
+    </splunk-control-group>
+    <splunk-control-group label="Accent intensity" help="Glow effect strength (0-100)">
+        <splunk-text-input name="nike_training_club.engagement_gauge.accentIntensity" default="50"></splunk-text-input>
+    </splunk-control-group>
+</form>

@@ -1,0 +1,33 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+  <splunk-control-group label="Field" help="SPL column for the gauge value (last row is used)">
+    <splunk-text-input name="{{VIZ_NAMESPACE}}.field" value="value"></splunk-text-input>
+  </splunk-control-group>
+  <splunk-control-group label="Max value" help="Ceiling used to compute fill percentage (0-100% of arc)">
+    <splunk-text-input name="{{VIZ_NAMESPACE}}.maxValue" value="100"></splunk-text-input>
+  </splunk-control-group>
+  <splunk-control-group label="Decimals" help="-1 for automatic precision, 0-6 for fixed decimal places">
+    <splunk-text-input name="{{VIZ_NAMESPACE}}.decimals" value="-1"></splunk-text-input>
+  </splunk-control-group>
+  <splunk-control-group label="Theme" help="Dark or light token set from the shared HBO Max theme">
+    <splunk-select name="{{VIZ_NAMESPACE}}.theme" value="dark">
+      <option value="dark">dark</option>
+      <option value="light">light</option>
+    </splunk-select>
+  </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Data display">
+  <splunk-control-group label="Label" help="Caption below the center value in Outfit">
+    <splunk-text-input name="{{VIZ_NAMESPACE}}.label" value=""></splunk-text-input>
+  </splunk-control-group>
+  <splunk-control-group label="Unit" help="Unit text appended to the value (for example %)">
+    <splunk-text-input name="{{VIZ_NAMESPACE}}.unit" value="%"></splunk-text-input>
+  </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Color and style">
+  <splunk-control-group label="Show glow" help="Purple glow along the filled gauge arc">
+    <splunk-select name="{{VIZ_NAMESPACE}}.showGlow" value="true">
+      <option value="true">true</option>
+      <option value="false">false</option>
+    </splunk-select>
+  </splunk-control-group>
+</form>

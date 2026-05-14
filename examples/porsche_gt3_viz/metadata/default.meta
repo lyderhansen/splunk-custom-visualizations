@@ -1,0 +1,24 @@
+[]
+access = read : [ * ], write : [ admin, sc_admin ]
+export = system
+
+[visualizations/lap_time_tile]
+export = system
+
+[visualizations/sector_bar]
+export = system
+
+[visualizations/tyre_gauge]
+export = system
+
+[visualizations/fuel_gauge]
+export = system
+
+[visualizations/position_board]
+export = system
+
+[visualizations/stint_timeline]
+export = system
+
+[visualizations/telemetry_ticker]
+export = system

@@ -1,0 +1,21 @@
+{
+  "label": "Netflix Status Chip",
+  "defaultSize": { "width": 360, "height": 96 },
+  "noDataMessage": "Awaiting data — Netflix Status Chip",
+  "fields": [
+    { "name": "status", "label": "Status", "type": "select", "options": ["critical", "warning", "ok"], "default": "ok" },
+    { "name": "label", "label": "Label", "type": "text", "default": "Playback API" }
+  ],
+  "formatter": [
+    { "name": "statusField", "label": "Status field", "type": "text", "default": "status" },
+    { "name": "labelField", "label": "Label field", "type": "text", "default": "label" },
+    { "name": "title", "label": "Title", "type": "text", "default": "" },
+    { "name": "titleAlign", "label": "Title align", "type": "select", "options": ["left", "center", "right"], "default": "center" },
+    { "name": "fontSize", "label": "Font size", "type": "text", "default": "0" },
+    { "name": "theme", "label": "Theme", "type": "select", "options": ["dark", "light"], "default": "dark" }
+  ],
+  "data": {
+    "mode": "single_row",
+    "columns": ["status", "label"]
+  }
+}

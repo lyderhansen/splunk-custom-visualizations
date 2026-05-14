@@ -1,0 +1,5 @@
+{
+  "title": "Energy Consumption Area",
+  "description": "Filled area chart showing energy consumption over time",
+  "search": "| inputlookup porsche_energy.csv"
+}

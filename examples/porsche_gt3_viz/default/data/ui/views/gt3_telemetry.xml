@@ -1,0 +1,279 @@
+<dashboard version="2" theme="dark">
+    <label>Porsche GT3 Telemetry</label>
+    <description>Race engineer pit wall — live telemetry overview</description>
+    <definition><![CDATA[
+{
+    "dataSources": {
+        "ds_current_lap": {
+            "type": "ds.search",
+            "name": "Current Lap Time",
+            "options": {
+                "query": "| makeresults count=1 | eval value=\"1:47.283\", label=\"CURRENT LAP\", trend=-0.342, trend_direction=\"down\"",
+                "queryParameters": {
+                    "earliest": "-24h",
+                    "latest": "now"
+                }
+            }
+        },
+        "ds_best_lap": {
+            "type": "ds.search",
+            "name": "Best Lap Time",
+            "options": {
+                "query": "| makeresults count=1 | eval value=\"1:46.891\", label=\"BEST LAP\", trend=-0.127, trend_direction=\"down\"",
+                "queryParameters": {
+                    "earliest": "-24h",
+                    "latest": "now"
+                }
+            }
+        },
+        "ds_gap": {
+            "type": "ds.search",
+            "name": "Gap to Leader",
+            "options": {
+                "query": "| makeresults count=1 | eval value=\"+1.234\", label=\"GAP TO LEADER\", trend=0.102, trend_direction=\"up\"",
+                "queryParameters": {
+                    "earliest": "-24h",
+                    "latest": "now"
+                }
+            }
+        },
+        "ds_sectors": {
+            "type": "ds.search",
+            "name": "Sector Times",
+            "options": {
+                "query": "| makeresults count=1 | eval s1_time=28.4, s1_status=\"pb\", s2_time=34.1, s2_status=\"best\", s3_time=44.8, s3_status=\"slower\", total=107.283",
+                "queryParameters": {
+                    "earliest": "-24h",
+                    "latest": "now"
+                }
+            }
+        },
+        "ds_tyres": {
+            "type": "ds.search",
+            "name": "Tyre Temperatures",
+            "options": {
+                "query": "| makeresults count=1 | eval fl_temp=92, fr_temp=97, rl_temp=88, rr_temp=95, compound=\"medium\", wear_fl=12, wear_fr=15, wear_rl=8, wear_rr=11",
+                "queryParameters": {
+                    "earliest": "-24h",
+                    "latest": "now"
+                }
+            }
+        },
+        "ds_fuel": {
+            "type": "ds.search",
+            "name": "Fuel Level",
+            "options": {
+                "query": "| makeresults count=1 | eval level=67, laps_remaining=12, consumption=2.84, target=20",
+                "queryParameters": {
+                    "earliest": "-24h",
+                    "latest": "now"
+                }
+            }
+        },
+        "ds_positions": {
+            "type": "ds.search",
+            "name": "Race Positions",
+            "options": {
+                "query": "| makeresults count=10 | streamstats count as position | eval name=case(position=1,\"VER\",position=2,\"HAM\",position=3,\"LEC\",position=4,\"NOR\",position=5,\"SAI\",position=6,\"RUS\",position=7,\"PIA\",position=8,\"ALO\",position=9,\"STR\",position=10,\"GAS\"), gap=if(position=1,\"LEADER\",\"+\".tostring(round(position*1.2+random()%3,3))), change=case(position%3=0,1,position%4=0,-1,1=1,0), car_number=tostring(position*5+10), highlight=if(position=3,\"true\",\"false\")",
+                "queryParameters": {
+                    "earliest": "-24h",
+                    "latest": "now"
+                }
+            }
+        },
+        "ds_stints": {
+            "type": "ds.search",
+            "name": "Stint Strategy",
+            "options": {
+                "query": "| makeresults count=4 | streamstats count as i | eval start_lap=case(i=1,1,i=2,15,i=3,30,i=4,45), end_lap=case(i=1,14,i=2,29,i=3,44,i=4,60), compound=case(i=1,\"soft\",i=2,\"medium\",i=3,\"hard\",i=4,\"medium\"), driver=\"LEC\", total_laps=60, current_lap=38",
+                "queryParameters": {
+                    "earliest": "-24h",
+                    "latest": "now"
+                }
+            }
+        },
+        "ds_ticker": {
+            "type": "ds.search",
+            "name": "Telemetry Events",
+            "options": {
+                "query": "| makeresults count=8 | streamstats count as i | eval _time=relative_time(now(),\"-\".tostring(i*30).\"s\"), message=case(i=1,\"Box box box — pit window open\",i=2,\"Yellow flag sector 2\",i=3,\"Tyre temps optimal all corners\",i=4,\"Gap to P2 increasing +0.8s\",i=5,\"DRS enabled lap 4\",i=6,\"Safety car deployed\",i=7,\"Fuel target adjusted -2 laps\",i=8,\"Radio: push now, clear air ahead\"), severity=case(i=1,\"warning\",i=2,\"critical\",i=6,\"critical\",i=7,\"warning\",1=1,\"info\"), category=case(i=1,\"pit\",i=2,\"flag\",i=3,\"strategy\",i=4,\"strategy\",i=5,\"flag\",i=6,\"flag\",i=7,\"strategy\",i=8,\"radio\") | fields _time message severity category",
+                "queryParameters": {
+                    "earliest": "-24h",
+                    "latest": "now"
+                }
+            }
+        }
+    },
+    "visualizations": {
+        "viz_current_lap": {
+            "type": "porsche_gt3_viz.lap_time_tile",
+            "dataSources": { "primary": "ds_current_lap" },
+            "options": {
+                "backgroundColor": "transparent",
+                "porsche_gt3_viz.lap_time_tile.theme": "dark",
+                "porsche_gt3_viz.lap_time_tile.valueField": "value",
+                "porsche_gt3_viz.lap_time_tile.labelField": "label",
+                "porsche_gt3_viz.lap_time_tile.trendField": "trend",
+                "porsche_gt3_viz.lap_time_tile.trendDirectionField": "trend_direction",
+                "porsche_gt3_viz.lap_time_tile.showTrend": "true",
+                "porsche_gt3_viz.lap_time_tile.decimals": "3"
+            }
+        },
+        "viz_best_lap": {
+            "type": "porsche_gt3_viz.lap_time_tile",
+            "dataSources": { "primary": "ds_best_lap" },
+            "options": {
+                "backgroundColor": "transparent",
+                "porsche_gt3_viz.lap_time_tile.theme": "dark",
+                "porsche_gt3_viz.lap_time_tile.valueField": "value",
+                "porsche_gt3_viz.lap_time_tile.labelField": "label",
+                "porsche_gt3_viz.lap_time_tile.trendField": "trend",
+                "porsche_gt3_viz.lap_time_tile.trendDirectionField": "trend_direction",
+                "porsche_gt3_viz.lap_time_tile.showTrend": "true",
+                "porsche_gt3_viz.lap_time_tile.decimals": "3"
+            }
+        },
+        "viz_gap": {
+            "type": "porsche_gt3_viz.lap_time_tile",
+            "dataSources": { "primary": "ds_gap" },
+            "options": {
+                "backgroundColor": "transparent",
+                "porsche_gt3_viz.lap_time_tile.theme": "dark",
+                "porsche_gt3_viz.lap_time_tile.valueField": "value",
+                "porsche_gt3_viz.lap_time_tile.labelField": "label",
+                "porsche_gt3_viz.lap_time_tile.trendField": "trend",
+                "porsche_gt3_viz.lap_time_tile.trendDirectionField": "trend_direction",
+                "porsche_gt3_viz.lap_time_tile.showTrend": "true",
+                "porsche_gt3_viz.lap_time_tile.decimals": "3"
+            }
+        },
+        "viz_sectors": {
+            "type": "porsche_gt3_viz.sector_bar",
+            "dataSources": { "primary": "ds_sectors" },
+            "options": {
+                "backgroundColor": "transparent",
+                "porsche_gt3_viz.sector_bar.theme": "dark",
+                "porsche_gt3_viz.sector_bar.showComparison": "true"
+            }
+        },
+        "viz_tyres": {
+            "type": "porsche_gt3_viz.tyre_gauge",
+            "dataSources": { "primary": "ds_tyres" },
+            "options": {
+                "backgroundColor": "transparent",
+                "porsche_gt3_viz.tyre_gauge.theme": "dark",
+                "porsche_gt3_viz.tyre_gauge.minTemp": "60",
+                "porsche_gt3_viz.tyre_gauge.maxTemp": "140",
+                "porsche_gt3_viz.tyre_gauge.optimalMin": "85",
+                "porsche_gt3_viz.tyre_gauge.optimalMax": "110",
+                "porsche_gt3_viz.tyre_gauge.unit": "°C",
+                "porsche_gt3_viz.tyre_gauge.showWear": "true"
+            }
+        },
+        "viz_fuel": {
+            "type": "porsche_gt3_viz.fuel_gauge",
+            "dataSources": { "primary": "ds_fuel" },
+            "options": {
+                "backgroundColor": "transparent",
+                "porsche_gt3_viz.fuel_gauge.theme": "dark",
+                "porsche_gt3_viz.fuel_gauge.warningThreshold": "15",
+                "porsche_gt3_viz.fuel_gauge.criticalThreshold": "5",
+                "porsche_gt3_viz.fuel_gauge.showLapsEstimate": "true",
+                "porsche_gt3_viz.fuel_gauge.showTarget": "true"
+            }
+        },
+        "viz_positions": {
+            "type": "porsche_gt3_viz.position_board",
+            "dataSources": { "primary": "ds_positions" },
+            "options": {
+                "backgroundColor": "transparent",
+                "porsche_gt3_viz.position_board.theme": "dark",
+                "porsche_gt3_viz.position_board.maxRows": "10",
+                "porsche_gt3_viz.position_board.showGap": "true",
+                "porsche_gt3_viz.position_board.showChange": "true"
+            }
+        },
+        "viz_stints": {
+            "type": "porsche_gt3_viz.stint_timeline",
+            "dataSources": { "primary": "ds_stints" },
+            "options": {
+                "backgroundColor": "transparent",
+                "porsche_gt3_viz.stint_timeline.theme": "dark",
+                "porsche_gt3_viz.stint_timeline.showCompound": "true",
+                "porsche_gt3_viz.stint_timeline.showPitStops": "true",
+                "porsche_gt3_viz.stint_timeline.showCurrentLap": "true"
+            }
+        },
+        "viz_ticker": {
+            "type": "porsche_gt3_viz.telemetry_ticker",
+            "dataSources": { "primary": "ds_ticker" },
+            "options": {
+                "backgroundColor": "transparent",
+                "porsche_gt3_viz.telemetry_ticker.theme": "dark",
+                "porsche_gt3_viz.telemetry_ticker.maxEvents": "50",
+                "porsche_gt3_viz.telemetry_ticker.showTimestamp": "true",
+                "porsche_gt3_viz.telemetry_ticker.showCategory": "true"
+            }
+        },
+        "viz_title": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "# PORSCHE GT3 TELEMETRY\n**911 GT3 R** — Race Engineer Console",
+                "fontColor": "#E8E8E8",
+                "backgroundColor": "transparent"
+            }
+        }
+    },
+    "layout": {
+        "type": "absolute",
+        "options": {
+            "width": 1440,
+            "height": 960,
+            "backgroundColor": "#0A0A0A"
+        },
+        "structure": [
+            {
+                "item": "viz_title",
+                "position": { "x": 20, "y": 10, "w": 400, "h": 60 }
+            },
+            {
+                "item": "viz_current_lap",
+                "position": { "x": 20, "y": 80, "w": 360, "h": 120 }
+            },
+            {
+                "item": "viz_best_lap",
+                "position": { "x": 390, "y": 80, "w": 360, "h": 120 }
+            },
+            {
+                "item": "viz_gap",
+                "position": { "x": 760, "y": 80, "w": 360, "h": 120 }
+            },
+            {
+                "item": "viz_sectors",
+                "position": { "x": 1130, "y": 80, "w": 290, "h": 120 }
+            },
+            {
+                "item": "viz_tyres",
+                "position": { "x": 20, "y": 210, "w": 440, "h": 380 }
+            },
+            {
+                "item": "viz_fuel",
+                "position": { "x": 470, "y": 210, "w": 200, "h": 380 }
+            },
+            {
+                "item": "viz_positions",
+                "position": { "x": 680, "y": 210, "w": 340, "h": 380 }
+            },
+            {
+                "item": "viz_ticker",
+                "position": { "x": 1030, "y": 210, "w": 390, "h": 380 }
+            },
+            {
+                "item": "viz_stints",
+                "position": { "x": 20, "y": 600, "w": 1400, "h": 90 }
+            }
+        ]
+    }
+}
+    ]]></definition>
+</dashboard>

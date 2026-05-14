@@ -1,0 +1,29 @@
+{
+  "label": "GT3 Lap Time Tile",
+  "defaultSize": { "width": 360, "height": 120 },
+  "noDataMessage": "Awaiting lap time data",
+  "dependencies": [],
+  "fields": [],
+  "formatter": [
+    { "name": "theme", "label": "Theme", "type": "radio", "options": ["dark", "light"], "default": "dark" },
+    { "name": "valueField", "label": "Value Field", "type": "text", "default": "value" },
+    { "name": "labelField", "label": "Label Field", "type": "text", "default": "label" },
+    { "name": "trendField", "label": "Trend Field", "type": "text", "default": "trend" },
+    { "name": "trendDirectionField", "label": "Trend Direction Field", "type": "text", "default": "trend_direction" },
+    { "name": "decimals", "label": "Decimals", "type": "text", "default": "3" },
+    { "name": "showSparkline", "label": "Show Sparkline", "type": "radio", "options": ["true", "false"], "default": "true" },
+    { "name": "showTrend", "label": "Show Trend", "type": "radio", "options": ["true", "false"], "default": "true" }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "columns": ["value", "label", "trend", "trend_direction"],
+    "sampleRows": [
+      ["1:49.112", "Current Lap", "0.832", "up"],
+      ["1:48.445", "Current Lap", "-0.217", "down"],
+      ["1:47.891", "Current Lap", "-0.554", "down"],
+      ["1:48.102", "Current Lap", "0.211", "up"],
+      ["1:47.283", "Current Lap", "-0.819", "down"]
+    ]
+  },
+  "entry": "visualization.js"
+}

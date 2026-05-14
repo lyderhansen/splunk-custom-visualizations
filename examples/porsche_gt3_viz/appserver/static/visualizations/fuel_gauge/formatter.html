@@ -1,0 +1,50 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Level field" help="SPL field for fuel level percentage (0-100)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.levelField" value="level">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Laps field" help="SPL field for estimated laps remaining">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.lapsField" value="laps_remaining">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Consumption field" help="SPL field for fuel consumption per lap">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.consumptionField" value="consumption">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Target field" help="SPL field for target fuel level at pit window">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.targetField" value="target">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Warning threshold" help="Fuel % below which warning color activates">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.warningThreshold" value="15">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Critical threshold" help="Fuel % below which critical color activates">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.criticalThreshold" value="5">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show laps estimate" help="Display estimated laps remaining">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showLapsEstimate" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show target" help="Display target fuel level marker">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showTarget" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark or light color scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>

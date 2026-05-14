@@ -1,0 +1,49 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Value Field" help="SPL column name for main KPI value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.field" value="value"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Label Field" help="SPL column name for KPI label">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelField" value="label"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Delta Field" help="SPL column for change value">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.deltaField" value="delta"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Unit Field" help="SPL column for unit text">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.unitField" value="unit"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Sparkline Field" help="SPL column with pipe-separated sparkline values">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.sparklineField" value="sparkline"></splunk-text-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Title" help="Display title for the KPI tile">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.title" value="Estimated Range"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Value Font Size" help="Font size for main value (0 = auto-scale)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueFontSize" value="0"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Label Font Size" help="Font size for label text (0 = auto-scale)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelFontSize" value="0"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Accent Intensity" help="Glow effect strength (0 to 1)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.accentIntensity" value="0.7"></splunk-text-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Value Color" help="Color for main value text">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.valueColor" type="custom" value="#E8E6E3">
+            <splunk-color>#E8E6E3</splunk-color>
+            <splunk-color>#F8FAFC</splunk-color>
+            <splunk-color>#00C9A7</splunk-color>
+            <splunk-color>#3B82F6</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+    <splunk-control-group label="Accent Color" help="Color for sparkline and glow effects">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.accentColor" type="custom" value="#00C9A7">
+            <splunk-color>#00C9A7</splunk-color>
+            <splunk-color>#3B82F6</splunk-color>
+            <splunk-color>#C8A96E</splunk-color>
+            <splunk-color>#A78BFA</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

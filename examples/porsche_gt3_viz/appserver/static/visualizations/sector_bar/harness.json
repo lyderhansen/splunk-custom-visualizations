@@ -1,0 +1,27 @@
+{
+  "label": "GT3 Sector Bar",
+  "defaultSize": { "width": 480, "height": 100 },
+  "noDataMessage": "Awaiting sector data",
+  "dependencies": [],
+  "fields": [],
+  "formatter": [
+    { "name": "theme", "label": "Theme", "type": "radio", "options": ["dark", "light"], "default": "dark" },
+    { "name": "s1TimeField", "label": "S1 Time Field", "type": "text", "default": "s1_time" },
+    { "name": "s1StatusField", "label": "S1 Status Field", "type": "text", "default": "s1_status" },
+    { "name": "s2TimeField", "label": "S2 Time Field", "type": "text", "default": "s2_time" },
+    { "name": "s2StatusField", "label": "S2 Status Field", "type": "text", "default": "s2_status" },
+    { "name": "s3TimeField", "label": "S3 Time Field", "type": "text", "default": "s3_time" },
+    { "name": "s3StatusField", "label": "S3 Status Field", "type": "text", "default": "s3_status" },
+    { "name": "totalField", "label": "Total Time Field", "type": "text", "default": "total" },
+    { "name": "showComparison", "label": "Show Comparison", "type": "radio", "options": ["true", "false"], "default": "true" },
+    { "name": "sectorCount", "label": "Sector Count", "type": "text", "default": "3" }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "columns": ["s1_time", "s1_status", "s2_time", "s2_status", "s3_time", "s3_status", "total"],
+    "sampleRows": [
+      ["28.4", "pb", "35.1", "best", "43.8", "slower", "107.3"]
+    ]
+  },
+  "entry": "visualization.js"
+}

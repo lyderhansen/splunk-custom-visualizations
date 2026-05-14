@@ -1,0 +1,8 @@
+.splunk-visualization-view .netflix-region-card-tooltip,
+div[data-cid] .netflix-region-card-tooltip {
+    box-sizing: border-box;
+}
+
+.splunk-visualization-body {
+    background-color: transparent;
+}

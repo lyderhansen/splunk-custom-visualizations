@@ -1,0 +1,51 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Category field" help="SPL column name for category / slice labels">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.categoryField" value="category"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Value field" help="SPL column name for numeric values (counts)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueField" value="count"></splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Custom colors" help="Comma-separated hex colors for slices; order matches rows">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.colors" value="#7B61FF,#4F6984,#8298AB,#A78BFA,#6B7280"></splunk-text-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Show legend" help="Toggle right-side legend with percentage labels">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showLegend" value="true">
+            <option name="true" label="Yes"></option>
+            <option name="false" label="No"></option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show total" help="Show aggregate total in the donut center">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showTotal" value="true">
+            <option name="true" label="Yes"></option>
+            <option name="false" label="No"></option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Theme" help="Dark or light token set for background and text">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option name="dark" label="Dark"></option>
+            <option name="light" label="Light"></option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Center total color" help="Color for the numeric total inside the donut hole">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.totalValueColor" type="custom" value="#E8E8F0">
+            <splunk-color>#E8E8F0</splunk-color>
+            <splunk-color>#F8FAFC</splunk-color>
+            <splunk-color>#7B61FF</splunk-color>
+            <splunk-color>#A78BFA</splunk-color>
+            <splunk-color>#64748B</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+    <splunk-control-group label="Center label color" help="Color for the TOTAL caption under the number">
+        <splunk-color-picker name="{{VIZ_NAMESPACE}}.totalLabelColor" type="custom" value="#9494A8">
+            <splunk-color>#9494A8</splunk-color>
+            <splunk-color>#64748B</splunk-color>
+            <splunk-color>#E8E8F0</splunk-color>
+            <splunk-color>#7B61FF</splunk-color>
+            <splunk-color>#A78BFA</splunk-color>
+        </splunk-color-picker>
+    </splunk-control-group>
+</form>

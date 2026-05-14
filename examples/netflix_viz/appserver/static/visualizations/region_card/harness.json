@@ -1,0 +1,34 @@
+{
+  "label": "Netflix Region Card",
+  "defaultSize": { "width": 520, "height": 320 },
+  "noDataMessage": "Awaiting data — Netflix Region Card",
+  "fields": [
+    { "name": "_rowCount", "label": "Rows shown", "type": "slider", "min": 3, "max": 10, "step": 1, "default": 5 }
+  ],
+  "formatter": [
+    { "name": "categoryField", "label": "Category field", "type": "text", "default": "region" },
+    { "name": "valueField", "label": "Value field", "type": "text", "default": "subscribers" },
+    { "name": "maxRows", "label": "Max rows", "type": "text", "default": "10" },
+    { "name": "unit", "label": "Unit", "type": "text", "default": "" },
+    { "name": "decimals", "label": "Decimals", "type": "text", "default": "-1" },
+    { "name": "theme", "label": "Theme", "type": "radio", "options": ["dark", "light"], "default": "dark" },
+    { "name": "accentColor", "label": "Accent", "type": "color", "default": "#E50914" }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "columns": ["region", "subscribers", "growth_pct"],
+    "rowCountField": "_rowCount",
+    "sampleRows": [
+      ["North America", "78500000", "3.2"],
+      ["EMEA", "65200000", "4.1"],
+      ["LATAM", "43100000", "5.8"],
+      ["APAC", "38900000", "6.4"],
+      ["UK/Ireland", "15200000", "1.9"],
+      ["DACH", "12800000", "2.3"],
+      ["France", "9600000", "2.0"],
+      ["Japan", "8200000", "4.5"],
+      ["Brazil", "21000000", "7.1"],
+      ["India", "12400000", "8.9"]
+    ]
+  }
+}

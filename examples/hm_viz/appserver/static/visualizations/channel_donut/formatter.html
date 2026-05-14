@@ -1,0 +1,52 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="Label field" help="SPL column name for donut slice legends and category text">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.labelField" value="channel">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Value field" help="SPL column name supplying numeric slice magnitudes">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.valueField" value="value">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Colors" help="Comma separated hex palette applied to slices left to right">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.colors" value="#CC071E,#0F4B7D,#587E1F,#9A9A96,#ED6C02">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Inner radius" help="Donut hole ratio between 0 solid pie and 1 thin ring">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.innerRadius" value="0.65">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Show legend" help="Render category legend beside or below the donut">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showLegend" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show total" help="Overlay center headline with aggregated total">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showTotal" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Compact total" help="Use abbreviated numeric formatting inside the donut center">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.compactTotal" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark or light chart chrome typography and scaffold">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="light">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+    <splunk-control-group label="Accent intensity" help="Strength of donut stroke and glare accents from 0 to 100">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.accentIntensity" value="50">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>

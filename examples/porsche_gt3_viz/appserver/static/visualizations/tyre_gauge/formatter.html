@@ -1,0 +1,76 @@
+<form class="splunk-formatter-section" section-label="Data configurations">
+    <splunk-control-group label="FL temp field" help="SPL field for front-left tyre temperature">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.flField" value="fl_temp">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="FR temp field" help="SPL field for front-right tyre temperature">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.frField" value="fr_temp">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="RL temp field" help="SPL field for rear-left tyre temperature">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.rlField" value="rl_temp">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="RR temp field" help="SPL field for rear-right tyre temperature">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.rrField" value="rr_temp">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Compound field" help="SPL field for tyre compound (soft/medium/hard/wet)">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.compoundField" value="compound">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="FL wear field" help="SPL field for front-left wear percentage">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.wearFlField" value="wear_fl">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="FR wear field" help="SPL field for front-right wear percentage">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.wearFrField" value="wear_fr">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="RL wear field" help="SPL field for rear-left wear percentage">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.wearRlField" value="wear_rl">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="RR wear field" help="SPL field for rear-right wear percentage">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.wearRrField" value="wear_rr">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Min temperature" help="Lower bound of temperature range">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.minTemp" value="60">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Max temperature" help="Upper bound of temperature range">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxTemp" value="140">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Optimal min" help="Lower bound of optimal temperature window">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.optimalMin" value="85">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Optimal max" help="Upper bound of optimal temperature window">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.optimalMax" value="110">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Unit" help="Temperature unit label">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.unit" value="°C">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Show wear" help="Display tyre wear percentage bars">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.showWear" value="true">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark or light color scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>

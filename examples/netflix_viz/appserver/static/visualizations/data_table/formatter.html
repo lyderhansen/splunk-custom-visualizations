@@ -1,0 +1,23 @@
+<form class="splunk-formatter-section" section-label="Data display">
+    <splunk-control-group label="Title" help="Table title">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.title" value="">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Badge field" help="Column to render as franchise-colored badges">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.badgeField" value="Category">
+        </splunk-text-input>
+    </splunk-control-group>
+    <splunk-control-group label="Max rows" help="Maximum rows to display">
+        <splunk-text-input name="{{VIZ_NAMESPACE}}.maxRows" value="10">
+        </splunk-text-input>
+    </splunk-control-group>
+</form>
+
+<form class="splunk-formatter-section" section-label="Color and style">
+    <splunk-control-group label="Theme" help="Dark or light color scheme">
+        <splunk-radio-input name="{{VIZ_NAMESPACE}}.theme" value="dark">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </splunk-radio-input>
+    </splunk-control-group>
+</form>

@@ -1,0 +1,222 @@
+<dashboard version="2" theme="dark">
+    <label>Red Bull Racing — Live Telemetry</label>
+    <description>Oracle Red Bull Racing F1 telemetry</description>
+    <definition><![CDATA[
+{
+  "title": "Red Bull Racing — Live Telemetry",
+  "description": "Oracle Red Bull Racing F1 telemetry",
+  "visualizations": {
+    "viz_hero_car": {
+      "type": "splunk.image",
+      "options": { "src": "/static/app/redbull_viz/images/rb20_front.jpg", "preserveAspectRatio": true }
+    },
+    "viz_hero_dim": {
+      "type": "splunk.rectangle",
+      "options": { "fillColor": "#0B0E1A", "fillOpacity": 0.35, "strokeColor": "transparent", "rx": 0 }
+    },
+    "viz_hero_vignette_bottom": {
+      "type": "splunk.rectangle",
+      "options": { "fillColor": "#0B0E1A", "fillOpacity": 0.9, "strokeColor": "transparent", "rx": 0 }
+    },
+    "viz_driver": {
+      "type": "splunk.markdown",
+      "options": { "markdown": "**VER 1** — Max Verstappen", "fontSize": "default", "fontColor": "#FFC906" }
+    },
+    "viz_session": {
+      "type": "splunk.markdown",
+      "options": { "markdown": "Race — Lap 42/57 — Monza GP", "fontSize": "small", "fontColor": "rgba(232,236,241,0.40)" }
+    },
+    "viz_panel_left": {
+      "type": "splunk.rectangle",
+      "options": { "fillColor": "#0B0E1A", "fillOpacity": 0.88, "strokeColor": "rgba(255,255,255,0.03)", "rx": 4 }
+    },
+    "viz_panel_right": {
+      "type": "splunk.rectangle",
+      "options": { "fillColor": "#0B0E1A", "fillOpacity": 0.88, "strokeColor": "rgba(255,255,255,0.03)", "rx": 4 }
+    },
+    "viz_panel_bottom": {
+      "type": "splunk.rectangle",
+      "options": { "fillColor": "#0F1320", "fillOpacity": 0.95, "strokeColor": "rgba(255,255,255,0.03)", "rx": 4 }
+    },
+    "viz_pos_badge": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": { "primary": "ds_stub" },
+      "options": {
+        "backgroundColor": "transparent",
+        "infographic_shapes.infographic_shapes.shapeName": "rounded_rect",
+        "infographic_shapes.infographic_shapes.fillColor": "#FFC906",
+        "infographic_shapes.infographic_shapes.fillType": "solid",
+        "infographic_shapes.infographic_shapes.text": "P1",
+        "infographic_shapes.infographic_shapes.fontFamily": "Inter",
+        "infographic_shapes.infographic_shapes.fontSize": "0",
+        "infographic_shapes.infographic_shapes.fontColor": "#0B0E1A",
+        "infographic_shapes.infographic_shapes.fontWeight": "bold"
+      }
+    },
+    "viz_kpi_laptime": {
+      "type": "redbull_viz.kpi_tile",
+      "dataSources": { "primary": "ds_laptime" },
+      "options": { "backgroundColor": "transparent", "redbull_viz.kpi_tile.field": "value", "redbull_viz.kpi_tile.label": "Last Lap", "redbull_viz.kpi_tile.accentColor": "#FFC906", "redbull_viz.kpi_tile.showDelta": "false", "redbull_viz.kpi_tile.theme": "dark" }
+    },
+    "viz_kpi_gap": {
+      "type": "redbull_viz.kpi_tile",
+      "dataSources": { "primary": "ds_gap" },
+      "options": { "backgroundColor": "transparent", "redbull_viz.kpi_tile.field": "value", "redbull_viz.kpi_tile.label": "Gap to P2", "redbull_viz.kpi_tile.accentColor": "#46D369", "redbull_viz.kpi_tile.showDelta": "false", "redbull_viz.kpi_tile.theme": "dark" }
+    },
+    "viz_speed_gauge": {
+      "type": "redbull_viz.ring_gauge",
+      "dataSources": { "primary": "ds_speed" },
+      "options": { "backgroundColor": "transparent", "redbull_viz.ring_gauge.field": "value", "redbull_viz.ring_gauge.maxValue": "370", "redbull_viz.ring_gauge.label": "km/h", "redbull_viz.ring_gauge.redZoneStart": "320", "redbull_viz.ring_gauge.segments": "30", "redbull_viz.ring_gauge.theme": "dark" }
+    },
+    "viz_rpm_gauge": {
+      "type": "redbull_viz.ring_gauge",
+      "dataSources": { "primary": "ds_rpm" },
+      "options": { "backgroundColor": "transparent", "redbull_viz.ring_gauge.field": "value", "redbull_viz.ring_gauge.maxValue": "15000", "redbull_viz.ring_gauge.label": "RPM", "redbull_viz.ring_gauge.redZoneStart": "12500", "redbull_viz.ring_gauge.segments": "28", "redbull_viz.ring_gauge.theme": "dark" }
+    },
+    "viz_gear_label": {
+      "type": "splunk.markdown",
+      "options": { "markdown": "**GEAR**", "fontSize": "extraSmall", "fontColor": "rgba(232,236,241,0.30)" }
+    },
+    "viz_gear_indicator": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": { "primary": "ds_gear" },
+      "options": { "backgroundColor": "transparent", "infographic_shapes.infographic_shapes.shapeName": "rounded_rect", "infographic_shapes.infographic_shapes.fillColor": "#1E2940", "infographic_shapes.infographic_shapes.fillType": "solid", "infographic_shapes.infographic_shapes.text": "7", "infographic_shapes.infographic_shapes.fontFamily": "Inter", "infographic_shapes.infographic_shapes.fontSize": "0", "infographic_shapes.infographic_shapes.fontColor": "#FFC906", "infographic_shapes.infographic_shapes.fontWeight": "bold", "infographic_shapes.infographic_shapes.strokeColor": "rgba(255,198,9,0.25)", "infographic_shapes.infographic_shapes.strokeWidth": "1" }
+    },
+    "viz_icon_ers": {
+      "type": "icon_library.icon_library",
+      "dataSources": { "primary": "ds_stub" },
+      "options": { "backgroundColor": "transparent", "icon_library.icon_library.iconName": "battery_charging_full", "icon_library.icon_library.iconColor": "#46D369", "icon_library.icon_library.iconSize": "0" }
+    },
+    "viz_ers_bar": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": { "primary": "ds_ers" },
+      "options": { "backgroundColor": "transparent", "infographic_shapes.infographic_shapes.shapeName": "rounded_rect", "infographic_shapes.infographic_shapes.fillColor": "#1E2940", "infographic_shapes.infographic_shapes.fillType": "solid", "infographic_shapes.infographic_shapes.progressEnabled": "yes", "infographic_shapes.infographic_shapes.progressField": "pct", "infographic_shapes.infographic_shapes.progressColor": "#46D369", "infographic_shapes.infographic_shapes.progressDirection": "horizontal", "infographic_shapes.infographic_shapes.text": "78%", "infographic_shapes.infographic_shapes.fontColor": "#46D369", "infographic_shapes.infographic_shapes.fontWeight": "bold", "infographic_shapes.infographic_shapes.fontSize": "0", "infographic_shapes.infographic_shapes.strokeColor": "rgba(255,255,255,0.03)", "infographic_shapes.infographic_shapes.strokeWidth": "1" }
+    },
+    "viz_drs_indicator": {
+      "type": "infographic_shapes.infographic_shapes",
+      "dataSources": { "primary": "ds_stub" },
+      "options": { "backgroundColor": "transparent", "infographic_shapes.infographic_shapes.shapeName": "rounded_rect", "infographic_shapes.infographic_shapes.fillColor": "#46D369", "infographic_shapes.infographic_shapes.fillType": "solid", "infographic_shapes.infographic_shapes.text": "DRS", "infographic_shapes.infographic_shapes.fontFamily": "Inter", "infographic_shapes.infographic_shapes.fontSize": "0", "infographic_shapes.infographic_shapes.fontColor": "#0B0E1A", "infographic_shapes.infographic_shapes.fontWeight": "bold", "infographic_shapes.infographic_shapes.glow": "yes", "infographic_shapes.infographic_shapes.glowColor": "#46D369", "infographic_shapes.infographic_shapes.glowBlur": "6" }
+    },
+    "viz_kpi_fuel": {
+      "type": "redbull_viz.kpi_tile",
+      "dataSources": { "primary": "ds_fuel" },
+      "options": { "backgroundColor": "transparent", "redbull_viz.kpi_tile.field": "value", "redbull_viz.kpi_tile.label": "Fuel Load", "redbull_viz.kpi_tile.unit": "kg", "redbull_viz.kpi_tile.unitPosition": "after", "redbull_viz.kpi_tile.decimals": "1", "redbull_viz.kpi_tile.accentColor": "#1E3A6E", "redbull_viz.kpi_tile.showDelta": "false", "redbull_viz.kpi_tile.theme": "dark" }
+    },
+    "viz_kpi_tyrewear": {
+      "type": "redbull_viz.kpi_tile",
+      "dataSources": { "primary": "ds_tyrewear" },
+      "options": { "backgroundColor": "transparent", "redbull_viz.kpi_tile.field": "value", "redbull_viz.kpi_tile.deltaField": "delta", "redbull_viz.kpi_tile.label": "Tyre Wear", "redbull_viz.kpi_tile.unit": "%", "redbull_viz.kpi_tile.unitPosition": "after", "redbull_viz.kpi_tile.decimals": "0", "redbull_viz.kpi_tile.accentColor": "#DC0000", "redbull_viz.kpi_tile.showDelta": "true", "redbull_viz.kpi_tile.theme": "dark" }
+    },
+    "viz_lbl_current_lap": {
+      "type": "splunk.markdown",
+      "options": { "markdown": "CURRENT LAP TIME", "fontSize": "extraSmall", "fontColor": "rgba(232,236,241,0.30)" }
+    },
+    "viz_kpi_current_lap": {
+      "type": "redbull_viz.kpi_tile",
+      "dataSources": { "primary": "ds_current_lap" },
+      "options": { "backgroundColor": "transparent", "redbull_viz.kpi_tile.field": "value", "redbull_viz.kpi_tile.label": "", "redbull_viz.kpi_tile.accentColor": "#4A8FE7", "redbull_viz.kpi_tile.showDelta": "false", "redbull_viz.kpi_tile.theme": "dark" }
+    },
+    "viz_lbl_position": {
+      "type": "splunk.markdown",
+      "options": { "markdown": "POSITION", "fontSize": "extraSmall", "fontColor": "rgba(232,236,241,0.30)" }
+    },
+    "viz_kpi_position": {
+      "type": "redbull_viz.kpi_tile",
+      "dataSources": { "primary": "ds_position" },
+      "options": { "backgroundColor": "transparent", "redbull_viz.kpi_tile.field": "value", "redbull_viz.kpi_tile.label": "", "redbull_viz.kpi_tile.accentColor": "#FFC906", "redbull_viz.kpi_tile.showDelta": "false", "redbull_viz.kpi_tile.theme": "dark" }
+    },
+    "viz_lbl_sectors": {
+      "type": "splunk.markdown",
+      "options": { "markdown": "**SECTOR TIMES**", "fontSize": "extraSmall", "fontColor": "rgba(232,236,241,0.30)" }
+    },
+    "viz_sector_table": {
+      "type": "redbull_viz.data_table",
+      "dataSources": { "primary": "ds_sectors" },
+      "options": { "backgroundColor": "transparent", "redbull_viz.data_table.badgeField": "Delta", "redbull_viz.data_table.maxRows": "6", "redbull_viz.data_table.showPosition": "true", "redbull_viz.data_table.theme": "dark" }
+    },
+    "viz_lbl_strategy": {
+      "type": "splunk.markdown",
+      "options": { "markdown": "**TYRE STRATEGY**", "fontSize": "extraSmall", "fontColor": "rgba(232,236,241,0.30)" }
+    },
+    "viz_tyre_donut": {
+      "type": "redbull_viz.content_donut",
+      "dataSources": { "primary": "ds_tyre_usage" },
+      "options": { "backgroundColor": "transparent", "redbull_viz.content_donut.categoryField": "compound", "redbull_viz.content_donut.valueField": "laps", "redbull_viz.content_donut.showReadout": "true", "redbull_viz.content_donut.colors": "#DC0000,#FFC906,#FFFFFF", "redbull_viz.content_donut.theme": "dark" }
+    },
+    "viz_speed_trace": {
+      "type": "redbull_viz.area_chart",
+      "dataSources": { "primary": "ds_speed_trace" },
+      "options": { "backgroundColor": "transparent", "redbull_viz.area_chart.title": "SPEED TRACE", "redbull_viz.area_chart.colors": "#DC0000,#1E3A6E", "redbull_viz.area_chart.theme": "dark" }
+    },
+    "viz_footer": {
+      "type": "splunk.markdown",
+      "options": { "markdown": "Oracle Red Bull Racing — Telemetry Feed v3.2 | 10Hz", "fontSize": "extraSmall", "fontColor": "rgba(232,236,241,0.10)" }
+    }
+  },
+  "dataSources": {
+    "ds_stub": { "type": "ds.test", "options": { "data": { "fields": [{"name":"_stub"},{"name":"pct"}], "columns": [["1"],["78"]] } }, "name": "Stub" },
+    "ds_laptime": { "type": "ds.search", "options": { "query": "| makeresults | eval value=\"1:21.584\"", "queryParameters": {"earliest":"-1m","latest":"now"} }, "name": "Last lap" },
+    "ds_gap": { "type": "ds.search", "options": { "query": "| makeresults | eval value=\"+4.271s\"", "queryParameters": {"earliest":"-1m","latest":"now"} }, "name": "Gap" },
+    "ds_fuel": { "type": "ds.search", "options": { "query": "| makeresults | eval value=38.4", "queryParameters": {"earliest":"-1m","latest":"now"} }, "name": "Fuel" },
+    "ds_tyrewear": { "type": "ds.search", "options": { "query": "| makeresults | eval value=62, delta=-3.2", "queryParameters": {"earliest":"-1m","latest":"now"} }, "name": "Tyre wear" },
+    "ds_ers": { "type": "ds.test", "options": { "data": { "fields": [{"name":"pct"}], "columns": [["78"]] } }, "name": "ERS" },
+    "ds_speed": { "type": "ds.search", "options": { "query": "| makeresults | eval value=312", "queryParameters": {"earliest":"-1m","latest":"now"} }, "name": "Speed" },
+    "ds_rpm": { "type": "ds.search", "options": { "query": "| makeresults | eval value=11800", "queryParameters": {"earliest":"-1m","latest":"now"} }, "name": "RPM" },
+    "ds_current_lap": { "type": "ds.search", "options": { "query": "| makeresults | eval value=\"0:34.418\"", "queryParameters": {"earliest":"-1m","latest":"now"} }, "name": "Current lap" },
+    "ds_position": { "type": "ds.search", "options": { "query": "| makeresults | eval value=\"1\"", "queryParameters": {"earliest":"-1m","latest":"now"} }, "name": "Position" },
+    "ds_gear": { "type": "ds.test", "options": { "data": { "fields": [{"name":"gear"}], "columns": [["7"]] } }, "name": "Gear" },
+    "ds_speed_trace": { "type": "ds.search", "options": { "query": "| makeresults count=20 | streamstats count as sector | eval _time=relative_time(now(), \"-80s\")+(sector*4), Speed=case(sector<=3,280+random()%20,sector<=5,80+random()%30,sector<=8,240+random()%40,sector<=10,160+random()%20,sector<=13,300+random()%30,sector<=15,90+random()%40,sector<=18,260+random()%30,true(),310+random()%20), Throttle=case(sector<=3,95+random()%5,sector<=5,20+random()%30,sector<=8,85+random()%15,sector<=10,40+random()%20,sector<=13,100,sector<=15,15+random()%25,true(),90+random()%10) | table _time Speed Throttle", "queryParameters": {"earliest":"-2m","latest":"now"} }, "name": "Speed trace" },
+    "ds_sectors": { "type": "ds.search", "options": { "query": "| makeresults count=6 | streamstats count as idx | eval Lap=case(idx<=3,\"Current\",true(),\"Previous\"), Sector=case(idx=1,\"S1\",idx=2,\"S2\",idx=3,\"S3\",idx=4,\"S1\",idx=5,\"S2\",idx=6,\"S3\"), Time=case(idx=1,\"28.412\",idx=2,\"24.891\",idx=3,\"28.281\",idx=4,\"28.103\",idx=5,\"25.044\",idx=6,\"28.437\"), Delta=case(idx=1,\"+0.309\",idx=2,\"-0.153\",idx=3,\"-0.156\",idx=4,\"PB\",idx=5,\"+0.102\",idx=6,\"PB\") | table Lap Sector Time Delta | fields - idx", "queryParameters": {"earliest":"-1m","latest":"now"} }, "name": "Sectors" },
+    "ds_tyre_usage": { "type": "ds.search", "options": { "query": "| makeresults count=3 | streamstats count as idx | eval compound=case(idx=1,\"Soft\",idx=2,\"Medium\",idx=3,\"Hard\"), laps=case(idx=1,18,idx=2,24,idx=3,15) | table compound laps | fields - idx", "queryParameters": {"earliest":"-1m","latest":"now"} }, "name": "Tyre usage" }
+  },
+  "inputs": {},
+  "defaults": {},
+  "layout": {
+    "type": "absolute",
+    "options": { "width": 1920, "height": 1080, "backgroundColor": "#0B0E1A" },
+    "structure": [
+      {"item":"viz_hero_car","position":{"x":0,"y":0,"w":1920,"h":620}},
+      {"item":"viz_hero_dim","position":{"x":0,"y":0,"w":1920,"h":620}},
+      {"item":"viz_hero_vignette_bottom","position":{"x":0,"y":520,"w":1920,"h":100}},
+
+      {"item":"viz_panel_left","position":{"x":20,"y":16,"w":370,"h":600}},
+      {"item":"viz_driver","position":{"x":34,"y":24,"w":340,"h":26}},
+      {"item":"viz_session","position":{"x":34,"y":46,"w":340,"h":20}},
+
+      {"item":"viz_pos_badge","position":{"x":34,"y":78,"w":56,"h":66}},
+      {"item":"viz_kpi_laptime","position":{"x":100,"y":78,"w":136,"h":66}},
+      {"item":"viz_kpi_gap","position":{"x":242,"y":78,"w":136,"h":66}},
+
+      {"item":"viz_speed_gauge","position":{"x":26,"y":156,"w":358,"h":290}},
+
+      {"item":"viz_rpm_gauge","position":{"x":26,"y":448,"w":170,"h":130}},
+      {"item":"viz_gear_label","position":{"x":210,"y":452,"w":60,"h":14}},
+      {"item":"viz_gear_indicator","position":{"x":208,"y":470,"w":66,"h":74}},
+      {"item":"viz_icon_ers","position":{"x":290,"y":452,"w":26,"h":26}},
+      {"item":"viz_ers_bar","position":{"x":208,"y":550,"w":168,"h":24}},
+      {"item":"viz_drs_indicator","position":{"x":30,"y":550,"w":66,"h":24}},
+
+      {"item":"viz_panel_right","position":{"x":1530,"y":16,"w":370,"h":600}},
+      {"item":"viz_lbl_current_lap","position":{"x":1544,"y":26,"w":160,"h":14}},
+      {"item":"viz_kpi_current_lap","position":{"x":1544,"y":40,"w":220,"h":72}},
+      {"item":"viz_lbl_position","position":{"x":1770,"y":26,"w":100,"h":14}},
+      {"item":"viz_kpi_position","position":{"x":1770,"y":40,"w":118,"h":72}},
+
+      {"item":"viz_lbl_sectors","position":{"x":1544,"y":126,"w":200,"h":14}},
+      {"item":"viz_sector_table","position":{"x":1536,"y":144,"w":352,"h":236}},
+
+      {"item":"viz_lbl_strategy","position":{"x":1544,"y":394,"w":200,"h":14}},
+      {"item":"viz_tyre_donut","position":{"x":1536,"y":412,"w":352,"h":150}},
+
+      {"item":"viz_kpi_fuel","position":{"x":1536,"y":572,"w":176,"h":36}},
+      {"item":"viz_kpi_tyrewear","position":{"x":1714,"y":572,"w":176,"h":36}},
+
+      {"item":"viz_panel_bottom","position":{"x":20,"y":628,"w":1880,"h":300}},
+      {"item":"viz_speed_trace","position":{"x":28,"y":636,"w":1864,"h":284}},
+
+      {"item":"viz_footer","position":{"x":28,"y":940,"w":400,"h":16}}
+    ]
+  }
+}
+    ]]></definition>
+</dashboard>

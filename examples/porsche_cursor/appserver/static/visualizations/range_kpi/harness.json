@@ -1,0 +1,5 @@
+{
+  "title": "Range KPI Tile",
+  "description": "Single value KPI with sparkline trend for remaining range",
+  "search": "| inputlookup porsche_range.csv"
+}

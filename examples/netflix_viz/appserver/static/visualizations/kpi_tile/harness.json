@@ -1,0 +1,46 @@
+{
+  "label": "Netflix KPI Tile",
+  "defaultSize": { "width": 420, "height": 200 },
+  "noDataMessage": "Awaiting data — Netflix KPI Tile",
+  "fields": [
+    { "name": "value", "label": "Value", "type": "slider", "min": 0, "max": 5000000, "step": 1000, "default": 1824000 },
+    { "name": "delta", "label": "Delta %", "type": "slider", "min": -50, "max": 50, "step": 0.1, "default": 3.2 },
+    { "name": "_sparkJitter", "label": "Spark rows", "type": "slider", "min": 3, "max": 40, "step": 1, "default": 16 }
+  ],
+  "formatter": [
+    { "name": "field", "label": "Value field", "type": "text", "default": "value" },
+    { "name": "deltaField", "label": "Delta field", "type": "text", "default": "delta" },
+    { "name": "label", "label": "Label", "type": "text", "default": "Global streaming hours" },
+    { "name": "unit", "label": "Unit", "type": "text", "default": "" },
+    { "name": "unitPosition", "label": "Unit position", "type": "select", "options": ["before", "after"], "default": "after" },
+    { "name": "decimals", "label": "Decimals", "type": "text", "default": "-1" },
+    { "name": "showDelta", "label": "Show delta", "type": "radio", "options": ["true", "false"], "default": "true" },
+    { "name": "theme", "label": "Theme", "type": "select", "options": ["dark", "light"], "default": "dark" },
+    { "name": "accentColor", "label": "Accent", "type": "color", "default": "#E50914" },
+    { "name": "showGlow", "label": "Show glow", "type": "radio", "options": ["true", "false"], "default": "true" }
+  ],
+  "data": {
+    "mode": "multi_row",
+    "columns": ["value", "delta"],
+    "dynamicColumnName": { "column": "value", "configKey": "field" },
+    "rowCountField": "_sparkJitter",
+    "sampleRows": [
+      ["1540000", "1.8"],
+      ["1610000", "2.1"],
+      ["1685000", "2.4"],
+      ["1702000", "2.9"],
+      ["1740000", "3.0"],
+      ["1763000", "3.05"],
+      ["1789000", "3.15"],
+      ["1795000", "3.18"],
+      ["1801000", "3.12"],
+      ["1810000", "3.2"],
+      ["1818000", "3.2"],
+      ["1821000", "3.21"],
+      ["1823500", "3.22"],
+      ["1823900", "3.21"],
+      ["1824000", "3.2"],
+      ["1824000", "3.2"]
+    ]
+  }
+}

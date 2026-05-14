@@ -1,0 +1,5 @@
+{
+  "title": "Regen/Consumption Donut",
+  "description": "Donut chart showing energy distribution",
+  "search": "| inputlookup porsche_regen.csv"
+}
