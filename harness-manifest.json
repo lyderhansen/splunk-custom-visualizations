@@ -72,7 +72,8 @@
       "network_topology",
       "arcade_leaderboard",
       "infographic_shapes",
-      "icon_library"
+      "icon_library",
+      "calendar_heatmap"
     ]
   },
   "vizs": [
@@ -224,6 +225,7 @@
     "search_activity",
     "index_storage",
     "infographic_shapes",
-    "icon_library"
+    "icon_library",
+    "calendar_heatmap"
   ]
 }
